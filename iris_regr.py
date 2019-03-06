@@ -34,7 +34,7 @@ icc.add_day_of_year(data, 'time')
 #  Get dayofyear-vectors of gmt and data
 doys_cube = data.coord('day_of_year').points
 #  print(doys_cube)
-doys = np.unique(gmt.coord('day_of_year').points)
+doys = gmt.coord('day_of_year').points
 print('Days of Year are:\n')
 print(doys)
 
