@@ -7,26 +7,27 @@ import iris.coord_categorisation as icc
 #  from scipy import stats
 #  import dask as da
 from datetime import datetime
+import settings as s
 
 
 #  specify paths
-out_script = '/home/bschmidt/scripts/detrending/ouput/regr.out'
-source_path_data = '/home/bschmidt/data/test_data_tas.nc4'
-source_path_gmt = '/home/bschmidt/data/test_gmt.nc4'
-dest_path_intercept = '/home/bschmidt/data/test_tas_intercept.nc'
-dest_path_slope = '/home/bschmidt/data/test_tas_slope.nc'
+logfile = 'regr.out'
+test_data = 'test_data_tas.nc4'
+test_gmt = 'test_gmt.nc4'
+intercept_outfile = 'test_tas_intercept.nc'
+slope_outfile = 'test_tas_slope.nc'
 
 #  Get jobs starting time
 STIME = datetime.now()
-with open(out_script, 'w') as out:
+with open(os.path.join(s.data_dir,logfile), 'w') as out:
     out.write('Job started at: ' + str(STIME) + '\n')
 print('Job started at: ' + str(STIME))
 
 #  load data
-gmt = iris.load_cube(source_path_gmt)
+gmt = iris.load_cube(os.path.join(s.data_dir,test_gmt))
 #  icc.add_day_of_year(gmt, 'time')
 #  print(gmt)
-data = iris.load_cube(source_path_data)
+data = iris.load_cube(os.path.join(s.data_dir,test_data))
 icc.add_day_of_year(data, 'time')
 #  print(data)
 
@@ -94,7 +95,7 @@ slopes = iris.cube.Cube(slopes,
                                              (data.coord('longitude'), 2),
                                             ])
 #  save slope data to netCDF4
-iris.fileformats.netcdf.save(slopes, dest_path_slope)
+iris.fileformats.netcdf.save(slopes, os.path.join(s.data_dir,slope_outfile))
 
 #  repeat saving for intercept
 intercepts = iris.cube.Cube(intercepts,
@@ -102,11 +103,11 @@ intercepts = iris.cube.Cube(intercepts,
                                              (data.coord('latitude'), 1),
                                              (data.coord('longitude'), 2),
                                             ])
-iris.fileformats.netcdf.save(intercepts, dest_path_intercept)
+iris.fileformats.netcdf.save(intercepts, os.path.join(s.data_dir,intercept_outfile))
 
 # Get jobs finishing time
 FTIME = datetime.now()
-with open(out_script, 'a') as out:
+with open(os.path.join(s.data_dir,logfile), 'a') as out:
     out.write('Job finished at: ' + str(FTIME) + '\n')
 print('Job finished at: ' + str(FTIME))
 duration = FTIME - STIME
