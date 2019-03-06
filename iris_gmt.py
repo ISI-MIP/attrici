@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import iris
 import iris.coord_categorisation as icc
 import numpy as np
