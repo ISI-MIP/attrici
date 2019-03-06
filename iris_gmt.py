@@ -1,16 +1,25 @@
+import datetime
 import iris
-import numpy as np
 import iris.coord_categorisation as icc
+import numpy as np
+
+# specify paths
+out_script = '/home/bschmidt/scripts/detrending/ouput/gmt.out'
+source_path = '/home/bschmidt/data/test_data_tas.nc4'
+dest_path = '/home/bschmidt/data/test_gmt.nc'
+
+# Get jobs starting time
+STIME = datetime.now()
+with open(out_script, 'w') as out:
+    out.write('Job started at: ' + str(STIME) + '\n')
+print('Job started at: ' + str(STIME))
 
 # load data and add auxiliary variable "doy"
-data_path = '/home/bschmidt/data/test_data_tas.nc4'
-
-data = iris.load_cube(data_path)
+data = iris.load_cube(source_path)
 icc.add_day_of_year(data, 'time')
 
 #  Let iris figure out cell boundaries and calculate
 #  global mean temperatures weighted by cell area
-
 data.coord('latitude').guess_bounds()
 data.coord('longitude').guess_bounds()
 grid_areas = iris.analysis.cartography.area_weights(data)
@@ -36,4 +45,14 @@ gmt = iris.cube.Cube(gmt,
                      aux_coords_and_dims=[(col.coord('day_of_year'), 0)])
 
 # save cube to netCDF4 file
-iris.save(gmt, "test_gmt.nc", netcdf_format="NETCDF4")
+iris.save(gmt, dest_path, netcdf_format="NETCDF4")
+
+# Get jobs finishing time
+FTIME = datetime.now()
+with open(out_script, 'a') as out:
+    out.write('Job finished at: ' + str(FTIME) + '\n')
+print('Job finished at: ' + str(FTIME))
+duration = FTIME - STIME
+print('Time elapsed ' +
+      str(divmod(duration.total_seconds(), 3600)[0]) +
+      ' hours!')
