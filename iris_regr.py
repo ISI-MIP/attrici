@@ -71,44 +71,31 @@ def regr_doy(doy):
         slopes[doy-1, lat, lon] = slope
         intercepts[doy-1, lat, lon] = intercept
 
+#  create memory map for child processes
+folder = './joblib_memmap'
+try:
+    os.mkdir(folder)
+except FileExistsError:
+    pass
+
+slopes_memmap = os.path.join(folder, 'slopes_memmap')
+dump(slopes, slopes_memmap)
+slopes = load(slopes_memmap, mmap_mode='r+')
+
+intercepts_memmap = os.path.join(folder, 'intercepts_memmap')
+dump(intercepts, intercepts_memmap)
+intercepts = load(intercepts_memmap, mmap_mode='r+')
+
+#  run regression in parallel
 print('Start with regression Calculations\n')
 joblib.Parallel(n_jobs=5)(
     joblib.delayed(regr_doy)(doy) for doy in np.unique(doys))
 
-print('Start with regression Calculations\n')
-for doy in np.unique(doys):
-    gmt_day = gmt[doys == doy].data
-    A = np.vstack([gmt_day, np.ones(len(gmt_day))]).T
-    for yx_slice in data.slices(['day_of_year']):
-        slope, intercept = np.linalg.lstsq(A, yx_slice[doys == doy].data)[0]
-        print('\nSlope is:\n')
-        print(slope)
-        print('\nIntercept is:\n')
-        print(intercept)
-        print('\nDayofYear is:\n')
-        print(doy)
-        lat = int(np.where(data.coord('latitude').points == yx_slice.coord('latitude').points)[0])
-        print('\nLatitude is:\n')
-        print(lat)
-        lon = int(np.where(data.coord('longitude').points == yx_slice.coord('longitude').points)[0])
-        print('\nLongitude is:\n')
-        print(lon)
-        #  write regression output to containers
-        slopes[doy-1, lat, lon] = slope
-        intercepts[doy-1, lat, lon] = intercept
-
-#  FIRST TRY AT MULTIPROCESSING
-#  def regr_pool():
-#      pool = Pool(processes=5)
-#      chunks = [np.unique(doys)[i::5] for i in range(366)]
-#      result = pool.map_async(regr, chunks)
-#
-#      while not result.ready():
-#          print("Running...")
-#          time.sleep(3)
-#      return sum(result.get())
-#
-#  slopes, intercepts = regr_pool()
+#  Clean up memory map
+try:
+    shutil.rmtree(folder)
+except:  # noqa
+    print('Could not clean-up automatically.')
 
 #  Create dayofyear coordinate
 doy_coord = iris.coords.DimCoord(range(1,367))
