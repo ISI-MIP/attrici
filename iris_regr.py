@@ -49,7 +49,32 @@ intercepts = np.ones((366,
 
 
 # loop over dayofyear-vector, then lon and lat and calculate regression
-# TODO: run this in parallel
+def regr_doy(doy):
+    gmt_day = gmt[doys == doy].data
+    A = np.vstack([gmt_day, np.ones(len(gmt_day))]).T
+    print('\nDayofYear is:\n' + str(doy))
+    for yx_slice in data.slices(['day_of_year']):
+        slope, intercept = np.linalg.lstsq(A, yx_slice[doys == doy].data)[0]
+        #print('\nSlope is:\n')
+        #print(slope)
+        #print('\nIntercept is:\n')
+        #print(intercept)
+        #print('\nDayofYear is:\n')
+        #print(doy)
+        lat = int(np.where(data.coord('latitude').points == yx_slice.coord('latitude').points)[0])
+        #print('\nLatitude is:\n')
+        #print(lat)
+        lon = int(np.where(data.coord('longitude').points == yx_slice.coord('longitude').points)[0])
+        #print('\nLongitude is:\n')
+        #print(lon)
+        #  write regression output to containers
+        slopes[doy-1, lat, lon] = slope
+        intercepts[doy-1, lat, lon] = intercept
+
+print('Start with regression Calculations\n')
+joblib.Parallel(n_jobs=5)(
+    joblib.delayed(regr_doy)(doy) for doy in np.unique(doys))
+
 print('Start with regression Calculations\n')
 for doy in np.unique(doys):
     gmt_day = gmt[doys == doy].data
