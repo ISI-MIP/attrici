@@ -1,31 +1,43 @@
 import os
-import time
-from multiprocess import Pool
-import sys
+#  import time
+#  from multiprocess import Pool
 import numpy as np
 import iris
 import iris.coord_categorisation as icc
-from scipy import stats
-import dask as da
+#  from scipy import stats
+#  import dask as da
 from datetime import datetime
-os.chdir('/home/bschmidt/data/')
 
-start_time = datetime.now()
-gmt = iris.load_cube('test_gmt.nc4')
+
+#  specify paths
+out_script = '/home/bschmidt/scripts/detrending/ouput/regr.out'
+source_path_data = '/home/bschmidt/data/test_data_tas.nc4'
+source_path_gmt = '/home/bschmidt/data/test_gmt.nc4'
+dest_path_intercept = '/home/bschmidt/data/test_tas_intercept.nc'
+dest_path_slope = '/home/bschmidt/data/test_tas_slope.nc'
+
+#  Get jobs starting time
+STIME = datetime.now()
+with open(out_script, 'w') as out:
+    out.write('Job started at: ' + str(STIME) + '\n')
+print('Job started at: ' + str(STIME))
+
+#  load data
+gmt = iris.load_cube(source_path_gmt)
 #  icc.add_day_of_year(gmt, 'time')
-print(gmt)
-duration_run = datetime.now() - start_time
-print("\n GMT calculations' duration in seconds %4.2f \n" % (duration_run.total_seconds()))
-
-start_time = datetime.now()
-data = iris.load_cube('test_data_tas.nc4')
+#  print(gmt)
+data = iris.load_cube(source_path_data)
 icc.add_day_of_year(data, 'time')
-#print(data)
+#  print(data)
 
+#  Get dayofyear-vectors of gmt and data
 doys_cube = data.coord('day_of_year').points
-#print(doys_cube)
-doys = gmt.coord('day_of_year').points
-#print(doys)
+#  print(doys_cube)
+doys = np.unique(gmt.coord('day_of_year').points)
+print('Days of Year are:\n')
+print(doys)
+
+#  Create numpy arrays as containers for regression output
 print('Creating Container for Slopes')
 slopes = np.ones((366,
                   data.coord('latitude').shape[0],
@@ -34,10 +46,10 @@ print('Creating Container for Intercepts')
 intercepts = np.ones((366,
                       data.coord('latitude').shape[0],
                       data.coord('longitude').shape[0]), dtype=np.float64)
-doys_cube = gmt.coord('day_of_year').points
-print('Days of Year are:\n')
-print(np.unique(doys))
 
+
+# loop over dayofyear-vector, then lon and lat and calculate regression
+# TODO: run this in parallel
 print('Start with regression Calculations\n')
 for doy in np.unique(doys):
     gmt_day = gmt[doys == doy].data
@@ -56,10 +68,11 @@ for doy in np.unique(doys):
         lon = int(np.where(data.coord('longitude').points == yx_slice.coord('longitude').points)[0])
         print('\nLongitude is:\n')
         print(lon)
+        #  write regression output to containers
         slopes[doy-1, lat, lon] = slope
         intercepts[doy-1, lat, lon] = intercept
 
-
+#  FIRST TRY AT MULTIPROCESSING
 #  def regr_pool():
 #      pool = Pool(processes=5)
 #      chunks = [np.unique(doys)[i::5] for i in range(366)]
@@ -72,17 +85,31 @@ for doy in np.unique(doys):
 #
 #  slopes, intercepts = regr_pool()
 
+#  Create dayofyear coordinate
 doy_coord = iris.coords.DimCoord(range(1,367))
+#  wrap iris cube container around data
 slopes = iris.cube.Cube(slopes,
                         dim_coords_and_dims=[(doy_coord, 0),
                                              (data.coord('latitude'), 1),
                                              (data.coord('longitude'), 2),
                                             ])
+#  save slope data to netCDF4
+iris.fileformats.netcdf.save(slopes, dest_path_slope)
 
-iris.fileformats.netcdf.save(slopes, "test_tas_slope.nc4")
+#  repeat saving for intercept
 intercepts = iris.cube.Cube(intercepts,
                         dim_coords_and_dims=[(doy_coord, 0),
                                              (data.coord('latitude'), 1),
                                              (data.coord('longitude'), 2),
                                             ])
-iris.fileformats.netcdf.save(intercepts, "test_tas_intercept.nc4", netcdf_format="NETCDF4")
+iris.fileformats.netcdf.save(intercepts, dest_path_intercept)
+
+# Get jobs finishing time
+FTIME = datetime.now()
+with open(out_script, 'a') as out:
+    out.write('Job finished at: ' + str(FTIME) + '\n')
+print('Job finished at: ' + str(FTIME))
+duration = FTIME - STIME
+print('Time elapsed ' +
+      str(divmod(duration.total_seconds(), 3600)[0]) +
+      ' hours!')
