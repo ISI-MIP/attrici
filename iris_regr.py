@@ -4,32 +4,45 @@ import iris
 import iris.coord_categorisation as icc
 from joblib import dump, load
 import joblib
+import multiprocessing
+import psutil
 import shutil
+import sys
 from datetime import datetime
 import settings as s
 
+print('Number of available CPUs:\n')
+print('CPUs for multiprocessing:\n')
+print (multiprocessing.cpu_count())
+print('CPUs in total:\n')
+print (os.cpu_count())
+sys.stdout.flush()
 
 #  specify paths
 
 logfile = 'regr.out'
-test_data = 'test_data_tas.nc4'
-test_gmt = 'test_gmt.nc4'
-intercept_outfile = 'test_tas_intercept.nc'
-slope_outfile = 'test_tas_slope.nc'
+test_data = 'tas_rm_rechunked_gswp3_1901_2010.nc4'
+test_gmt = 'gmt_gswp3_1901_2010.nc4'
+intercept_outfile = 'tas_intercept.nc'
+slope_outfile = 'tas_slope.nc'
 
 #  Get jobs starting time
 STIME = datetime.now()
-with open(os.path.join(s.data_dir,logfile), 'w') as out:
+with open(os.path.join(s.data_dir, logfile), 'w') as out:
     out.write('Job started at: ' + str(STIME) + '\n')
 print('Job started at: ' + str(STIME))
 
 #  load data
 gmt = iris.load_cube(os.path.join(s.data_dir,test_gmt))
-#  icc.add_day_of_year(gmt, 'time')
-#  print(gmt)
+icc.add_day_of_year(gmt, 'time')
+print('GMT data is loaded and looks like this:\n')
+print(gmt)
+sys.stdout.flush()
 data = iris.load_cube(os.path.join(s.data_dir,test_data))
 icc.add_day_of_year(data, 'time')
-#  print(data)
+print('Target variable is loaded and looks like this:\n')
+print(data)
+sys.stdout.flush()
 
 #  Get dayofyear-vectors of gmt and data
 doys_cube = data.coord('day_of_year').points
@@ -37,40 +50,61 @@ doys_cube = data.coord('day_of_year').points
 doys = gmt.coord('day_of_year').points
 print('Days of Year are:\n')
 print(doys)
+sys.stdout.flush()
 
 #  Create numpy arrays as containers for regression output
 print('Creating Container for Slopes')
-slopes = np.ones((366,
+slope = np.ones((366,
                   data.coord('latitude').shape[0],
                   data.coord('longitude').shape[0]), dtype=np.float64)
-print('Creating Container for Intercepts')
-intercepts = np.ones((366,
-                      data.coord('latitude').shape[0],
-                      data.coord('longitude').shape[0]), dtype=np.float64)
+intercept=slope
+r_value=slope
+p_value=slope
+std_err=slope
+
+print('Created Container for output data!')
+print('Parent process stats:\n')
+print('CPU % used:' , psutil.cpu_percent())
+print('Memory % used:', psutil.virtual_memory()[2])
+pid = os.getpid()
+py = psutil.Process(pid)
+memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
+print('Memory use:', memoryUse)
+sys.stdout.flush()
 
 
 # loop over dayofyear-vector, then lon and lat and calculate regression
 def regr_doy(doy):
     gmt_day = gmt[doys == doy].data
-    A = np.vstack([gmt_day, np.ones(len(gmt_day))]).T
-    print('\nDayofYear is:\n' + str(doy))
+    #  A = np.vstack([gmt_day, np.ones(len(gmt_day))]).T
+    #  write dayofyear to standard output
     for yx_slice in data.slices(['day_of_year']):
-        slope, intercept = np.linalg.lstsq(A, yx_slice[doys == doy].data)[0]
-        #print('\nSlope is:\n')
-        #print(slope)
-        #print('\nIntercept is:\n')
-        #print(intercept)
-        #print('\nDayofYear is:\n')
-        #print(doy)
+        sys.stdout.write('\nDayofYear is:\n' + str(doy) + '\n')
+        #  sys.stdout.write('\nChild process stats:\n')
+        #  sys.stdout.write('CPU % used:' + str(psutil.cpu_percent()))
+        #  sys.stdout.write('\nMemory % used:' + str(psutil.virtual_memory()[2]))
+        #  pid = os.getpid()
+        #  py = psutil.Process(pid)
+        #  memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
+        #  sys.stdout.write('\nMemory use in GB:' + str(memoryUse))
+        sys.stdout.flush()
+        s, i, r, p, sd = stats.linregress(gmt_day[1:-1],yx_slice[doys == doy].data[1:-1])
+        sys.stdout.write('\nSlope is:\n')
+        sys.stdout.write(str(slope))
+        print('\nIntercept is:\n')
+        sys.stdout.write(str(intercept))
         lat = int(np.where(data.coord('latitude').points == yx_slice.coord('latitude').points)[0])
-        #print('\nLatitude is:\n')
-        #print(lat)
+        sys.stdout.write('\nLatitude is:\n')
+        sys.stdout.write(str(lat))
         lon = int(np.where(data.coord('longitude').points == yx_slice.coord('longitude').points)[0])
-        #print('\nLongitude is:\n')
-        #print(lon)
+        sys.stdout.write('\nLongitude is:\n')
+        sys.stdout.write(str(lon))
         #  write regression output to containers
-        slopes[doy-1, lat, lon] = slope
-        intercepts[doy-1, lat, lon] = intercept
+        slope[doy-1, lat, lon] = s
+        intercept[doy-1, lat, lon] = i
+        r_value[doy-1, lat, lon] = r
+        p_value[doy-1, lat, lon] = p
+        std_err[doy-1, lat, lon] = sd
 
 #  create memory map for child processes
 folder = './joblib_memmap'
@@ -79,17 +113,21 @@ try:
 except FileExistsError:
     pass
 
-slopes_memmap = os.path.join(folder, 'slopes_memmap')
-dump(slopes, slopes_memmap)
-slopes = load(slopes_memmap, mmap_mode='r+')
+memmap = list()
+for obj in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
+    memmap.append(os.path.join(folder, obj + '_memmap'))
+    dump(eval(obj), memmap[-1])
+    #slopes_memmap = np.memmap(slopes_memmap, dtype=slopes.dtype, shape=slopes.shape, mode='w+')
 
-intercepts_memmap = os.path.join(folder, 'intercepts_memmap')
-dump(intercepts, intercepts_memmap)
-intercepts = load(intercepts_memmap, mmap_mode='r+')
+slope = load(memmap[0], mmap_mode='r+')
+intercept = load(memmap[1], mmap_mode='r+')
+r_value = load(memmap[2], mmap_mode='r+')
+p_value = load(memmap[3], mmap_mode='r+')
+std_err = load(memmap[4], mmap_mode='r+')
 
 #  run regression in parallel
 print('Start with regression Calculations\n')
-joblib.Parallel(n_jobs=5)(
+joblib.Parallel(n_jobs=s.n_jobs)(
     joblib.delayed(regr_doy)(doy) for doy in np.unique(doys))
 
 #  Clean up memory map
@@ -100,22 +138,15 @@ except:  # noqa
 
 #  Create dayofyear coordinate
 doy_coord = iris.coords.DimCoord(range(1,367))
-#  wrap iris cube container around data
-slopes = iris.cube.Cube(slopes,
+for obj in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
+    dest_path_obj = os.path.join(dest_path, 'test_' + data.name() + '_' + obj + '.nc4')
+    #  wrap iris cube container around data
+    cube = iris.cube.Cube(eval(obj),
                         dim_coords_and_dims=[(doy_coord, 0),
                                              (data.coord('latitude'), 1),
                                              (data.coord('longitude'), 2),
                                             ])
-#  save slope data to netCDF4
-iris.fileformats.netcdf.save(slopes, os.path.join(s.data_dir,slope_outfile))
-
-#  repeat saving for intercept
-intercepts = iris.cube.Cube(intercepts,
-                        dim_coords_and_dims=[(doy_coord, 0),
-                                             (data.coord('latitude'), 1),
-                                             (data.coord('longitude'), 2),
-                                            ])
-iris.fileformats.netcdf.save(intercepts, os.path.join(s.data_dir,intercept_outfile))
+    iris.fileformats.netcdf.save(cube, dest_path_obj)
 
 # Get jobs finishing time
 FTIME = datetime.now()
