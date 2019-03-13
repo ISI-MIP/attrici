@@ -6,6 +6,7 @@ from joblib import dump, load
 import joblib
 import multiprocessing
 import psutil
+from scipy import stats
 import shutil
 import sys
 from datetime import datetime
