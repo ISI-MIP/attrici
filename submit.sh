@@ -16,4 +16,6 @@
 echo 'Available memory of node is:'
 cat /proc/meminfo | grep MemFree | awk '{ print $2 }'
 source /home/bschmidt/.programs/anaconda3/bin/activate detrending
-srun mprof run --include-children --multiprocess iris_regr.py
+srun python3 iris_regr.py
+# run next line for profiling memory
+# srun mprof run --include-children --multiprocess iris_regr.py

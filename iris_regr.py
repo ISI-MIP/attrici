@@ -22,10 +22,9 @@ sys.stdout.flush()
 #  specify paths
 
 logfile = 'regr.out'
-test_data = 'tas_rm_rechunked_gswp3_1901_2010.nc4'
-test_gmt = 'gmt_gswp3_1901_2010.nc4'
-intercept_outfile = 'tas_intercept.nc'
-slope_outfile = 'tas_slope.nc'
+source_path_data = s.data_dir + 'tas_rm_rechunked_gswp3_1901_2010.nc4'
+source_path_gmt = s.data_dir + 'gmt_gswp3_1901_2010.nc4'
+dest_path = s.data_dir
 
 #  Get jobs starting time
 STIME = datetime.now()
@@ -34,12 +33,12 @@ with open(os.path.join(s.data_dir, logfile), 'w') as out:
 print('Job started at: ' + str(STIME))
 
 #  load data
-gmt = iris.load_cube(os.path.join(s.data_dir,test_gmt))
+gmt = iris.load_cube(source_path_gmt)
 icc.add_day_of_year(gmt, 'time')
 print('GMT data is loaded and looks like this:\n')
 print(gmt)
 sys.stdout.flush()
-data = iris.load_cube(os.path.join(s.data_dir,test_data))
+data = iris.load_cube(source_path_data)
 icc.add_day_of_year(data, 'time')
 print('Target variable is loaded and looks like this:\n')
 print(data)
@@ -91,9 +90,9 @@ def regr_doy(doy):
         sys.stdout.flush()
         s, i, r, p, sd = stats.linregress(gmt_day[1:-1],yx_slice[doys == doy].data[1:-1])
         sys.stdout.write('\nSlope is:\n')
-        sys.stdout.write(str(slope))
+        sys.stdout.write(str(s))
         print('\nIntercept is:\n')
-        sys.stdout.write(str(intercept))
+        sys.stdout.write(str(i))
         lat = int(np.where(data.coord('latitude').points == yx_slice.coord('latitude').points)[0])
         sys.stdout.write('\nLatitude is:\n')
         sys.stdout.write(str(lat))
@@ -118,7 +117,6 @@ memmap = list()
 for obj in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
     memmap.append(os.path.join(folder, obj + '_memmap'))
     dump(eval(obj), memmap[-1])
-    #slopes_memmap = np.memmap(slopes_memmap, dtype=slopes.dtype, shape=slopes.shape, mode='w+')
 
 slope = load(memmap[0], mmap_mode='r+')
 intercept = load(memmap[1], mmap_mode='r+')
@@ -151,7 +149,7 @@ for obj in ['slope', 'intercept', 'r_value', 'p_value', 'std_err']:
 
 # Get jobs finishing time
 FTIME = datetime.now()
-with open(os.path.join(s.data_dir,logfile), 'a') as out:
+with open(os.path.join(s.data_dir, logfile), 'a') as out:
     out.write('Job finished at: ' + str(FTIME) + '\n')
 print('Job finished at: ' + str(FTIME))
 duration = FTIME - STIME
