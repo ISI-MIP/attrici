@@ -126,7 +126,7 @@ std_err = load(memmap[4], mmap_mode='r+')
 
 #  run regression in parallel
 print('Start with regression Calculations\n')
-joblib.Parallel(n_jobs=s.n_jobs)(
+joblib.Parallel(n_jobs=-1, backend='multiprocessing')(
     joblib.delayed(regr_doy)(doy) for doy in np.unique(doys))
 
 #  Clean up memory map
