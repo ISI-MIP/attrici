@@ -1,4 +1,5 @@
-
+import numpy as np
+from scipy import stats
 
 
 def linear_regr_per_gridcell(np_data_to_detrend,gmt_on_each_day,doy,lati,loni):
@@ -26,17 +27,3 @@ def run_serial_linear_regr():
     return results
 
 
-def run_parallel_linear_regr():
-    
-    """ calculate linear regression stats for all days of years and all grid cells.
-    joblib implementation. Return a list of all regression stats. """
-
-    latis = np.arange(np_data_to_detrend.shape[1])
-    lonis = np.arange(np_data_to_detrend.shape[2])
-    doys = np.arange(days_of_year)
-
-    results = joblib.Parallel(n_jobs=3)(
-                joblib.delayed(linear_regr_per_gridcell)(
-                    np_data_to_detrend,gmt_on_each_day,doy,lati,loni)
-                        for doy in doys for lati in latis for loni in lonis)
-    return results
