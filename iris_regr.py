@@ -22,8 +22,8 @@ sys.stdout.flush()
 #  specify paths
 
 logfile = 'regr.out'
-source_path_data = s.data_dir + 'tas_rm_rechunked_gswp3_1901_2010.nc4'
-source_path_gmt = s.data_dir + 'gmt_gswp3_1901_2010.nc4'
+source_path_data = os.path.join(s.data_dir, s.gmt_file)
+source_path_gmt = os.path.join(s.data_dir, s.to_detrend_file)
 dest_path = s.data_dir
 
 #  Get jobs starting time
@@ -39,7 +39,7 @@ print('GMT data is loaded and looks like this:\n')
 print(gmt)
 sys.stdout.flush()
 data = iris.load_cube(source_path_data)
-icc.add_day_of_year(data, 'time')
+# icc.add_day_of_year(data, 'time')
 print('Target variable is loaded and looks like this:\n')
 print(data)
 sys.stdout.flush()
