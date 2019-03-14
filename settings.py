@@ -11,3 +11,6 @@ else:
 
 #  handle job specifications
 n_jobs = 16  # number of childprocesses created by the job
+
+gmt_file = 'test_ssa_gmt.nc4'
+to_detrend_file = 'test_data_tas.nc4'
