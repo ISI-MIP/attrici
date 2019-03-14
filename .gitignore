@@ -1,3 +1,4 @@
+joblib_memmap/
 notebooks/
 .ipynb_checkpoints/
 __pycache__/
