@@ -80,25 +80,19 @@ def regr_doy(doy):
     #  write dayofyear to standard output
     for yx_slice in data.slices(['day_of_year']):
         sys.stdout.write('\nDayofYear is:\n' + str(doy) + '\n')
-        #  sys.stdout.write('\nChild process stats:\n')
-        #  sys.stdout.write('CPU % used:' + str(psutil.cpu_percent()))
-        #  sys.stdout.write('\nMemory % used:' + str(psutil.virtual_memory()[2]))
-        #  pid = os.getpid()
-        #  py = psutil.Process(pid)
-        #  memoryUse = py.memory_info()[0]/2.**30  # memory use in GB...I think
-        #  sys.stdout.write('\nMemory use in GB:' + str(memoryUse))
         sys.stdout.flush()
         s, i, r, p, sd = stats.linregress(gmt_day[1:-1],yx_slice[doys == doy].data[1:-1])
-        sys.stdout.write('\nSlope is:\n')
-        sys.stdout.write(str(s))
-        print('\nIntercept is:\n')
-        sys.stdout.write(str(i))
+        #  sys.stdout.write('\nSlope is:\n')
+        #  sys.stdout.write(str(s))
+        #  print('\nIntercept is:\n')
+        #  sys.stdout.write(str(i))
         lat = int(np.where(data.coord('latitude').points == yx_slice.coord('latitude').points)[0])
         sys.stdout.write('\nLatitude is:\n')
         sys.stdout.write(str(lat))
         lon = int(np.where(data.coord('longitude').points == yx_slice.coord('longitude').points)[0])
         sys.stdout.write('\nLongitude is:\n')
         sys.stdout.write(str(lon))
+        sys.stdout.flush()
         #  write regression output to containers
         slope[doy-1, lat, lon] = s
         intercept[doy-1, lat, lon] = i
