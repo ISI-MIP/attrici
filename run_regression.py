@@ -28,7 +28,7 @@ gmt_on_each_day = np.interp(np.arange(110*days_of_year),
 doys = np.arange(days_of_year)
 
 
-def run_lat_slice_parallel(lat_slice_data, days_of_year):
+def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year):
 
     """ calculate linear regression stats for all days of years and all latitudes.
     joblib implementation. Return a list of all stats """
@@ -50,7 +50,7 @@ def run_linear_regr_on_iris_cube(cube, days_of_year):
 
     results = []
     for lat_slice in cube.slices(['time','longitude']):
-        r = regression.run_lat_slice_serial(lat_slice.data, gmt_on_each_day, days_of_year)
+        r = run_lat_slice_parallel(lat_slice.data, gmt_on_each_day, days_of_year)
         results = results + r
     return results
 
@@ -89,8 +89,8 @@ def write_linear_regression_stats(shape_of_input, original_cube_coords,
     lonis=np.arange(shape_of_input[2])
 
     i = 0
-    for doy in np.arange(days_of_year):
-        for lati in latis:
+    for lati in latis:
+        for doy in np.arange(days_of_year):
             for loni in lonis:
                 intercepts[doy,lati,loni] = results[i].intercept
                 slopes[doy,lati,loni] = results[i].slope
