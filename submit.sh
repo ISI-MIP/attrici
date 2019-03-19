@@ -1,11 +1,12 @@
 #!/bin/bash
 
 #SBATCH --qos=priority
-##SBATCH --partition=priority
-#SBATCH --job-name=tas_regr
+#SBATCH --partition=priority
+##SBATCH --constraint=broadwell
+#SBATCH --job-name=test
 #SBATCH --account=isipedia
-#SBATCH --output=output/tas_regr.out
-#SBATCH --error=output/tas_regr.err
+#SBATCH --output=output/test.out
+#SBATCH --error=output/test.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 
@@ -16,6 +17,6 @@
 echo 'Available memory of node is:'
 cat /proc/meminfo | grep MemFree | awk '{ print $2 }'
 source /home/bschmidt/.programs/anaconda3/bin/activate detrending
-srun python3 iris_regr.py
+srun python3 run_regression_classic.py
 # run next line for profiling memory
-# srun mprof run --include-children --multiprocess iris_regr.py
+# srun mprof run --include-children --multiprocess run_regression_classic.py
