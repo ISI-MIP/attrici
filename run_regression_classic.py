@@ -13,14 +13,15 @@ import time as t
 
 #  specify paths
 #  out_script = '/home/bschmidt/scripts/detrending/output/regr.out'
-#  source_path_data = '/home/bschmidt/temp/gswp3/test_data_tas_no_leap.nc4'
-#  source_path_gmt = '/home/bschmidt/temp/gswp3/test_ssa_gmt.nc4'
+#  to_detrend_file = '/home/bschmidt/temp/gswp3/test_data_tas_no_leap.nc4'
+#  gmt_file = '/home/bschmidt/temp/gswp3/test_ssa_gmt.nc4'
 #  dest_path = '/home/bschmidt/temp/gswp3/'
 
 gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
 gmt = nc.Dataset(gmt_file, "r")
+gmt_var = list(gmt.variables.keys())[-1]
 data = nc.Dataset(to_detrend_file, "r")
 var = list(data.variables.keys())[-1]
 
@@ -28,8 +29,8 @@ days_of_year = 365
 # interpolate monthly gmt values to daily.
 # do this more exact later.
 gmt_on_each_day = np.interp(np.arange(110*days_of_year),
-                            gmt.variables["time"][:], gmt.variables['gmt'][:])
-gmt_on_each_day = gmt.variables['gmt'][:]
+                            gmt.variables["time"][:], gmt.variables[gmt_var][:])
+# gmt_on_each_day = gmt.variables[gmt_var][:]
 
 def remove_leap_days(data, time):
 
@@ -45,8 +46,8 @@ def remove_leap_days(data, time):
     return data[leap_mask]
 
 
-gmt_on_each_day = remove_leap_days(gmt_on_each_day, gmt.variables['time'])
-# data_to_detrend = remove_leap_days(data.variables[var], data.variables['time'])
+#  gmt_on_each_day = remove_leap_days(gmt_on_each_day, gmt.variables['time'])
+#  data_to_detrend = remove_leap_days(data.variables[var], data.variables['time'])
 data_to_detrend = data.variables[var]
 
 
@@ -72,7 +73,7 @@ def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year):
 
 def run_linear_regr_on_ncdf(data_to_detrend, days_of_year):
 
-    """ use the iris slicing to run linear regression on a whole iris cube.
+    """ use the numpy slicing to run linear regression on a dataset.
     for each latitude slice, calculation is parallelized. """
     i = 0
     results = []
