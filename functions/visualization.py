@@ -104,7 +104,7 @@ def regr_fit_time(rdata, data, gmt, indices=(0, 0, 0), detrend = False):
 
     # Plot the data of one point and fit the regression.
     fig, ax = plt.subplots()
-    print(time_values.shape, plot_data.shape)
+    #  print(time_values.shape, plot_data.shape)
     ax.scatter(time_values, plot_data)
     ax.plot(time_values, fit, 'r', label='fit')
 
