@@ -12,11 +12,11 @@ import sys
 def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
 
     """ minimal version of a linear regression per grid cell """
-    TIME1 = datetime.now()
-    print(np_data_to_detrend.shape, flush=True)
-    print(gmt_on_each_day.shape, flush=True)
-    print('doy is: ' + str(doy), flush=True)
-    print('longitude index is: ' + str(loni), flush=True)
+    #TIME1 = datetime.now()
+    #print(np_data_to_detrend.shape, flush=True)
+    #print(gmt_on_each_day.shape, flush=True)
+    #print('doy is: ' + str(doy), flush=True)
+    #print('longitude index is: ' + str(loni), flush=True)
     
     if np_data_to_detrend.ndim >= 2:
         data_of_doy = np_data_to_detrend[doy::365, loni]
@@ -24,11 +24,10 @@ def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
         data_of_doy = np_data_to_detrend[doy::365]
 
     gmt_of_doy = gmt_on_each_day[doy::365]
-    output = stats.linregress(gmt_of_doy, data_of_doy)
-    TIME2 = datetime.now()
-    duration = TIME2 - TIME1
-    print('One grid cell regression input took', duration.total_seconds(), 'seconds.', flush=True)
-    return output
+    #TIME2 = datetime.now()
+    #duration = TIME2 - TIME1
+    #print('One grid cell regression input took', duration.total_seconds(), 'seconds.', flush=True)
+    return stats.linregress(gmt_of_doy, data_of_doy)
 
 
 def run_lat_slice_serial(lat_slice_data, gmt_on_each_day, days_of_year):

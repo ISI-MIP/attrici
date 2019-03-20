@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import joblib
 import netCDF4 as nc
 import numpy as np
+from operator import itemgetter
 import os
 import regression
 import settings as s
@@ -21,7 +22,8 @@ gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
 gmt = nc.Dataset(gmt_file, "r")
-gmt_var = list(gmt.variables.keys())[-1]
+gmt_var = list(gmt.variables.keys())[0]
+print('gmt_var', flush=True)
 data = nc.Dataset(to_detrend_file, "r")
 var = list(data.variables.keys())[-1]
 
@@ -60,10 +62,17 @@ def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year):
     lonis = np.arange(lat_slice_data.shape[1])
     doys = np.arange(days_of_year)
     TIME0 = datetime.now()
-    results = joblib.Parallel(n_jobs = s.n_jobs)(
+    results = joblib.Parallel(n_jobs=s.n_jobs, backend='threading')(
                 joblib.delayed(regression.linear_regr_per_gridcell)(
                     lat_slice_data, gmt_on_each_day, doy, loni)
                         for doy in doys for loni in lonis)
+    #results.sort(key=itemgetter(1, 0))
+    #print('Second items of unsorted sublists are:\n', flush=True)
+    #print([item[1] for item in results], flush=True)
+    #print('First items of unsorted sublists are:\n', flush=True)
+    #print([item[0] for item in results], flush=True)
+    #print(itemgetter(0)(results), flush=True)
+    #results = [last for *_, last in results]
     print('Done with slice', flush=True)
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
@@ -86,6 +95,7 @@ def run_linear_regr_on_ncdf(data_to_detrend, days_of_year):
         TIME1 = datetime.now()
         duration = TIME1 - TIME0
         i += 1
+    # results =  sorted(results, key=itemgetter(1, 0,))
     return results
 
 
@@ -133,10 +143,10 @@ def write_linear_regression_stats(shape_of_input, original_data_coords,
     output_ds.history = "Created " + t.ctime(t.time())
     latitudes.units = "degrees north"
     longitudes.units = "degrees east"
-    slopes.units = "K"
-    intercepts.units = "K"
-    times.units = "days since 01-01 00:00:00.0"
-    times.calendar = "365 days"
+    slopes.units = ""
+    intercepts.units = ""
+    times.units = "days since 1901-01-01 00:00:00.0"
+    times.calendar = "365_day"
 
     lats = original_data_coords[0][:]
     lons = original_data_coords[1][:]
@@ -177,7 +187,7 @@ if __name__ == "__main__":
     duration = TIME1 - TIME0
     print('Calculation took', duration.total_seconds(), 'seconds.')
 
-    file_to_write = os.path.join(s.data_dir, "first_real_test.nc4")
+    file_to_write = os.path.join(s.data_dir, s.regression_outfile)
     # due to a bug in iris I guess, I cannot overwrite existing files. Remove before.
     if os.path.exists(file_to_write): os.remove(file_to_write)
     write_linear_regression_stats(data_to_detrend.shape,
