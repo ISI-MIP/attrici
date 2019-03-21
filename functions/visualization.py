@@ -186,16 +186,16 @@ def regr_fit(rdata, data, gmt, indices=(0, 0, 0)):
     plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_doy' +
                 str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
                format='pdf')
-    
+
 def plot_2d_doy(data, doy, title):
-    
+
     slope_2d = data.variables['slope'][doy, :, :]
     intercept_2d = data.variables['intercept'][doy, :, :]
     lat = data.variables['lat'][:]
     lon = data.variables['lon'][:]
-    
+
     plt.figure(figsize=(16, 10))
-    
+
     # Label axes of a Plate Carree projection with a central longitude of 180:
     ax = plt.subplot(121, projection=ccrs.PlateCarree(central_longitude=0))
     ax.set_global()
@@ -209,7 +209,7 @@ def plot_2d_doy(data, doy, title):
     ax2 = plt.pcolormesh(lon, lat, slope_2d, cmap='seismic')
     plt.title('var: ' + title + ' -- slope -- doy: ' + str(doy))
     plt.colorbar(orientation='horizontal')
-    
+
     ax = plt.subplot(122, projection=ccrs.PlateCarree(central_longitude=0))
     ax.set_global()
     ax.coastlines()
