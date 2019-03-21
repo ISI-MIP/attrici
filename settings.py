@@ -12,11 +12,15 @@ else:
 #  handle job specifications
 n_jobs = 16  # number of childprocesses created by the job
 
-variable = 'hurs'
-
+test = False
+variable = 'huss'
 
 gmt_file = 'test_ssa_gmt.nc4'
-#  to_detrend_file = 'test_data_' + variable + '.nc4'
-to_detrend_file = variable + '_rm_rechunked_gswp3_1901_2010.nc4'
 base_file = variable + '_rm_rechunked_gswp3_1901_2010.nc4'
-regression_outfile = variable + '_regression_all.nc4'
+
+if test:
+    to_detrend_file = 'test_data_' + variable + '.nc4'
+    regression_outfile = variable + '_regression.nc4'
+else:
+    to_detrend_file = variable + '_rm_rechunked_gswp3_1901_2010.nc4'
+    regression_outfile = variable + '_regression_all.nc4'
