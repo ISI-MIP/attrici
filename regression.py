@@ -3,7 +3,7 @@ import iris
 import iris.coord_categorisation as icc
 import numpy as np
 import os
-import run_regression_classic as rr
+import run_regression as rr
 import settings as s
 from scipy import stats
 import sys
