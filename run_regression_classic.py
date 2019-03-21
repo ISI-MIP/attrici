@@ -23,7 +23,6 @@ to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
 gmt = nc.Dataset(gmt_file, "r")
 gmt_var = list(gmt.variables.keys())[0]
-print('gmt_var', flush=True)
 data = nc.Dataset(to_detrend_file, "r")
 var = list(data.variables.keys())[-1]
 
