@@ -1,69 +1,113 @@
-import os
-import numpy as np
-import iris
-import iris.coord_categorisation as icc
+#!/usr/bin/env python
+# coding: utf-8
+
+from datetime import datetime, timedelta
 import joblib
-from datetime import datetime
-import settings as s
+import netCDF4 as nc
+import numpy as np
+from operator import itemgetter
+import os
 import regression
+import settings as s
+import sys
+import time as t
+
+#  specify paths
+#  out_script = '/home/bschmidt/scripts/detrending/output/regr.out'
+#  to_detrend_file = '/home/bschmidt/temp/gswp3/test_data_tas_no_leap.nc4'
+#  gmt_file = '/home/bschmidt/temp/gswp3/test_ssa_gmt.nc4'
+#  dest_path = '/home/bschmidt/temp/gswp3/'
 
 gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
-gmt = iris.load_cube(gmt_file)
-data_to_detrend = iris.load_cube(to_detrend_file)
-icc.add_day_of_year(data_to_detrend, 'time')
-doys_cube = data_to_detrend.coord('day_of_year').points
-
-# remove 366th day for now.
-data_to_detrend = data_to_detrend[doys_cube != 366]
+gmt = nc.Dataset(gmt_file, "r")
+gmt_var = list(gmt.variables.keys())[0]
+data = nc.Dataset(to_detrend_file, "r")
+var = list(data.variables.keys())[-1]
 
 days_of_year = 365
 # interpolate monthly gmt values to daily.
 # do this more exact later.
 gmt_on_each_day = np.interp(np.arange(110*days_of_year),
-                            gmt.coord("time").points,gmt.data)
+                            gmt.variables["time"][:], gmt.variables[gmt_var][:])
+# gmt_on_each_day = gmt.variables[gmt_var][:]
 
-# lonis = np.arange(data_to_detrend.shape[2])
-doys = np.arange(days_of_year)
+def remove_leap_days(data, time):
+
+    '''
+    removes 366th dayofyear from numpy array that starts on Jan 1st, 1901 with daily timestep
+    '''
+
+    dates = [datetime(1901,1,1)+n*timedelta(days=1) for n in range(time.shape[0])]
+    dates = nc.num2date(time[:], units=time.units)
+    leap_mask = []
+    for date in dates:
+        leap_mask.append(date.timetuple().tm_yday != 366)
+    return data[leap_mask]
+
+
+#  gmt_on_each_day = remove_leap_days(gmt_on_each_day, gmt.variables['time'])
+#  data_to_detrend = remove_leap_days(data.variables[var], data.variables['time'])
+data_to_detrend = data.variables[var]
 
 
 def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year):
 
-    """ calculate linear regression stats for all days of years and all latitudes.
-    joblib implementation. Return a list of all stats """
+    """ calculate linear regression stats for all days of years and
+    all latitudes. Joblib implementation. Return a list of all stats """
 
+    sys.stdout.flush()
     lonis = np.arange(lat_slice_data.shape[1])
     doys = np.arange(days_of_year)
-
-    results = joblib.Parallel(n_jobs=3)(
+    TIME0 = datetime.now()
+    results = joblib.Parallel(n_jobs=s.n_jobs, backend='threading')(
                 joblib.delayed(regression.linear_regr_per_gridcell)(
                     lat_slice_data, gmt_on_each_day, doy, loni)
                         for doy in doys for loni in lonis)
+    #results.sort(key=itemgetter(1, 0))
+    #print('Second items of unsorted sublists are:\n', flush=True)
+    #print([item[1] for item in results], flush=True)
+    #print('First items of unsorted sublists are:\n', flush=True)
+    #print([item[0] for item in results], flush=True)
+    #print(itemgetter(0)(results), flush=True)
+    #results = [last for *_, last in results]
+    print('Done with slice', flush=True)
+    TIME1 = datetime.now()
+    duration = TIME1 - TIME0
+    print('Working on slice took', duration.total_seconds(), 'seconds.\n', flush=True)
     return results
 
 
-def run_linear_regr_on_iris_cube(cube, days_of_year):
+def run_linear_regr_on_ncdf(data_to_detrend, days_of_year):
 
-    """ use the iris slicing to run linear regression on a whole iris cube.
+    """ use the numpy slicing to run linear regression on a dataset.
     for each latitude slice, calculation is parallelized. """
-
+    i = 0
     results = []
-    for lat_slice in cube.slices(['time','longitude']):
-        r = run_lat_slice_parallel(lat_slice.data, gmt_on_each_day, days_of_year)
+    for lat_slice in np.arange(data_to_detrend.shape[1]):  #  variables[var].
+        data = data_to_detrend[:, i, :]
+        print('Working on slice ' + str(i), flush=True)
+        TIME0 = datetime.now()
+        r = run_lat_slice_parallel(data, gmt_on_each_day, days_of_year)
         results = results + r
+        TIME1 = datetime.now()
+        duration = TIME1 - TIME0
+        i += 1
+    # results =  sorted(results, key=itemgetter(1, 0,))
     return results
 
 
-### the following functions maybe moved to an "io and iris file" later. ###
+# the following functions maybe moved to an "io file" later. ###
 
-def create_doy_cube(array,original_cube_coords, **kwargs):
+def create_doy_cube(array, original_cube_coords, **kwargs):
 
     """ create an iris cube from a plain numpy array.
     First dimension is always days of the year. Second and third are lat and lon
     and are taken from the input data. """
 
-    doy_coord = iris.coords.DimCoord(np.arange(1.,366.), var_name="day_of_year")
+    sys.stdout.flush()
+    doy_coord = iris.coords.DimCoord(np.arange(1., 366.), var_name="day_of_year")
 
     cube = iris.cube.Cube(array,
             dim_coords_and_dims=[(doy_coord, 0),
@@ -74,50 +118,81 @@ def create_doy_cube(array,original_cube_coords, **kwargs):
     return cube
 
 
-def write_linear_regression_stats(shape_of_input, original_cube_coords,
+def write_linear_regression_stats(shape_of_input, original_data_coords,
         results, file_to_write):
 
     """ write linear regression statistics to a netcdf file. This function is specific
     to the output of the scipy.stats.linregress output.
     TODO: make this more flexible to include more stats. """
 
-    intercepts = np.zeros([days_of_year, shape_of_input[1],
-                       shape_of_input[2]])
-    slopes = np.zeros_like(intercepts)
+    sys.stdout.flush()
+    output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
+    time = output_ds.createDimension("time", None)
+    lat = output_ds.createDimension("lat", original_data_coords[0].shape[0])
+    lon = output_ds.createDimension("lon", original_data_coords[1].shape[0])
+    print(output_ds.dimensions)
+    times = output_ds.createVariable("time", "f8", ("time",))
+    longitudes = output_ds.createVariable("lon", "f4", ("lon",))
+    latitudes = output_ds.createVariable("lat", "f4", ("lat",))
+    intercepts = output_ds.createVariable('intercept', "f8", ("time", "lat", "lon",))
+    slopes = output_ds.createVariable('slope', "f8", ("time", "lat", "lon",))
+    print(intercepts)
 
-    latis=np.arange(shape_of_input[1])
-    lonis=np.arange(shape_of_input[2])
+    output_ds.description = "Regression test script"
+    output_ds.history = "Created " + t.ctime(t.time())
+    latitudes.units = "degrees north"
+    longitudes.units = "degrees east"
+    slopes.units = ""
+    intercepts.units = ""
+    times.units = "days since 1901-01-01 00:00:00.0"
+    times.calendar = "365_day"
+
+    lats = original_data_coords[0][:]
+    lons = original_data_coords[1][:]
+
+    latitudes[:] = lats
+    longitudes[:] = lons
+
+    print("latitudes: \n", latitudes[:])
+    print("longitudes: \n", longitudes[:])
+
+    ic = np.zeros([days_of_year, shape_of_input[1],
+                   shape_of_input[2]])
+    s = np.zeros_like(ic)
+
+    latis = np.arange(shape_of_input[1])
+    lonis = np.arange(shape_of_input[2])
 
     i = 0
     for lati in latis:
         for doy in np.arange(days_of_year):
             for loni in lonis:
-                intercepts[doy,lati,loni] = results[i].intercept
-                slopes[doy,lati,loni] = results[i].slope
+                ic[doy, lati, loni] = results[i].intercept
+                s[doy, lati, loni] = results[i].slope
                 i = i + 1
-
-    scube = create_doy_cube(slopes, original_cube_coords, var_name="slope_linear_regr")
-    icube = create_doy_cube(intercepts, original_cube_coords, var_name="intercept_linear_regr")
-
-    iris.fileformats.netcdf.save([scube,icube], file_to_write)
+    intercepts[:] = ic
+    slopes[:] = s
+    output_ds.close()
 
 
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    results = run_linear_regr_on_iris_cube(data_to_detrend, days_of_year)
+    results = run_linear_regr_on_ncdf(data_to_detrend, days_of_year)
 
     # results = run_parallel_linear_regr(n_jobs=3)
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
     print('Calculation took', duration.total_seconds(), 'seconds.')
 
-    file_to_write = os.path.join(s.data_dir, "testfile.nc4")
+    file_to_write = os.path.join(s.data_dir, s.regression_outfile)
     # due to a bug in iris I guess, I cannot overwrite existing files. Remove before.
     if os.path.exists(file_to_write): os.remove(file_to_write)
-    write_linear_regression_stats(data_to_detrend.shape, data_to_detrend.coord,
-        results, file_to_write)
+    write_linear_regression_stats(data_to_detrend.shape,
+                                  (data.variables['lat'],
+                                   data.variables['lon']),
+                                  results, file_to_write)
     TIME2 = datetime.now()
     duration = TIME2 - TIME1
     print('Saving took', duration.total_seconds(), 'seconds.')
