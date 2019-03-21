@@ -4,6 +4,8 @@
 from __future__ import (absolute_import, division, print_function)
 from six.moves import (filter, input, map, range, zip)  # noqa
 from scipy import stats
+from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -184,3 +186,41 @@ def regr_fit(rdata, data, gmt, indices=(0, 0, 0)):
     plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_doy' +
                 str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
                format='pdf')
+    
+def plot_2d_doy(data, doy, title):
+    
+    slope_2d = data.variables['slope'][doy, :, :]
+    intercept_2d = data.variables['intercept'][doy, :, :]
+    lat = data.variables['lat'][:]
+    lon = data.variables['lon'][:]
+    
+    plt.figure(figsize=(16, 10))
+    
+    # Label axes of a Plate Carree projection with a central longitude of 180:
+    ax = plt.subplot(121, projection=ccrs.PlateCarree(central_longitude=0))
+    ax.set_global()
+    ax.coastlines()
+    ax.set_xticks([-180, -120, -60, 0, 60, 120, 180], crs=ccrs.PlateCarree())
+    ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], crs=ccrs.PlateCarree())
+    lon_formatter = LongitudeFormatter(zero_direction_label=True)
+    lat_formatter = LatitudeFormatter()
+    ax.xaxis.set_major_formatter(lon_formatter)
+    ax.yaxis.set_major_formatter(lat_formatter)
+    ax2 = plt.pcolormesh(lon, lat, slope_2d, cmap='seismic')
+    plt.title('var: ' + title + ' -- slope -- doy: ' + str(doy))
+    plt.colorbar(orientation='horizontal')
+    
+    ax = plt.subplot(122, projection=ccrs.PlateCarree(central_longitude=0))
+    ax.set_global()
+    ax.coastlines()
+    ax.set_xticks([-180, -120, -60, 0, 60, 120, 180], crs=ccrs.PlateCarree())
+    ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], crs=ccrs.PlateCarree())
+    lon_formatter = LongitudeFormatter(zero_direction_label=True)
+    lat_formatter = LatitudeFormatter()
+    ax.xaxis.set_major_formatter(lon_formatter)
+    ax.yaxis.set_major_formatter(lat_formatter)
+    ax2 = plt.pcolormesh(lon, lat, intercept_2d, cmap='coolwarm')
+    plt.title('var: ' + title + ' -- intercept -- doy: ' + str(doy))
+    plt.colorbar(orientation='horizontal')
+
+    plt.show()
