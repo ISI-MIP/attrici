@@ -27,7 +27,7 @@ def plot_1d_doy(data, rstat, variable, lat_ind, lon_ind):
         plt.xlabel('Day of Year')
         plt.ylabel(rstat)
     plt.title('var: ' + variable + ' lat: ' + str(lat) + ' lon: ' + str(lon))
-    plt.show()
+    # plt.show()
 
 
 def contourf_doy(data, doy, levels=30):
@@ -36,7 +36,7 @@ def contourf_doy(data, doy, levels=30):
     contour = qplt.contourf(data_2d, levels)
     plt.gca().coastlines()
     #plt.clabel(contour, inline=False)
-    plt.show()
+    # plt.show()
 
 
 def regr_fit_gmt(rdata, data, gmt, indices=(0, 0, 0), detrend=False):
@@ -75,9 +75,9 @@ def regr_fit_gmt(rdata, data, gmt, indices=(0, 0, 0), detrend=False):
     plt.grid(True)
     plt.axis('tight')
     plt.show()
-    plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_gmt_doy' +
-                str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
-               format='pdf')
+    # plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_gmt_doy' +
+    #             str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
+    #            format='pdf')
 
 
 def regr_fit_time(rdata, data, gmt, indices=(0, 0, 0), detrend = False):
@@ -117,9 +117,9 @@ def regr_fit_time(rdata, data, gmt, indices=(0, 0, 0), detrend = False):
     plt.grid(True)
     plt.axis('tight')
     plt.show()
-    plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_time_doy' +
-                str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
-               format='pdf')
+    # plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_time_doy' +
+    #             str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
+    #            format='pdf')
 
 
 def regr_fit(rdata, data, gmt, indices=(0, 0, 0)):
@@ -183,9 +183,9 @@ def regr_fit(rdata, data, gmt, indices=(0, 0, 0)):
     plt.grid(True)
     plt.axis('tight')
     plt.show()
-    plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_doy' +
-                str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
-               format='pdf')
+    # plt.savefig(os.path.join(set.data_dir, 'visual/') + var + '_doy' +
+    #             str(doy[indices[0]]) + '_lat' + str(lat) + '_lon' + str(lon) + '.pdf',
+    #            format='pdf')
 
 def plot_2d_doy(data, doy, title):
 
@@ -221,6 +221,6 @@ def plot_2d_doy(data, doy, title):
     ax.yaxis.set_major_formatter(lat_formatter)
     ax2 = plt.pcolormesh(lon, lat, intercept_2d, cmap='coolwarm')
     plt.title('var: ' + title + ' -- intercept -- doy: ' + str(doy))
-    plt.colorbar(orientation='horizontal')
+    # plt.colorbar(orientation='horizontal')
 
     plt.show()
