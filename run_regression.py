@@ -33,20 +33,6 @@ gmt_on_each_day = np.interp(np.arange(110*days_of_year),
                             gmt.variables["time"][:], gmt.variables[gmt_var][:])
 # gmt_on_each_day = gmt.variables[gmt_var][:]
 
-def remove_leap_days(data, time):
-
-    '''
-    removes 366th dayofyear from numpy array that starts on Jan 1st, 1901 with daily timestep
-    '''
-
-    dates = [datetime(1901,1,1)+n*timedelta(days=1) for n in range(time.shape[0])]
-    dates = nc.num2date(time[:], units=time.units)
-    leap_mask = []
-    for date in dates:
-        leap_mask.append(date.timetuple().tm_yday != 366)
-    return data[leap_mask]
-
-
 #  gmt_on_each_day = remove_leap_days(gmt_on_each_day, gmt.variables['time'])
 #  data_to_detrend = remove_leap_days(data.variables[var], data.variables['time'])
 data_to_detrend = data.variables[var]

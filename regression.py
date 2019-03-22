@@ -17,7 +17,7 @@ def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
     #print(gmt_on_each_day.shape, flush=True)
     #print('doy is: ' + str(doy), flush=True)
     #print('longitude index is: ' + str(loni), flush=True)
-    
+
     if np_data_to_detrend.ndim >= 2:
         data_of_doy = np_data_to_detrend[doy::365, loni]
     else:
@@ -60,6 +60,20 @@ def run_linear_regr_on_iris_cube(cube, days_of_year):
     print('Calculation took', duration.total_seconds(), 'seconds.', flush=True)
     sys.stdout.flush()
     return results
+
+def remove_leap_days(data, time):
+
+    '''
+    removes 366th dayofyear from numpy array that starts on Jan 1st, 1901 with daily timestep
+    '''
+
+    dates = [datetime(1901,1,1)+n*timedelta(days=1) for n in range(time.shape[0])]
+    dates = nc.num2date(time[:], units=time.units)
+    leap_mask = []
+    for date in dates:
+        leap_mask.append(date.timetuple().tm_yday != 366)
+    return data[leap_mask]
+
 
 
 if __name__ == "__main__":
