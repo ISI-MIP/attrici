@@ -39,14 +39,14 @@ def get_gmt_on_each_day(gmt_data_path):
     return gmt_on_each_day
 
 
-def get_regression_coefficients(data_path, variable, indices):
+def get_regression_coefficients(data_path, indices):
 
     """ get the coefficients of the linear regression
     for a specific day of year, lon and lat from netcdf file. """
 
-    regression_path = os.path.join(data_path, variable+'_regression.nc4')
-    ncf = nc.Dataset(regression_path, "r")
 
+    print(indices)
+    ncf = nc.Dataset(data_path, "r")
     lat = ncf.variables['lat'][indices[1]]
     lon = ncf.variables['lon'][indices[2]]
     slope = ncf.variables['slope'][indices]
@@ -55,13 +55,12 @@ def get_regression_coefficients(data_path, variable, indices):
 
     return lat,lon,slope,intercept
 
-def get_coefficient_fields(data_path, variable):
+def get_coefficient_fields(data_path):
 
     """ get the fields of coefficients of the linear regression
     from netcdf file. """
 
-    regression_path = os.path.join(data_path, variable+'_regression.nc4')
-    ncf = nc.Dataset(regression_path, "r")
+    ncf = nc.Dataset(data_path, "r")
     slope = ncf.variables['slope'][:]
     intercept = ncf.variables['intercept'][:]
     lat = ncf.variables['lat'][:]
@@ -70,25 +69,24 @@ def get_coefficient_fields(data_path, variable):
 
     return lat,lon,slope,intercept
 
-def get_data_to_detrend(data_path, variable, indices):
+def get_data_to_detrend(data_path, varname, indices):
 
     """ get the timeseries of variable for a specific day of year (doy),
     lon and lat from netcdf file. doy, lon, lat is from indices. """
 
-    variable_to_detrend_path = os.path.join(data_path,'test_data_'+variable+'.nc4')
-    nc_data_to_detrend = nc.Dataset(variable_to_detrend_path, "r")
-    data_to_detrend = nc_data_to_detrend.variables[variable][
+    nc_data_to_detrend = nc.Dataset(data_path, "r")
+    data_to_detrend = nc_data_to_detrend.variables[varname][
         indices[0]::days_of_year, indices[1], indices[2]]
     nc_data_to_detrend.close()
     return data_to_detrend
 
 
-def prepare(data_path, variable, gmt_on_each_day, indices):
+def prepare(regr_path, data_path, variable, gmt_on_each_day, indices):
 
     """ detrend the data with linear trend from regression coefficients.
         also do a regression on detrended data and check if slope is close to zero."""
 
-    lat, lon, slope, intercept = get_regression_coefficients(data_path, variable, indices)
+    lat, lon, slope, intercept = get_regression_coefficients(regr_path, indices)
     data_to_detrend = get_data_to_detrend(data_path, variable, indices)
 
     gmt_on_doy = gmt_on_each_day[indices[0]::days_of_year]
@@ -97,10 +95,10 @@ def prepare(data_path, variable, gmt_on_each_day, indices):
 
     # redo a fit on the detrended data. should have a slope of zero
     slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy, data_detrended)
-    assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
+    # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
     fit_d = np.poly1d([slope_d,intercept_d])
 
-    return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, lon
+    return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy
 
 
 def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, lon):
@@ -110,7 +108,7 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
 #                  '   lat:' + str(lat) + '   lon:' + str(lon), size=20, weight='bold')
 
     axs[0,0].scatter(gmt_on_doy, data_to_detrend, label='data')
-    axs[0,0].plot(gmt_on_doy, fit(gmt_on_doy), 'r', label='fit')
+    axs[0,0].plot(gmt_on_doy, fit(gmt_on_doy), 'r', label='fit against gmt')
     axs[0,0].set_xlabel('gmt / K')
     set_ylim(axs[0,0],data_to_detrend)
 
@@ -120,11 +118,11 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
     set_ylim(axs[1,0],data_detrended)
 
     axs[0,1].scatter(time_values, data_to_detrend, label='data')
-    axs[0,1].plot(time_values, fit(gmt_on_doy), 'r', label='fit')
+    axs[0,1].plot(time_values, fit(gmt_on_doy), 'r', label='gmt(t) * fit')
     axs[0,1].set_xlabel('Years')
 
     axs[1,1].scatter(time_values, data_detrended, label='detrended data')
-    axs[1,1].plot(time_values, fit_d(time_values), 'r', label='detrended fit')
+    axs[1,1].plot(time_values, fit_d(time_values), 'r', label='gmt(t) * detrended fit')
     axs[1,1].set_xlabel('Years')
 
     for ax in axs.ravel():
@@ -133,12 +131,18 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
         ax.set_ylabel(varname+' in [unit]')
 
 
-def plot_map(variable,day_of_year,varname,lat,lon):
+def plot_map(variable, coeff_name, day_of_year, varname, lat, lon,
+    cross=None, **kwargs):
 
     plt.figure(figsize=(16,10))
     ax = plt.subplot(111, projection=ccrs.PlateCarree(central_longitude=0))
-    p = ax.pcolormesh(lon, lat, variable[day_of_year,:,:], cmap='seismic')
-    plt.colorbar(p,ax=ax,shrink=0.8,label=varname)
+    variable_at_doy = variable[day_of_year,:,:]
+    # ab = np.max(np.abs(variable_at_doy))
+    p = ax.pcolormesh(lon, lat, variable_at_doy, **kwargs)
+    plt.colorbar(p,ax=ax,shrink=0.6,label=varname)
+
+    if cross is not None:
+        plt.plot(cross[0],cross[1],"x",markersize=20,markeredgewidth=3,color="r")
 
     # Label axes of a Plate Carree projection with a central longitude of 180:
     ax.set_global()
@@ -150,7 +154,9 @@ def plot_map(variable,day_of_year,varname,lat,lon):
     ax.xaxis.set_major_formatter(lon_formatter)
     ax.yaxis.set_major_formatter(lat_formatter)
 
-    plt.title(varname+', day of year: ' + str(day_of_year))
+    plt.title('regression '+coeff_name+' for '+varname+', day of year: ' + str(day_of_year))
+
+
 
 
 def plot_1d_doy(data, rstat, variable, lat_ind, lon_ind):
