@@ -10,6 +10,123 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import settings as set
+import netCDF4 as nc
+
+# fixed numbers for now.
+days_of_year = 365
+years_of_data = 110 # from 1900 to 2010
+doy = np.arange(days_of_year)
+time_values = np.arange(years_of_data) + 1901
+
+
+def set_ylim(ax, data):
+
+    """ manually set ylimit. needed to for plt.scatter, which has
+    a bug for setting ylim for small values. """
+
+    dy = (max(data) - min(data))/20.
+    ax.set_ylim(min(data)-dy, max(data)+dy)
+
+
+def get_gmt_on_each_day(gmt_data_path):
+
+    """ interpolate from yearly to daily values"""
+    gmt_data = nc.Dataset(gmt_data_path, "r")
+    gmt_on_each_day = np.interp(np.arange(years_of_data*days_of_year),
+                         gmt_data.variables["time"][:],
+                         gmt_data.variables["tas"][:])
+    gmt_data.close()
+    return gmt_on_each_day
+
+
+def get_regression_coefficients(data_path, variable, indices, one_cell=True):
+
+    """ get the coefficients of the linear regression
+    for a specific day of year. if one_cell, then get the timeseries for
+    the specific lon and lat. """
+
+    regression_path = os.path.join(data_path, variable+'_regression.nc4')
+    nc_regression_coeffs = nc.Dataset(regression_path, "r")
+
+
+    lat = nc_regression_coeffs.variables['lat'][:]
+    lon = nc_regression_coeffs.variables['lon'][:]
+    slope = nc_regression_coeffs.variables['slope'][:]
+    intercept = nc_regression_coeffs.variables['intercept'][:]
+    nc_regression_coeffs.close()
+
+    if one_cell:
+        lat = lat[indices[1]]
+        lon = lon[indices[2]]
+        slope = slope[indices]
+        intercept = intercept[indices]
+
+    return lat,lon,slope,intercept
+
+
+def get_data_to_detrend(data_path, variable, indices):
+
+    """ get the timeseries of variable for a specific day of year (doy),
+    lon and lat from netcdf file. doy, lon, lat is from indices. """
+
+    variable_to_detrend_path = os.path.join(data_path,'test_data_'+variable+'.nc4')
+    nc_data_to_detrend = nc.Dataset(variable_to_detrend_path, "r")
+    data_to_detrend = nc_data_to_detrend.variables[variable][
+        indices[0]::days_of_year, indices[1], indices[2]]
+    nc_data_to_detrend.close()
+    return data_to_detrend
+
+
+def prepare(data_path, variable, gmt_on_each_day, indices):
+
+    """ detrend the data with linear trend from regression coefficients.
+        also do a regression on detrended data and check if slope is close to zero."""
+
+    lat, lon, slope, intercept = get_regression_coefficients(data_path, variable, indices)
+    data_to_detrend = get_data_to_detrend(data_path, variable, indices)
+
+    gmt_on_doy = gmt_on_each_day[indices[0]::days_of_year]
+    fit = np.poly1d([slope,intercept]) # intercept + (slope * gmt_on_doy)
+    data_detrended = data_to_detrend - fit(gmt_on_doy) + fit(gmt_on_doy)[0]
+
+    # redo a fit on the detrended data. should have a slope of zero
+    slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy, data_detrended)
+    assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
+    fit_d = np.poly1d([slope_d,intercept_d])
+
+    return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, lon
+
+
+def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, lon):
+
+    fig, axs = plt.subplots(2, 2, sharey='row', figsize=(16, 12))
+#     fig.suptitle('var:' + variable + '   doy:' + str(indices[0]) +
+#                  '   lat:' + str(lat) + '   lon:' + str(lon), size=20, weight='bold')
+
+    axs[0,0].scatter(gmt_on_doy, data_to_detrend, label='data')
+    axs[0,0].plot(gmt_on_doy, fit(gmt_on_doy), 'r', label='fit')
+    axs[0,0].set_xlabel('gmt / K')
+    set_ylim(axs[0,0],data_to_detrend)
+
+    axs[1,0].scatter(gmt_on_doy, data_detrended, label='detrended data')
+    axs[1,0].plot(gmt_on_doy, fit_d(gmt_on_doy), 'r', label='detrended fit')
+    axs[1,0].set_xlabel('gmt / K')
+    set_ylim(axs[1,0],data_detrended)
+
+    axs[0,1].scatter(time_values, data_to_detrend, label='data')
+    axs[0,1].plot(time_values, fit(gmt_on_doy), 'r', label='fit')
+    axs[0,1].set_xlabel('Years')
+
+    axs[1,1].scatter(time_values, data_detrended, label='detrended data')
+    axs[1,1].plot(time_values, fit_d(time_values), 'r', label='detrended fit')
+    axs[1,1].set_xlabel('Years')
+
+    for ax in axs.ravel():
+        ax.grid()
+        ax.legend(ncol=1)
+        ax.set_ylabel(varname+' in [unit]')
+
+
 
 def plot_1d_doy(data, rstat, variable, lat_ind, lon_ind):
 
@@ -224,3 +341,4 @@ def plot_2d_doy(data, doy, title):
     # plt.colorbar(orientation='horizontal')
 
     plt.show()
+
