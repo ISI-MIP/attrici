@@ -39,30 +39,36 @@ def get_gmt_on_each_day(gmt_data_path):
     return gmt_on_each_day
 
 
-def get_regression_coefficients(data_path, variable, indices, one_cell=True):
+def get_regression_coefficients(data_path, variable, indices):
 
     """ get the coefficients of the linear regression
-    for a specific day of year. if one_cell, then get the timeseries for
-    the specific lon and lat. """
+    for a specific day of year, lon and lat from netcdf file. """
 
     regression_path = os.path.join(data_path, variable+'_regression.nc4')
-    nc_regression_coeffs = nc.Dataset(regression_path, "r")
+    ncf = nc.Dataset(regression_path, "r")
 
-
-    lat = nc_regression_coeffs.variables['lat'][:]
-    lon = nc_regression_coeffs.variables['lon'][:]
-    slope = nc_regression_coeffs.variables['slope'][:]
-    intercept = nc_regression_coeffs.variables['intercept'][:]
-    nc_regression_coeffs.close()
-
-    if one_cell:
-        lat = lat[indices[1]]
-        lon = lon[indices[2]]
-        slope = slope[indices]
-        intercept = intercept[indices]
+    lat = ncf.variables['lat'][indices[1]]
+    lon = ncf.variables['lon'][indices[2]]
+    slope = ncf.variables['slope'][indices]
+    intercept = ncf.variables['intercept'][indices]
+    ncf.close()
 
     return lat,lon,slope,intercept
 
+def get_coefficient_fields(data_path, variable):
+
+    """ get the fields of coefficients of the linear regression
+    from netcdf file. """
+
+    regression_path = os.path.join(data_path, variable+'_regression.nc4')
+    ncf = nc.Dataset(regression_path, "r")
+    slope = ncf.variables['slope'][:]
+    intercept = ncf.variables['intercept'][:]
+    lat = ncf.variables['lat'][:]
+    lon = ncf.variables['lon'][:]
+    ncf.close()
+
+    return lat,lon,slope,intercept
 
 def get_data_to_detrend(data_path, variable, indices):
 
@@ -126,6 +132,25 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
         ax.legend(ncol=1)
         ax.set_ylabel(varname+' in [unit]')
 
+
+def plot_map(variable,day_of_year,varname,lat,lon):
+
+    plt.figure(figsize=(16,10))
+    ax = plt.subplot(111, projection=ccrs.PlateCarree(central_longitude=0))
+    p = ax.pcolormesh(lon, lat, variable[day_of_year,:,:], cmap='seismic')
+    plt.colorbar(p,ax=ax,shrink=0.8,label=varname)
+
+    # Label axes of a Plate Carree projection with a central longitude of 180:
+    ax.set_global()
+    ax.coastlines()
+    ax.set_xticks([-180, -120, -60, 0, 60, 120, 180], crs=ccrs.PlateCarree())
+    ax.set_yticks([-90, -60, -30, 0, 30, 60, 90], crs=ccrs.PlateCarree())
+    lon_formatter = LongitudeFormatter(zero_direction_label=True)
+    lat_formatter = LatitudeFormatter()
+    ax.xaxis.set_major_formatter(lon_formatter)
+    ax.yaxis.set_major_formatter(lat_formatter)
+
+    plt.title(varname+', day of year: ' + str(day_of_year))
 
 
 def plot_1d_doy(data, rstat, variable, lat_ind, lon_ind):
