@@ -107,23 +107,33 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
 #     fig.suptitle('var:' + variable + '   doy:' + str(indices[0]) +
 #                  '   lat:' + str(lat) + '   lon:' + str(lon), size=20, weight='bold')
 
-    axs[0,0].scatter(gmt_on_doy, data_to_detrend, label='data')
-    axs[0,0].plot(gmt_on_doy, fit(gmt_on_doy), 'r', label='fit against gmt')
-    axs[0,0].set_xlabel('gmt / K')
-    set_ylim(axs[0,0],data_to_detrend)
+    axs[0, 0].scatter(gmt_on_doy, data_to_detrend, label='data')
+    axs[0, 0].plot(gmt_on_doy, fit(gmt_on_doy), 'r', label='fit against gmt')
+    axs[0, 0].set_xlabel('gmt / K')
+    set_ylim(axs[0, 0], data_to_detrend)
 
-    axs[1,0].scatter(gmt_on_doy, data_detrended, label='detrended data')
-    axs[1,0].plot(gmt_on_doy, fit_d(gmt_on_doy), 'r', label='detrended fit')
-    axs[1,0].set_xlabel('gmt / K')
-    set_ylim(axs[1,0],data_detrended)
+    axs[1, 0].scatter(gmt_on_doy, data_detrended, label='detrended data')
+    axs[1, 0].plot(gmt_on_doy, fit_d(gmt_on_doy), 'r', label='detrended fit')
+    axs[1, 0].set_xlabel('gmt / K')
+    set_ylim(axs[1, 0], data_detrended)
 
-    axs[0,1].scatter(time_values, data_to_detrend, label='data')
-    axs[0,1].plot(time_values, fit(gmt_on_doy), 'r', label='gmt(t) * fit')
-    axs[0,1].set_xlabel('Years')
+    axs[0, 1].scatter(time_values, data_to_detrend, label='data')
+    axs[0, 1].plot(time_values, fit(gmt_on_doy), 'r', label='gmt(t) * fit')
+    axs[0, 1].set_xlabel('Years')
 
-    axs[1,1].scatter(time_values, data_detrended, label='detrended data')
-    axs[1,1].plot(time_values, fit_d(time_values), 'r', label='gmt(t) * detrended fit')
-    axs[1,1].set_xlabel('Years')
+    axs[1, 1].scatter(time_values, data_detrended, label='detrended data')
+    axs[1, 1].plot(time_values, fit_d(time_values), 'r', label='gmt(t) * detrended fit')
+    axs[1, 1].set_xlabel('Years')
+
+    #  axs[2, 0].plot(slope[lat, lon])
+    #  axs[2, 0].set_xlabel('Day of Year')
+    #  axs[2, 0].set_ylabel('slope')
+    #  axs[2, 0].grid()
+    #
+    #  axs[2, 1].plot(intercept[lat, lon])
+    #  axs[2, 1].set_xlabel('Day of Year')
+    #  axs[2, 1].set_ylabel('intercept')
+    #  axs[2, 1].grid()
 
     for ax in axs.ravel():
         ax.grid()
@@ -132,17 +142,19 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
 
 
 def plot_map(variable, coeff_name, day_of_year, varname, lat, lon,
-    cross=None, **kwargs):
+    cross=None, circle=None, **kwargs):
 
     plt.figure(figsize=(16,10))
     ax = plt.subplot(111, projection=ccrs.PlateCarree(central_longitude=0))
     variable_at_doy = variable[day_of_year,:,:]
     # ab = np.max(np.abs(variable_at_doy))
     p = ax.pcolormesh(lon, lat, variable_at_doy, **kwargs)
-    plt.colorbar(p,ax=ax,shrink=0.6,label=varname)
+    plt.colorbar(p, ax=ax, shrink=0.6, label=varname)
 
     if cross is not None:
-        plt.plot(cross[0],cross[1],"x",markersize=20,markeredgewidth=3,color="r")
+        plt.plot(cross[1],cross[0],"x",markersize=20,markeredgewidth=3,color="r")
+    if circle is not None:
+        plt.plot(circle[1],circle[0],"o",markersize=39,markeredgewidth=1,color="g", fillstyle='none')
 
     # Label axes of a Plate Carree projection with a central longitude of 180:
     ax.set_global()
@@ -163,18 +175,16 @@ def plot_1d_doy(data, rstat, variable, lat_ind, lon_ind):
 
     ''' Take a 1d slice with doy on x axis '''
 
-    lat = data.variables['lat'][lat_ind]
-    lon = data.variables['lon'][lon_ind]
-    data_1d = data.variables[rstat][:, lat_ind, lon_ind]
-    # fig = plt.plot(data_1d)
+    #  lat = data.variables['lat'][lat_ind]
+    #  lon = data.variables['lon'][lon_ind]
+    #  fig = plt.plot(data_1d)
     fig = plt.figure()
-    fig.subplots_adjust(hspace=0.5, wspace=0.5)
-    for i in range(1, 2):
-        ax = fig.add_subplot(2, 1, i)
-        ax.plot(data_1d)
-        plt.xlabel('Day of Year')
-        plt.ylabel(rstat)
-    plt.title('var: ' + variable + ' lat: ' + str(lat) + ' lon: ' + str(lon))
+    #  data_1d = data.variables[rstat][:, lat_ind, lon_ind]
+    data_1d = data[:, lat_ind, lon_ind]
+    plt.plot(data_1d)
+    plt.xlabel('Day of Year')
+    plt.ylabel(rstat)
+    plt.title('var: ' + variable)
     # plt.show()
 
 
@@ -295,7 +305,7 @@ def regr_fit(rdata, data, gmt, indices=(0, 0, 0)):
 
     # Plot the data of one point and fit the regression.
 
-    fig, ax = plt.subplots(2, 2, sharey='row', figsize=(16, 12))
+    fig, ax = plt.subplots(2, 3, sharey='row', figsize=(16, 12))
     #fig.subplots_adjust(hspace=0, wspace=0.6)
     fig.suptitle('var: ' + var + ' doy: ' + str(doy[indices[0]]) +
                  ' lat: ' + str(lat) + ' lon: ' + str(lon), size=20, weight='bold')
@@ -327,6 +337,16 @@ def regr_fit(rdata, data, gmt, indices=(0, 0, 0)):
     ax[1, 1].set_ylabel(var + ' / [unit]')
     ax[1, 1].grid()
     ax[1, 1].legend(ncol=1)
+
+    ax[1, 2].plot(slope[lat, lon])
+    ax[1, 2].set_xlabel('Day of Year')
+    ax[1, 2].set_ylabel('slope')
+    ax[1, 2].grid()
+
+    ax[2, 2].plot(intercept[lat, lon])
+    ax[2, 2].set_xlabel('Day of Year')
+    ax[2, 2].set_ylabel('intercept')
+    ax[2, 2].grid()
 
     plt.grid(True)
     plt.axis('tight')
