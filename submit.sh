@@ -1,12 +1,12 @@
 #!/bin/bash
 
-#SBATCH --qos=short
-##SBATCH --partition=priority
+#SBATCH --qos=priority
+#SBATCH --partition=priority
 ##SBATCH --constraint=broadwell
-#SBATCH --job-name=huss
+#SBATCH --job-name=hurs
 #SBATCH --account=isipedia
-#SBATCH --output=output/huss.out
-#SBATCH --error=output/huss.err
+#SBATCH --output=output/hurs.out
+#SBATCH --error=output/hurs.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 

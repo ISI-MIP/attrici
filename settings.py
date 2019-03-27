@@ -13,7 +13,7 @@ else:
 n_jobs = 16  # number of childprocesses created by the job
 
 test = False
-variable = 'huss'
+variable = 'hurs'
 
 gmt_file = 'test_ssa_gmt.nc4'
 base_file = variable + '_rm_rechunked_gswp3_1901_2010.nc4'
