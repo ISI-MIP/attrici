@@ -2,12 +2,44 @@
 
 Scripts for detrending reanalysis data
 
-run order:
+Preprocessing:
 
-iris_gmt.py to calculate global mean temperature
-or use test_gmt.nc4
+Concatenate input files: Run preprocessing/merge_data.sh
+gets variable from settings.py
+Change other settings in file!
+might request user input!
 
-iris_regr.py to calculate regression
+Remove leap days (29.2.): Run preprocessing/remove_leap_days.sh
+runs all variables
+Change settings in file!
 
-visualization.pynb for data visualization 
-or use functions in functions/visualization.py
+Rechunk dataset for faster access to individual timeseries: Run preprocessing/rechunk.sh
+runs all variables
+Change settings in file!
+
+Create small test data set: Run preprocessing/create_test_data.py
+gets variable from settings.py
+
+Calculate global mean temperature (destination variable): Run preprocessing/calc_gmt_by_ssa.py
+gets variable from settings.py
+
+
+Main program:
+
+Adjust settings.py to your needs!
+Run submit.sh via slurm
+
+
+Post processing:
+
+Split data into files of 10 years: Run postprocessing/split_data.sh
+
+
+Utility:
+
+Some tests for input data
+
+
+Visualization:
+
+Some helpful functions to visualize data are in idetrend/visualization.py
