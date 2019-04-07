@@ -1,11 +1,12 @@
-import matplotlib.pyplot as plt
-import netCDF4 as nc
-import numpy as np
+#  import matplotlib.pyplot as plt
 import os
 import sys
-from scipy import stats
+#  from scipy import stats
 import imp
 import time as t
+from datetime import datetime
+import numpy as np
+import netCDF4 as nc
 
 # for Ben and me to use our code.
 if "../" not in sys.path: sys.path.append("../")
@@ -13,25 +14,19 @@ import idetrend.visualization as vis; imp.reload(vis)
 import settings as s
 
 # parameters and data paths
-source_path = "/p/tmp/bschmidt/gswp3/"
 
 # the file with the smoothed global trend of global mean temperature
-gmt_data_path = os.path.join(source_path, 'test_ssa_gmt.nc4')
+gmt_data_path = os.path.join(s.data_dir, 'test_ssa_gmt.nc4')
 # the daily interpolated ssa-smoothed global mean temperature
 gmt_on_each_day = vis.get_gmt_on_each_day(gmt_data_path)
 
 varname = s.variable
-file_to_write = os.path.join(source_path, varname+'_detrended.nc4')
+file_to_write = os.path.join(s.data_dir, varname+'_detrended.nc4')
+regression_file = os.path.join(s.data_dir, s.regression_outfile)
+to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
-# the full dataset
-regr_path = os.path.join(source_path, varname+'_regression_all.nc4')
-data_path = os.path.join(source_path,varname+'_rm_gswp3_1901_2010.nc4')
 
-#test data set
-#regr_path = os.path.join(source_path, varname+'_regression.nc4')
-#data_path = os.path.join(source_path,'test_data_'+varname+'.nc4')
-
-lats, lons, slope, intercept = vis.get_coefficient_fields(regr_path)
+lats, lons, slope, intercept = vis.get_coefficient_fields(regression_file)
 
 if s.test:
     shape_of_input = (40150, 12, 24)
@@ -72,9 +67,9 @@ def write_detrended(regr_path, data_path, shape_of_input, original_data_coords, 
 
     # create variables
     times = output_ds.createVariable("time", "f8", ("time",))
-    longitudes = output_ds.createVariable("lon", "f4", ("lon",))
-    latitudes = output_ds.createVariable("lat", "f4", ("lat",))
-    data = output_ds.createVariable(variable, "f8", ("time", "lat", "lon",))
+    longitudes = output_ds.createVariable("lon", "f8", ("lon",))
+    latitudes = output_ds.createVariable("lat", "f8", ("lat",))
+    data = output_ds.createVariable(variable, "f4", ("time", "lat", "lon",))
     # print(intercepts)
 
     # Set attributes
@@ -112,7 +107,8 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    write_detrended(regr_path, data_path, shape_of_input, (lats, lons), file_to_write, varname)
+    write_detrended(regression_file, to_detrend_file,
+                    shape_of_input, (lats, lons), file_to_write, varname)
 
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
