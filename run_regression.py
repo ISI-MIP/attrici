@@ -11,6 +11,8 @@ import regression
 import settings as s
 import sys
 import time as t
+import utility
+from scipy import special
 
 #  specify paths
 #  out_script = '/home/bschmidt/scripts/detrending/output/regr.out'
@@ -22,9 +24,11 @@ gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
 gmt = nc.Dataset(gmt_file, "r")
-gmt_var = list(gmt.variables.keys())[0]
+gmt_var = list(gmt.variables.keys())[-1]
+print(gmt_var, flush=True)
 data = nc.Dataset(to_detrend_file, "r")
 var = list(data.variables.keys())[-1]
+print(var, flush=True)
 
 days_of_year = 365
 # interpolate monthly gmt values to daily.
@@ -36,6 +40,8 @@ gmt_on_each_day = np.interp(np.arange(110*days_of_year),
 #  gmt_on_each_day = remove_leap_days(gmt_on_each_day, gmt.variables['time'])
 #  data_to_detrend = remove_leap_days(data.variables[var], data.variables['time'])
 data_to_detrend = data.variables[var]
+data_to_detrend = utility.check_data(data_to_detrend, to_detrend_file)
+#  data_to_detrend = special.logit(data/100)
 
 
 def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year):
@@ -122,6 +128,9 @@ def write_linear_regression_stats(shape_of_input, original_data_coords,
     latitudes = output_ds.createVariable("lat", "f4", ("lat",))
     intercepts = output_ds.createVariable('intercept', "f8", ("time", "lat", "lon",))
     slopes = output_ds.createVariable('slope', "f8", ("time", "lat", "lon",))
+    r_values = output_ds.createVariable('r_values', "f8", ("time", "lat", "lon",))
+    p_values = output_ds.createVariable('p_values', "f8", ("time", "lat", "lon",))
+    std_errors = output_ds.createVariable('std_errors', "f8", ("time", "lat", "lon",))
     print(intercepts)
 
     output_ds.description = "Regression test script"
@@ -145,6 +154,9 @@ def write_linear_regression_stats(shape_of_input, original_data_coords,
     ic = np.zeros([days_of_year, shape_of_input[1],
                    shape_of_input[2]])
     s = np.zeros_like(ic)
+    r = np.zeros_like(ic)
+    p = np.zeros_like(ic)
+    sd = np.zeros_like(ic)
 
     latis = np.arange(shape_of_input[1])
     lonis = np.arange(shape_of_input[2])
@@ -155,9 +167,15 @@ def write_linear_regression_stats(shape_of_input, original_data_coords,
             for loni in lonis:
                 ic[doy, lati, loni] = results[i].intercept
                 s[doy, lati, loni] = results[i].slope
+                r[doy, lati, loni] = results[i].rvalue
+                p[doy, lati, loni] = results[i].pvalue
+                sd[doy, lati, loni] = results[i].stderr
                 i = i + 1
     intercepts[:] = ic
     slopes[:] = s
+    r_values[:] = r
+    p_values[:] = p
+    std_errors[:] = sd
     output_ds.close()
 
 
