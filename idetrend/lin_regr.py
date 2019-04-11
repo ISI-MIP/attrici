@@ -10,7 +10,7 @@ import settings as s
 from scipy import stats
 
 
-def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
+def regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
 
     """ minimal version of a linear regression per grid cell """
     #TIME1 = datetime.now()
@@ -31,7 +31,7 @@ def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
     return stats.linregress(gmt_of_doy, data_of_doy)
 
 
-def write_linear_regression_stats(shape_of_input, original_data_coords,
+def write_regression_stats(shape_of_input, original_data_coords,
         results, file_to_write, days_of_year):
 
     """ write linear regression statistics to a netcdf file. This function is specific
@@ -118,13 +118,13 @@ def run_linear_regr_on_iris_cube(cube, days_of_year):
     return results
 
 
-
 if __name__ == "__main__":
 
     """ add a quick test for one grid cell of our regression algorithm here. """
 
     # FIXME: make this compliant with other code. Now this relies on iris,
     # though we have moved on in our other code.
+    # probably better done in a tests folder through unit testing.
 
     gmt_file = os.path.join(s.data_dir, s.gmt_file)
     to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
