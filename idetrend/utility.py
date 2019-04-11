@@ -82,15 +82,15 @@ def get_gmt_on_each_day(gmt_file, days_of_year):
     # FIXME: make flexible later
     length_of_record = 110
 
-    gmt = nc.Dataset(gmt_file, "r")
+    ncgmt = nc.Dataset(gmt_file, "r")
 
     # interpolate from yearly to daily values
     gmt_on_each_day = np.interp(
         np.arange(length_of_record * days_of_year),
-        gmt.variables["time"][:],
-        gmt.variables["tas"][:],
+        ncgmt.variables["time"][:],
+        ncgmt.variables["tas"][:],
     )
-    gmt_data.close()
+    ncgmt.close()
 
     return gmt_on_each_day
 

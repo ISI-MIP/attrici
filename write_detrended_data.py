@@ -1,28 +1,24 @@
-#  import matplotlib.pyplot as plt
 import os
 import sys
-
-#  from scipy import stats
-import imp
+import importlib
 import time as t
 from datetime import datetime
 import numpy as np
 import netCDF4 as nc
-
-# for Ben and me to use our code.
-if "../" not in sys.path:
-    sys.path.append("../")
+import idetrend as idtr
 import idetrend.visualization as vis
 
-imp.reload(vis)
+importlib.reload(vis)
 import settings as s
 
 # parameters and data paths
 
 # the file with the smoothed global trend of global mean temperature
-gmt_data_path = os.path.join(s.data_dir, "test_ssa_gmt.nc4")
+gmt_file = os.path.join(s.data_dir, s.gmt_file)
 # the daily interpolated ssa-smoothed global mean temperature
-gmt_on_each_day = vis.get_gmt_on_each_day(gmt_data_path)
+# gmt_on_each_day = vis.get_gmt_on_each_day(gmt_file)
+gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
+
 
 varname = s.variable
 file_to_write = os.path.join(s.data_dir, varname + "_detrended.nc4")
@@ -71,6 +67,9 @@ def write_detrended(
 ):
 
     """ datrend data and write it to netCDF file. """
+
+    if os.path.exists(file_to_write):
+        os.remove(file_to_write)
 
     # create data set and dimensions
     output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
