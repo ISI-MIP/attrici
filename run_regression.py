@@ -11,7 +11,7 @@ import regression
 import settings as s
 import sys
 import time as t
-import utility
+import idetrend as idtr
 from scipy import special
 
 #  specify paths
@@ -23,24 +23,31 @@ from scipy import special
 gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
-gmt = nc.Dataset(gmt_file, "r")
-gmt_var = list(gmt.variables.keys())[-1]
-print(gmt_var, flush=True)
-data = nc.Dataset(to_detrend_file, "r")
-var = list(data.variables.keys())[-1]
-print(var, flush=True)
+def get_gmt_on_each_day(gmt_file, days_of_year):
 
-days_of_year = 365
-# interpolate monthly gmt values to daily.
-# do this more exact later.
-gmt_on_each_day = np.interp(np.arange(110*days_of_year),
-                            gmt.variables["time"][:], gmt.variables[gmt_var][:])
-# gmt_on_each_day = gmt.variables[gmt_var][:]
+    # FIXME: make flexible later
+    length_of_record = 110
+
+    gmt = nc.Dataset(gmt_file, "r")
+    # gmt_var = list(gmt.variables.keys())[-1]
+    # print(gmt_var, flush=True)
+    gmt_on_each_day = np.interp(
+        np.arange(length_of_record*days_of_year),
+        gmt.variables["time"][:], gmt.variables["tas"][:])
+    return gmt_on_each_day
+    # print(var, flush=True)
+
+gmt_on_each_day = get_gmt_on_each_day(gmt_file, s.days_of_year)
+data = nc.Dataset(to_detrend_file, "r")
+# FIXME: such code needs to be avoided. Why not explicitely using
+# the direct name from settings anyway?
+var = list(data.variables.keys())[-1]
+
 
 #  gmt_on_each_day = remove_leap_days(gmt_on_each_day, gmt.variables['time'])
 #  data_to_detrend = remove_leap_days(data.variables[var], data.variables['time'])
-data_to_detrend = data.variables[var]
-data_to_detrend = utility.check_data(data_to_detrend, to_detrend_file)
+data_to_detrend = data.variables[s.variable]
+data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
 #  data_to_detrend = special.logit(data/100)
 
 
@@ -183,7 +190,7 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    results = run_linear_regr_on_ncdf(data_to_detrend, days_of_year)
+    results = run_linear_regr_on_ncdf(data_to_detrend, s.days_of_year)
 
     # results = run_parallel_linear_regr(n_jobs=3)
     TIME1 = datetime.now()

@@ -13,8 +13,8 @@ def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
 
     """ minimal version of a linear regression per grid cell """
     #TIME1 = datetime.now()
-    #print(np_data_to_detrend.shape, flush=True)
-    #print(gmt_on_each_day.shape, flush=True)
+    print(np_data_to_detrend.shape, flush=True)
+    print(gmt_on_each_day.shape, flush=True)
     #print('doy is: ' + str(doy), flush=True)
     #print('longitude index is: ' + str(loni), flush=True)
 

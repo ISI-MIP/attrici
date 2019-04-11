@@ -12,11 +12,15 @@ else:
 #  handle job specifications
 n_jobs = 16  # number of childprocesses created by the job
 
-test = False
-variable = 'pr'
+# if test=True use smaller test dataset
+test = True
+variable = 'tas'
 dataset = 'gswp3'
 startyear = 1901
 endyear = 2010
+
+days_of_year = 365
+
 
 gmt_file = 'test_ssa_gmt.nc4'
 base_file = variable + '_rechunked_' + dataset + '_' + \
