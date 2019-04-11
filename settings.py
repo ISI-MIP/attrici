@@ -1,4 +1,5 @@
 import getpass
+import scipy.special as sp
 
 user = getpass.getuser()
 
@@ -21,6 +22,10 @@ endyear = 2010
 
 days_of_year = 365
 
+# this dictionary sets the transformations we need to
+# do for certain variables. these come in tuples
+# [transform, inverse_transform]
+transforms = {"pr":[sp.logit, sp.expit]}
 
 gmt_file = "test_ssa_gmt.nc4"
 base_file = (

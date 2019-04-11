@@ -32,11 +32,12 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
+    regr = idtr.lin_regr.regression(gmt_on_each_day)
     results = idtr.utility.run_function_on_ncdf(
         data_to_detrend,
-        gmt_on_each_day,
+        # gmt_on_each_day,
         s.days_of_year,
-        idtr.lin_regr.regr_per_gridcell,
+        regr,
         s.n_jobs,
     )
 

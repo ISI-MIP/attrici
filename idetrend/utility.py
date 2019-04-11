@@ -10,7 +10,7 @@ import joblib
 
 
 def run_lat_slice_parallel(
-    lat_slice_data, gmt_on_each_day, days_of_year, function_to_run, n_jobs
+    lat_slice_data, days_of_year, function_to_run, n_jobs
 ):
 
     """ run any function on latitude slices.
@@ -21,7 +21,7 @@ def run_lat_slice_parallel(
     doys = np.arange(days_of_year)
     TIME0 = datetime.datetime.now()
     results = joblib.Parallel(n_jobs=n_jobs, backend="threading")(
-        joblib.delayed(function_to_run)(lat_slice_data, gmt_on_each_day, doy, loni)
+        joblib.delayed(function_to_run.run)(lat_slice_data, doy, loni)
         for doy in doys
         for loni in lonis
     )
@@ -51,7 +51,7 @@ def run_lat_slice_serial(
 
 
 def run_function_on_ncdf(
-    data_to_detrend, gmt_on_each_day, days_of_year, function_to_run, n_jobs
+    data_to_detrend, days_of_year, function_to_run, n_jobs
 ):
 
     """ use the numpy slicing to run a function on a full dataset.
@@ -67,7 +67,7 @@ def run_function_on_ncdf(
         print("Working on slice " + str(i), flush=True)
         TIME0 = datetime.datetime.now()
         r = run_lat_slice_parallel(
-            data, gmt_on_each_day, days_of_year, function_to_run, n_jobs
+            data, days_of_year, function_to_run, n_jobs
         )
         results = results + r
         TIME1 = datetime.datetime.now()
