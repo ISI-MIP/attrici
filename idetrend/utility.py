@@ -31,6 +31,31 @@ def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year,
     return results
 
 
+def run_function_on_ncdf(data_to_detrend, gmt_on_each_day,
+        days_of_year, function_to_run, n_jobs):
+
+    """ use the numpy slicing to run a function on a full dataset.
+    example function: regression.linear_regr_per_gridcell
+    for each latitude slice, calculation is parallelized.
+    TODO: describe what the function needs to fullfil to be used here.
+    """
+
+    i = 0
+    results = []
+    for lat_slice in np.arange(data_to_detrend.shape[1]):
+        data = data_to_detrend[:, i, :]
+        print('Working on slice ' + str(i), flush=True)
+        TIME0 = datetime.datetime.now()
+        r = run_lat_slice_parallel(data, gmt_on_each_day, days_of_year,
+            function_to_run, n_jobs)
+        results = results + r
+        TIME1 = datetime.datetime.now()
+        duration = TIME1 - TIME0
+        i += 1
+
+    return results
+
+
 def get_gmt_on_each_day(gmt_file, days_of_year):
 
     # FIXME: make flexible later

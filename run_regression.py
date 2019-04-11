@@ -28,31 +28,15 @@ data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
 #  data_to_detrend = special.logit(data/100)
 
 
-def run_linear_regr_on_ncdf(data_to_detrend, days_of_year):
-
-    """ use the numpy slicing to run linear regression on a dataset.
-    for each latitude slice, calculation is parallelized. """
-    i = 0
-    results = []
-    for lat_slice in np.arange(data_to_detrend.shape[1]):
-        data = data_to_detrend[:, i, :]
-        print('Working on slice ' + str(i), flush=True)
-        TIME0 = datetime.now()
-        r = idtr.utility.run_lat_slice_parallel(data, gmt_on_each_day, days_of_year,
-            regression.linear_regr_per_gridcell, s.n_jobs)
-        results = results + r
-        TIME1 = datetime.now()
-        duration = TIME1 - TIME0
-        i += 1
-
-    return results
 
 
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    results = run_linear_regr_on_ncdf(data_to_detrend, s.days_of_year)
+    results = idtr.utility.run_function_on_ncdf(data_to_detrend,
+        gmt_on_each_day, s.days_of_year,
+        regression.linear_regr_per_gridcell, s.n_jobs)
 
     # results = run_parallel_linear_regr(n_jobs=3)
     TIME1 = datetime.now()
