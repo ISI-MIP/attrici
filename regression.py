@@ -31,51 +31,6 @@ def linear_regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
     return stats.linregress(gmt_of_doy, data_of_doy)
 
 
-def run_lat_slice_serial(lat_slice_data, gmt_on_each_day, days_of_year):
-
-    """ calculate linear regression stats for all days of years and
-    all grid cells. Classic serial looping. Return a list of all stats """
-
-    results = []
-    for doy in np.arange(days_of_year):
-        for loni in np.arange(lat_slice_data.shape[1]):
-            result = linear_regr_per_gridcell(
-                lat_slice_data, gmt_on_each_day, doy, loni)
-            results.append(result)
-
-    return results
-
-def run_linear_regr_on_iris_cube(cube, days_of_year):
-
-    """ use the iris slicing to run linear regression on a whole iris cube.
-    for each latitude slice, calculation is parallelized. """
-
-    results = []
-    TIME0 = datetime.now()
-    for doy in np.arange(days_of_year):
-        print('\nDay of Year is: ' + str(doy), flush=True)
-        r = linear_regr_per_gridcell(cube.data, gmt_on_each_day, days_of_year, 0)
-        results.append(r)
-    TIME1 = datetime.now()
-    duration = TIME1 - TIME0
-    print('Calculation took', duration.total_seconds(), 'seconds.', flush=True)
-    sys.stdout.flush()
-    return results
-
-def remove_leap_days(data, time):
-
-    '''
-    removes 366th dayofyear from numpy array that starts on Jan 1st, 1901 with daily timestep
-    '''
-
-    dates = [datetime(1901,1,1)+n*timedelta(days=1) for n in range(time.shape[0])]
-    dates = nc.num2date(time[:], units=time.units)
-    leap_mask = []
-    for date in dates:
-        leap_mask.append(date.timetuple().tm_yday != 366)
-    return data[leap_mask]
-
-
 def write_linear_regression_stats(shape_of_input, original_data_coords,
         results, file_to_write, days_of_year):
 
@@ -145,10 +100,31 @@ def write_linear_regression_stats(shape_of_input, original_data_coords,
     output_ds.close()
 
 
+def run_linear_regr_on_iris_cube(cube, days_of_year):
+
+    """ use the iris slicing to run linear regression on a whole iris cube.
+    for each latitude slice, calculation is parallelized. """
+
+    results = []
+    TIME0 = datetime.now()
+    for doy in np.arange(days_of_year):
+        print('\nDay of Year is: ' + str(doy), flush=True)
+        r = linear_regr_per_gridcell(cube.data, gmt_on_each_day, days_of_year, 0)
+        results.append(r)
+    TIME1 = datetime.now()
+    duration = TIME1 - TIME0
+    print('Calculation took', duration.total_seconds(), 'seconds.', flush=True)
+    sys.stdout.flush()
+    return results
+
+
 
 if __name__ == "__main__":
 
     """ add a quick test for one grid cell of our regression algorithm here. """
+
+    # FIXME: make this compliant with other code. Now this relies on iris,
+    # though we have moved on in our other code.
 
     gmt_file = os.path.join(s.data_dir, s.gmt_file)
     to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)

@@ -31,6 +31,24 @@ def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year,
     return results
 
 
+def run_lat_slice_serial(lat_slice_data, gmt_on_each_day, days_of_year,
+        function_to_run):
+
+    """ run a function on latitude slices.
+     Classic serial looping, else it does the same as run_lat_slice_parallel
+     Return a list of all stats """
+
+    results = []
+    for doy in np.arange(days_of_year):
+        for loni in np.arange(lat_slice_data.shape[1]):
+            result = function_to_run(
+                lat_slice_data, gmt_on_each_day, doy, loni)
+            results.append(result)
+
+    return results
+
+
+
 def run_function_on_ncdf(data_to_detrend, gmt_on_each_day,
         days_of_year, function_to_run, n_jobs):
 
@@ -175,7 +193,6 @@ def check_data(data, source_path_data):
 
 
 # FIXME: delete code below?
-# the following functions maybe moved to an "io file" later. ###
 
 def create_doy_cube(array, original_cube_coords, **kwargs):
 
@@ -193,4 +210,18 @@ def create_doy_cube(array, original_cube_coords, **kwargs):
             ], **kwargs)
 
     return cube
+
+
+def remove_leap_days(data, time):
+
+    '''
+    removes 366th dayofyear from numpy array that starts on Jan 1st, 1901 with daily timestep
+    '''
+
+    dates = [datetime(1901,1,1)+n*timedelta(days=1) for n in range(time.shape[0])]
+    dates = nc.num2date(time[:], units=time.units)
+    leap_mask = []
+    for date in dates:
+        leap_mask.append(date.timetuple().tm_yday != 366)
+    return data[leap_mask]
 
