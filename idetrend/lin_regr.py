@@ -13,11 +13,11 @@ from scipy import stats
 def regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
 
     """ minimal version of a linear regression per grid cell """
-    #TIME1 = datetime.now()
+    # TIME1 = datetime.now()
     # print(np_data_to_detrend.shape, flush=True)
     # print(gmt_on_each_day.shape, flush=True)
-    #print('doy is: ' + str(doy), flush=True)
-    #print('longitude index is: ' + str(loni), flush=True)
+    # print('doy is: ' + str(doy), flush=True)
+    # print('longitude index is: ' + str(loni), flush=True)
 
     if np_data_to_detrend.ndim >= 2:
         data_of_doy = np_data_to_detrend[doy::365, loni]
@@ -25,14 +25,15 @@ def regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
         data_of_doy = np_data_to_detrend[doy::365]
 
     gmt_of_doy = gmt_on_each_day[doy::365]
-    #TIME2 = datetime.now()
-    #duration = TIME2 - TIME1
-    #print('One grid cell regression input took', duration.total_seconds(), 'seconds.', flush=True)
+    # TIME2 = datetime.now()
+    # duration = TIME2 - TIME1
+    # print('One grid cell regression input took', duration.total_seconds(), 'seconds.', flush=True)
     return stats.linregress(gmt_of_doy, data_of_doy)
 
 
-def write_regression_stats(shape_of_input, original_data_coords,
-        results, file_to_write, days_of_year):
+def write_regression_stats(
+    shape_of_input, original_data_coords, results, file_to_write, days_of_year
+):
 
     """ write linear regression statistics to a netcdf file. This function is specific
     to the output of the scipy.stats.linregress output.
@@ -47,11 +48,11 @@ def write_regression_stats(shape_of_input, original_data_coords,
     times = output_ds.createVariable("time", "f8", ("time",))
     longitudes = output_ds.createVariable("lon", "f4", ("lon",))
     latitudes = output_ds.createVariable("lat", "f4", ("lat",))
-    intercepts = output_ds.createVariable('intercept', "f8", ("time", "lat", "lon",))
-    slopes = output_ds.createVariable('slope', "f8", ("time", "lat", "lon",))
-    r_values = output_ds.createVariable('r_values', "f8", ("time", "lat", "lon",))
-    p_values = output_ds.createVariable('p_values', "f8", ("time", "lat", "lon",))
-    std_errors = output_ds.createVariable('std_errors', "f8", ("time", "lat", "lon",))
+    intercepts = output_ds.createVariable("intercept", "f8", ("time", "lat", "lon"))
+    slopes = output_ds.createVariable("slope", "f8", ("time", "lat", "lon"))
+    r_values = output_ds.createVariable("r_values", "f8", ("time", "lat", "lon"))
+    p_values = output_ds.createVariable("p_values", "f8", ("time", "lat", "lon"))
+    std_errors = output_ds.createVariable("std_errors", "f8", ("time", "lat", "lon"))
     print(intercepts)
 
     output_ds.description = "Regression test script"
@@ -72,8 +73,7 @@ def write_regression_stats(shape_of_input, original_data_coords,
     print("latitudes: \n", latitudes[:])
     print("longitudes: \n", longitudes[:])
 
-    ic = np.zeros([days_of_year, shape_of_input[1],
-                   shape_of_input[2]])
+    ic = np.zeros([days_of_year, shape_of_input[1], shape_of_input[2]])
     s = np.zeros_like(ic)
     r = np.zeros_like(ic)
     p = np.zeros_like(ic)
@@ -108,12 +108,12 @@ def run_linear_regr_on_iris_cube(cube, days_of_year):
     results = []
     TIME0 = datetime.now()
     for doy in np.arange(days_of_year):
-        print('\nDay of Year is: ' + str(doy), flush=True)
+        print("\nDay of Year is: " + str(doy), flush=True)
         r = linear_regr_per_gridcell(cube.data, gmt_on_each_day, days_of_year, 0)
         results.append(r)
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
-    print('Calculation took', duration.total_seconds(), 'seconds.', flush=True)
+    print("Calculation took", duration.total_seconds(), "seconds.", flush=True)
     sys.stdout.flush()
     return results
 
@@ -131,9 +131,11 @@ if __name__ == "__main__":
 
     gmt = iris.load_cube(gmt_file)
     data_to_detrend = iris.load_cube(to_detrend_file)
-    icc.add_day_of_year(data_to_detrend, 'time')
-    data_to_detrend = data_to_detrend.extract(iris.Constraint(latitude=52.25, longitude=13.25))
-    doys_cube = data_to_detrend.coord('day_of_year').points
+    icc.add_day_of_year(data_to_detrend, "time")
+    data_to_detrend = data_to_detrend.extract(
+        iris.Constraint(latitude=52.25, longitude=13.25)
+    )
+    doys_cube = data_to_detrend.coord("day_of_year").points
 
     # remove 366th day for now.
     data_to_detrend = data_to_detrend[doys_cube != 366]
@@ -141,20 +143,21 @@ if __name__ == "__main__":
     days_of_year = 365
     # interpolate monthly gmt values to daily.
     # do this more exact later.
-    gmt_on_each_day = np.interp(np.arange(110*days_of_year),
-                                gmt.coord("time").points, gmt.data)
+    gmt_on_each_day = np.interp(
+        np.arange(110 * days_of_year), gmt.coord("time").points, gmt.data
+    )
 
     # lonis = np.arange(data_to_detrend.shape[2])
     doys = np.arange(days_of_year)
-    print('Starting with regression calculation')
+    print("Starting with regression calculation")
 
     TIME0 = datetime.now()
 
     results = run_linear_regr_on_iris_cube(data_to_detrend, days_of_year)
 
-    print('\nThis is the result:\n')
+    print("\nThis is the result:\n")
     print(results)
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
-    print('Calculation took', duration.total_seconds(), 'seconds.', flush=True)
+    print("Calculation took", duration.total_seconds(), "seconds.", flush=True)
     # results = run_parallel_linear_regr(n_jobs=3)

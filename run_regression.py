@@ -9,6 +9,7 @@ from scipy import special
 from datetime import datetime, timedelta
 import time as t
 from operator import itemgetter
+
 # import regression
 import settings as s
 import idetrend as idtr
@@ -31,22 +32,30 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    results = idtr.utility.run_function_on_ncdf(data_to_detrend,
-        gmt_on_each_day, s.days_of_year,
-        idtr.lin_regr.regr_per_gridcell, s.n_jobs)
+    results = idtr.utility.run_function_on_ncdf(
+        data_to_detrend,
+        gmt_on_each_day,
+        s.days_of_year,
+        idtr.lin_regr.regr_per_gridcell,
+        s.n_jobs,
+    )
 
     # results = run_parallel_linear_regr(n_jobs=3)
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
-    print('Calculation took', duration.total_seconds(), 'seconds.')
+    print("Calculation took", duration.total_seconds(), "seconds.")
 
     file_to_write = os.path.join(s.data_dir, s.regression_outfile)
     # due to a bug in iris I guess, I cannot overwrite existing files. Remove before.
-    if os.path.exists(file_to_write): os.remove(file_to_write)
-    idtr.lin_regr.write_regression_stats(data_to_detrend.shape,
-                                  (data.variables['lat'],
-                                   data.variables['lon']),
-                                  results, file_to_write, s.days_of_year)
+    if os.path.exists(file_to_write):
+        os.remove(file_to_write)
+    idtr.lin_regr.write_regression_stats(
+        data_to_detrend.shape,
+        (data.variables["lat"], data.variables["lon"]),
+        results,
+        file_to_write,
+        s.days_of_year,
+    )
     TIME2 = datetime.now()
     duration = TIME2 - TIME1
-    print('Saving took', duration.total_seconds(), 'seconds.')
+    print("Saving took", duration.total_seconds(), "seconds.")
