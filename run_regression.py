@@ -27,9 +27,6 @@ data_to_detrend = data.variables[s.variable]
 data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
 #  data_to_detrend = special.logit(data/100)
 
-
-
-
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
