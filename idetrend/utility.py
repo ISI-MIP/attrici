@@ -1,9 +1,49 @@
 import os
+import sys
+import datetime
 import numpy as np
 import re
 import warnings
 import netCDF4 as nc
 from scipy import special
+import joblib
+
+
+def run_lat_slice_parallel(lat_slice_data, gmt_on_each_day, days_of_year,
+                           function_to_run, n_jobs):
+
+    """ run any function on latitude slices.
+        Joblib implementation. Return a list of all stats """
+
+    sys.stdout.flush()
+    lonis = np.arange(lat_slice_data.shape[1])
+    doys = np.arange(days_of_year)
+    TIME0 = datetime.datetime.now()
+    results = joblib.Parallel(n_jobs=n_jobs, backend='threading')(
+                joblib.delayed(function_to_run)(
+                    lat_slice_data, gmt_on_each_day, doy, loni)
+                        for doy in doys for loni in lonis)
+
+    print('Done with slice', flush=True)
+    TIME1 = datetime.datetime.now()
+    duration = TIME1 - TIME0
+    print('Working on slice took', duration.total_seconds(), 'seconds.\n', flush=True)
+    return results
+
+
+def get_gmt_on_each_day(gmt_file, days_of_year):
+
+    # FIXME: make flexible later
+    length_of_record = 110
+
+    gmt = nc.Dataset(gmt_file, "r")
+    # gmt_var = list(gmt.variables.keys())[-1]
+    # print(gmt_var, flush=True)
+    gmt_on_each_day = np.interp(
+        np.arange(length_of_record*days_of_year),
+        gmt.variables["time"][:], gmt.variables["tas"][:])
+    return gmt_on_each_day
+    # print(var, flush=True)
 
 
 def check_data(data, source_path_data):
@@ -107,3 +147,25 @@ def check_data(data, source_path_data):
             raise Exception('Detected variable name not correct!')
     print('Data checked for forbidden values!', flush=True)
     return data
+
+
+# FIXME: delete code below?
+# the following functions maybe moved to an "io file" later. ###
+
+def create_doy_cube(array, original_cube_coords, **kwargs):
+
+    """ create an iris cube from a plain numpy array.
+    First dimension is always days of the year. Second and third are lat and lon
+    and are taken from the input data. """
+
+    sys.stdout.flush()
+    doy_coord = iris.coords.DimCoord(np.arange(1., 366.), var_name="day_of_year")
+
+    cube = iris.cube.Cube(array,
+            dim_coords_and_dims=[(doy_coord, 0),
+             (original_cube_coords('latitude'), 1),
+             (original_cube_coords('longitude'), 2),
+            ], **kwargs)
+
+    return cube
+
