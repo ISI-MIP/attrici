@@ -10,25 +10,32 @@ import settings as s
 from scipy import stats
 
 
-def regr_per_gridcell(np_data_to_detrend, gmt_on_each_day, doy, loni=0):
+class regression(object):
 
-    """ minimal version of a linear regression per grid cell """
-    # TIME1 = datetime.now()
-    # print(np_data_to_detrend.shape, flush=True)
-    # print(gmt_on_each_day.shape, flush=True)
-    # print('doy is: ' + str(doy), flush=True)
-    # print('longitude index is: ' + str(loni), flush=True)
+    def __init__(self, gmt_on_each_day, transform=None):
 
-    if np_data_to_detrend.ndim >= 2:
-        data_of_doy = np_data_to_detrend[doy::365, loni]
-    else:
-        data_of_doy = np_data_to_detrend[doy::365]
+        self.gmt_on_each_day = gmt_on_each_day
+        self.transform = transform
 
-    gmt_of_doy = gmt_on_each_day[doy::365]
-    # TIME2 = datetime.now()
-    # duration = TIME2 - TIME1
-    # print('One grid cell regression input took', duration.total_seconds(), 'seconds.', flush=True)
-    return stats.linregress(gmt_of_doy, data_of_doy)
+
+    def run(self, np_data_to_detrend, doy, loni=0):
+
+        """ minimal version of a linear regression per grid cell """
+
+        if np_data_to_detrend.ndim >= 2:
+            data_of_doy = np_data_to_detrend[doy::365, loni]
+        else:
+            data_of_doy = np_data_to_detrend[doy::365]
+
+        # FIXME: we here select gmt that is interpolated from yearly values,
+        # so gmt_of_doy depends on gmt[i] and gmt[i+1] or so. do we want that?
+        # would it not be better to pass yearly GMT here?
+        gmt_of_doy = self.gmt_on_each_day[doy::365]
+
+        if self.transform is not None:
+            data_of_doy = transform(data_of_doy)
+
+        return stats.linregress(gmt_of_doy, data_of_doy)
 
 
 def write_regression_stats(
