@@ -49,7 +49,6 @@ def get_regression_coefficients(data_path, indices):
 
     print(indices)
     ncf = nc.Dataset(data_path, "r")
-<<<<<<< HEAD
     if len(indices) == 3:
         lat = ncf.variables['lat'][indices[1]]
         lon = ncf.variables['lon'][indices[2]]
@@ -59,12 +58,6 @@ def get_regression_coefficients(data_path, indices):
     
     slope = ncf.variables['slope'][indices]
     intercept = ncf.variables['intercept'][indices]
-=======
-    lat = ncf.variables["lat"][indices[1]]
-    lon = ncf.variables["lon"][indices[2]]
-    slope = ncf.variables["slope"][indices]
-    intercept = ncf.variables["intercept"][indices]
->>>>>>> origin/housekeeping
     ncf.close()
 
     return lat, lon, slope, intercept
@@ -91,18 +84,12 @@ def get_data_to_detrend(data_path, varname, indices):
     lon and lat from netcdf file. doy, lon, lat is from indices. """
 
     nc_data_to_detrend = nc.Dataset(data_path, "r")
-<<<<<<< HEAD
     if len(indices) == 3:
         data_to_detrend = nc_data_to_detrend.variables[varname][
             indices[0]::days_of_year, indices[1], indices[2]]
     else:
         data_to_detrend = nc_data_to_detrend.variables[varname][
             indices[0]::days_of_year, :, :]           
-=======
-    data_to_detrend = nc_data_to_detrend.variables[varname][
-        indices[0] :: days_of_year, indices[1], indices[2]
-    ]
->>>>>>> origin/housekeeping
     nc_data_to_detrend.close()
     return data_to_detrend
 
