@@ -1,37 +1,32 @@
-import matplotlib.pyplot as plt
-import netCDF4 as nc
-import numpy as np
 import os
 import sys
-from scipy import stats
-import imp
+import importlib
 import time as t
+from datetime import datetime
+import numpy as np
+import netCDF4 as nc
+import idetrend as idtr
+import idetrend.visualization as vis
 
-# for Ben and me to use our code.
-if "../" not in sys.path: sys.path.append("../")
-import idetrend.visualization as vis; imp.reload(vis)
+importlib.reload(vis)
 import settings as s
 
 # parameters and data paths
-source_path = "/p/tmp/bschmidt/gswp3/"
 
 # the file with the smoothed global trend of global mean temperature
-gmt_data_path = os.path.join(source_path, 'test_ssa_gmt.nc4')
+gmt_file = os.path.join(s.data_dir, s.gmt_file)
 # the daily interpolated ssa-smoothed global mean temperature
-gmt_on_each_day = vis.get_gmt_on_each_day(gmt_data_path)
+# gmt_on_each_day = vis.get_gmt_on_each_day(gmt_file)
+gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
+
 
 varname = s.variable
-file_to_write = os.path.join(source_path, varname+'_detrended.nc4')
+file_to_write = os.path.join(s.data_dir, varname + "_detrended.nc4")
+regression_file = os.path.join(s.data_dir, s.regression_outfile)
+to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
-# the full dataset
-regr_path = os.path.join(source_path, varname+'_regression_all.nc4')
-data_path = os.path.join(source_path,varname+'_rm_gswp3_1901_2010.nc4')
 
-#test data set
-#regr_path = os.path.join(source_path, varname+'_regression.nc4')
-#data_path = os.path.join(source_path,'test_data_'+varname+'.nc4')
-
-lats, lons, slope, intercept = vis.get_coefficient_fields(regr_path)
+lats, lons, slope, intercept = vis.get_coefficient_fields(regression_file)
 
 if s.test:
     shape_of_input = (40150, 12, 24)
@@ -39,7 +34,15 @@ else:
     shape_of_input = (40150, 360, 720)
 
 # functions
-def fit_ts(regr_path, data_path, variable, gmt_on_each_day, indices, shape_of_input, calendar='noleap'):
+def fit_ts(
+    regr_path,
+    data_path,
+    variable,
+    gmt_on_each_day,
+    indices,
+    shape_of_input,
+    calendar="noleap",
+):
 
     """ detrend 2-dimensional data with linear trend from regression coefficients. """
 
@@ -51,16 +54,22 @@ def fit_ts(regr_path, data_path, variable, gmt_on_each_day, indices, shape_of_in
     gmt_on_doy = np.ones((110, shape_of_input[1], shape_of_input[2]))
     for lat in range(shape_of_input[1]):
         for lon in range(shape_of_input[2]):
-            gmt_on_doy[:, lat, lon] = gmt_on_each_day[indices[0]::days_of_year]
+            gmt_on_doy[:, lat, lon] = gmt_on_each_day[indices[0] :: days_of_year]
 
     fit = intercept + (slope * gmt_on_doy)
     data_detrended = data_to_detrend - fit + fit[0, :, :]
 
     return data_detrended
 
-def write_detrended(regr_path, data_path, shape_of_input, original_data_coords, file_to_write, variable):
+
+def write_detrended(
+    regr_path, data_path, shape_of_input, original_data_coords, file_to_write, variable
+):
 
     """ datrend data and write it to netCDF file. """
+
+    if os.path.exists(file_to_write):
+        os.remove(file_to_write)
 
     # create data set and dimensions
     output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
@@ -72,9 +81,9 @@ def write_detrended(regr_path, data_path, shape_of_input, original_data_coords, 
 
     # create variables
     times = output_ds.createVariable("time", "f8", ("time",))
-    longitudes = output_ds.createVariable("lon", "f4", ("lon",))
-    latitudes = output_ds.createVariable("lat", "f4", ("lat",))
-    data = output_ds.createVariable(variable, "f8", ("time", "lat", "lon",))
+    longitudes = output_ds.createVariable("lon", "f8", ("lon",))
+    latitudes = output_ds.createVariable("lat", "f8", ("lat",))
+    data = output_ds.createVariable(variable, "f4", ("time", "lat", "lon"))
     # print(intercepts)
 
     # Set attributes
@@ -103,17 +112,27 @@ def write_detrended(regr_path, data_path, shape_of_input, original_data_coords, 
     #  lonis = np.arange(shape_of_input[2])
 
     for doy in doys:
-        print('Working on doy: ' + str(doy))
-        data_detrended = fit_ts(regr_path, data_path, varname, gmt_on_each_day, [doy-1], shape_of_input)
-        data[doy-1::days_of_year, :, :] = data_detrended
+        print("Working on doy: " + str(doy))
+        data_detrended = fit_ts(
+            regr_path, data_path, varname, gmt_on_each_day, [doy - 1], shape_of_input
+        )
+        data[doy - 1 :: days_of_year, :, :] = data_detrended
     output_ds.close()
+
 
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    write_detrended(regr_path, data_path, shape_of_input, (lats, lons), file_to_write, varname)
+    write_detrended(
+        regression_file,
+        to_detrend_file,
+        shape_of_input,
+        (lats, lons),
+        file_to_write,
+        varname,
+    )
 
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
-    print('Calculation took', duration.total_seconds(), 'seconds.')
+    print("Calculation took", duration.total_seconds(), "seconds.")
