@@ -26,7 +26,7 @@ def check_data(data, source_path_data):
     variable = [variable for variable in var_list if variable in data_file][0]
 
     if isinstance(data, nc.Dataset):
-        data = data.variables['rhs'][:]
+        data = data.variables[variable][:]
 
     for lat_slice in range(data.shape[1]):
         # run different transforms for variables

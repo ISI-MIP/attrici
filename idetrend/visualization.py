@@ -47,8 +47,13 @@ def get_regression_coefficients(data_path, indices):
 
     print(indices)
     ncf = nc.Dataset(data_path, "r")
-    lat = ncf.variables['lat'][indices[1]]
-    lon = ncf.variables['lon'][indices[2]]
+    if len(indices) == 3:
+        lat = ncf.variables['lat'][indices[1]]
+        lon = ncf.variables['lon'][indices[2]]
+    else:
+        lat = ncf.variables['lat'][:]
+        lon = ncf.variables['lon'][:]
+    
     slope = ncf.variables['slope'][indices]
     intercept = ncf.variables['intercept'][indices]
     ncf.close()
@@ -75,8 +80,12 @@ def get_data_to_detrend(data_path, varname, indices):
     lon and lat from netcdf file. doy, lon, lat is from indices. """
 
     nc_data_to_detrend = nc.Dataset(data_path, "r")
-    data_to_detrend = nc_data_to_detrend.variables[varname][
-        indices[0]::days_of_year, indices[1], indices[2]]
+    if len(indices) == 3:
+        data_to_detrend = nc_data_to_detrend.variables[varname][
+            indices[0]::days_of_year, indices[1], indices[2]]
+    else:
+        data_to_detrend = nc_data_to_detrend.variables[varname][
+            indices[0]::days_of_year, :, :]           
     nc_data_to_detrend.close()
     return data_to_detrend
 

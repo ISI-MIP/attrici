@@ -13,7 +13,7 @@ else:
 n_jobs = 16  # number of childprocesses created by the job
 
 test = False
-variable = 'pr'
+variable = 'tas'
 dataset = 'gswp3'
 startyear = 1901
 endyear = 2010
