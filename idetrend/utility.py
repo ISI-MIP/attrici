@@ -7,6 +7,7 @@ import warnings
 import netCDF4 as nc
 from scipy import special
 import joblib
+import settings as s
 
 
 def run_lat_slice_parallel(
@@ -101,113 +102,115 @@ def check_data(data, source_path_data):
     precprocessing step of data for regression analysis.
     NOTE: add more check routines"""
 
-    # get variable name from filename
-    var_list = [
-        "rhs",
-        "hurs",
-        "huss",
-        "snowfall",
-        "ps",
-        "rlds",
-        "rsds",
-        "wind",
-        "tasmin",
-        "tasmax",
-        "tas",
-    ]
-    # get data folder
+        # get data folder
     data_folder = os.path.join("/", *source_path_data.split("/")[:-1])
 
-    # fet filename
+    # get filename
     data_file = source_path_data.split("/")[-1]
-
-    # get variable (tas needs to be last in var_list to avoid wrong detection
-    # when tasmax or tasmin are searched
-    variable = [variable for variable in var_list if variable in data_file][0]
+    
+    var = s.variable
 
     if isinstance(data, nc.Dataset):
-        data = data.variables["rhs"][:]
+        data = data.variables[var][:]
 
-    for lat_slice in range(data.shape[1]):
         # run different transforms for variables
-        if variable in ["rhs", "hurs"]:
+        if var in ["rhs", "hurs"]:
             # print('Data variable is relative humidity!')
             # raise warnings if data contains values that need replacing
-            if np.sum(np.logical_or(data < 0, data > 110)) > 0:
+            if np.logical_or(data < const.minval[var], 
+                             data > const.maxval[var]).any():
                 #  warnings.warn('Data contains values far out of range. ' +
                 #                'Replacing values by numbers just in range!')
-                data[data > 110] = 99.9999
-                data[data < 0] = 0.0001
+                data[data > const.maxval[var]] = .999999 * const.maxval[var]
+                data[data < const.minval[var]] = .000001 * const.maxval[var]
                 warnings.warn(
-                    "Had to replace values that are far out of range!"
+                    "Had to replace out of range values!"
                     + "\nData seems to be erroneous!"
                 )
-            if np.sum(np.logical_or(data > 100, data < 110)) > 0:
-                #  warnings.warn('Some values suggest oversaturation. ' +
-                #  'Replacing values by numbers just in range!')
-                data[data > 100] = 99.9999
+            if np.logical_or(data > 1, data < const.maxval[var]).any():
+                data[data > const.maxval[var]] = const.maxval[var]
                 warnings.warn("Replaced values of oversaturation!")
-            if np.sum(np.logical_or(data == 0, data == 100)) > 0:
+            if np.logical_or(data == const.minval[var], data == const.maxval[var]).any():
                 #  warnings.warn('Data contains values 0 and/or 100. ' +
                 #                '\nReplacing values by numbers just in range!')
-                data[data == 100] = 99.9999
-                data[data == 0] = 0.0001
+                data[data == const.maxval[var]] = 99.9999
+                data[data == const.minval[var]] = 0.0001
                 warnings.warn("Replaced values bordering open interval (0, 100)!")
 
         elif variable == "tas":
-            print("Data variable is daily mean temperature!")
+            print("Data variable is daily mean temperature!", flush=True)
 
         elif variable == "tasmax":
-            print("Data variable is daily maximum temperature!")
+            print("Data variable is daily maximum temperature!", flush=True)
             tas_file = os.path.join(
                 data_folder, re.sub(variable, "tas", source_path_data.split("/")[-1])
             )
-            tas = nc.Dataset(tas_file, "r").variables["tas"][:, lat_slice, :]
+            for lat_slice in range(data.shape[1]):
+                tas = nc.Dataset(tas_file, "r").variables["tas"][:, lat_slice, :]
 
-            # check values of data
+                # check values of data
 
-            if np.min(data - tas) <= 0:
-                raise Exception(
-                    "\nAt least one value of tasmax appears to be "
-                    + "smaller than corresponding tas value!"
-                )
+                if np.min(data - tas) <= 0:
+                    raise Exception(
+                        "\nAt least one value of tasmax appears to be "
+                        + "smaller than corresponding tas value!"
+                    )
 
         elif variable == "tasmin":
             print("Data variable is daily minimum temperature!")
             tas_file = os.path.join(
                 data_folder, re.sub(variable, "tas", source_path_data.split("/")[-1])
             )
-            tas = nc.Dataset(tas_file, "r").variables["tas"][:, lat_slice, :]
+            for lat_slice in range(data.shape[1]):
+                tas = nc.Dataset(tas_file, "r").variables["tas"][:, lat_slice, :]
 
-            # check values of data
-            if np.min(tas - data) <= 0:
-                raise Exception(
-                    "\nAt least one value of tasmin appears to be "
-                    + "larger than corresponding tas value!"
-                )
+                # check values of data
+                if np.min(tas - data) <= 0:
+                    raise Exception(
+                        "\nAt least one value of tasmin appears to be "
+                        + "larger than corresponding tas value!"
+                    )
 
-        elif variable == "snowfall":
+        elif var == "snowfall":
             pr_file = os.path.join(
-                data_folder, re.sub(variable, "pr", source_path_data.split("/")[-1])
+                data_folder, re.sub(var, "pr", source_path_data.split("/")[-1])
             )
             pr = nc.Dataset(pr_file, "r").variables["pr"][:, lat_slice, :]
-            if np.sum(variable >= pr) > 0:
+            if np.sum(var >= pr) > 0:
                 raise Exception(
                     "\nAt least one value of snowfall appears to be "
                     + "larger than corresponding precipitation value!"
                 )
-        elif variable == "pr":
-            print("Data variable is daily precipitation!")
-        elif variable == "ps":
-            print("Data variable is near surface pressure!")
-        elif variable == "huss":
-            print("Data variable is specific humidity!")
-        elif variable == "rsds":
-            print("Data variable is shortwave incoming radiation!")
-        elif variable == "rlds":
-            print("Data variable is longwave incoming radiation!")
-        elif variable == "wind":
+        elif var == "pr":
+            print("Data variable is daily precipitation!", flush=True)
+            if np.min(data) < const.minval[var]:
+                data[data < const.minval[var]] = const.minval[var]
+                warnings.warn('Set small values to ' + str(const.minval[var]))
+        elif var == "ps":
+            print("Data variable is near surface pressure!", flush=True)
+        elif var == "huss":
+            print("Data variable is specific humidity!", flush=True)
+            if np.max(data) > const.maxval[var]:
+                data[data > const.maxval[var]] = const.maxval[var]
+                warnings.warn('Set large values to ' + str(const.maxval[var]))
+            if np.min(data) < const.minval[var]:
+                data[data < const.minval[var]] = const.minval[var]
+                warnings.warn('Set small values to ' + str(const.minval[var]))
+        elif var == "rsds":
+            print("Data variable is shortwave incoming radiation!", flush=True)
+            if np.max(data) > const.maxval[var]:
+                data[data > const.maxval[var]] = const.maxval[var]
+                warnings.warn('Set large values to ' + str(const.maxval[var]))
+        elif var == "rlds":
+            print("Data variable is longwave incoming radiation!", flush=True)
+            if np.max(data) > const.maxval[var]:
+                data[data > const.maxval[var]] = const.maxval[var]
+                warnings.warn('Set large values to ' + str(const.maxval[var]))
+        elif var == "wind":
             print("Data variable is near surface wind speed!")
+            if np.min(data) < const.minval[var]:
+                data[data < const.minval[var]] = const.minval[var]
+                warnings.warn('Set negative wind speed to ' + str(const.minval[var]))
         else:
             raise Exception("Detected variable name not correct!")
     print("Data checked for forbidden values!", flush=True)
@@ -251,3 +254,20 @@ def remove_leap_days(data, time):
     for date in dates:
         leap_mask.append(date.timetuple().tm_yday != 366)
     return data[leap_mask]
+
+def logit(data):
+    if any(data) not in range(const.minval[var], const.maxval[var]+1):
+        warnings.warn("Some values seem to be out of range. NaNs are going to be produced!")
+    return 2. * np.arctanh(2. * (data - const.minval[var]) / (const.maxval[var] - const.minval[var]) - 1.)
+
+def expit(data):
+    return (minval[var] + (maxval[var] - minval[var]) * .5 * (1. + np.tanh(.5 * data)))
+
+def log(data):
+    data[data == 0] = np.nan
+    return np.log(data)
+
+def exp(data):
+    trans = np.exp(data)
+    trans[trans == np.nan] = 0
+    return trans
