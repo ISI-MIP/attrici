@@ -16,6 +16,8 @@ class regression(object):
 
         self.gmt_on_each_day = gmt_on_each_day
         self.transform = transform
+        
+        #assert .3 == transform[1](transform[0](.3)), "Inverse transform does not match with transform."
 
 
     def run(self, np_data_to_detrend, doy, loni=0):
@@ -32,9 +34,10 @@ class regression(object):
         # would it not be better to pass yearly GMT here?
         gmt_of_doy = self.gmt_on_each_day[doy::365]
 
+        
         if self.transform is not None:
-            data_of_doy = transform(data_of_doy)
-
+            data_of_doy = self.transform[0](data_of_doy)
+            
         return stats.linregress(gmt_of_doy, data_of_doy)
 
 
