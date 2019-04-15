@@ -31,8 +31,9 @@ data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
-
-    regr = idtr.lin_regr.regression(gmt_on_each_day)
+    print('Variable is:')
+    print(s.variable,flush=True)
+    regr = idtr.lin_regr.regression(gmt_on_each_day, s.transform[s.variable])
     results = idtr.utility.run_function_on_ncdf(
         data_to_detrend,
         # gmt_on_each_day,
