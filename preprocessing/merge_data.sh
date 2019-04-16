@@ -18,6 +18,7 @@ datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | 
     sed "s/'//g" | sed 's/"//g')"
 outputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
 echo 'Outputfile:' $outputfile
+echo ${datafolder}${variable}_${dataset}_????_????.nc* 
 
 if [ -e ${outputfile} ]; then
     while true; do
@@ -27,7 +28,7 @@ if [ -e ${outputfile} ]; then
                 echo 'Deleting' $outputfile
                 rm $outputfile 
                 echo 'Merging files!'
-                cdo mergetime ${datafolder}${variable}_${dataset}_*.nc* \
+                cdo mergetime ${datafolder}${variable}_${dataset}_????_????.nc* \
                 $outputfile
             break;;
             [Nn]* ) \
@@ -36,5 +37,9 @@ if [ -e ${outputfile} ]; then
             * ) echo "Please answer yes or no.";;
         esac
     done
+else
+    echo 'Merging files!'
+    cdo mergetime ${datafolder}${variable}_${dataset}_????_????.nc* \
+    $outputfile
 fi
 echo 'Done!'
