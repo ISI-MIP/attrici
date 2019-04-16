@@ -17,7 +17,7 @@
 # Run complete preprocessing routine
 source /home/bschmidt/.programs/anaconda3/bin/activate detrending
 
-bash merge_data.sh
+yes | bash merge_data.sh
 bash remove_leap_days.sh
 bash rechunk.sh
 python3 create_test_data.py
