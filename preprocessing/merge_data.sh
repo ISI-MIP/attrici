@@ -5,13 +5,19 @@ else
     settings_file=../settings.py
 fi 
 variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 \
-    | sed "s/'//g")"
+    | sed "s/'//g" | sed 's/"//g')"
 echo 'Merging data for variable' $variable
-dataset=gswp3
-startyear=1901
-endyear=2010
-datapath=/p/tmp/bschmidt/${dataset}/
-outputfile=${datapath}${variable}_${dataset}_${startyear}_${endyear}.nc4
+dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 \
+    | sed "s/'//g" | sed 's/"//g')"
+startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 \
+    | sed "s/'//g" | sed 's/"//g')"
+endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 \
+    | sed "s/'//g" | sed 's/"//g')"
+# datafolder selections relies on the folder being wrapped in double quotation marks
+datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | \
+    sed "s/'//g" | sed 's/"//g')"
+outputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
+echo 'Outputfile:' $outputfile
 
 if [ -e ${outputfile} ]; then
     while true; do
@@ -21,7 +27,7 @@ if [ -e ${outputfile} ]; then
                 echo 'Deleting' $outputfile
                 rm $outputfile 
                 echo 'Merging files!'
-                cdo mergetime ${datapath}${variable}_${dataset}_*.nc* \
+                cdo mergetime ${datafolder}${variable}_${dataset}_*.nc* \
                 $outputfile
             break;;
             [Nn]* ) \
@@ -31,4 +37,4 @@ if [ -e ${outputfile} ]; then
         esac
     done
 fi
-
+echo 'Done!'
