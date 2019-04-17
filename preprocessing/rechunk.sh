@@ -32,18 +32,8 @@ endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 
 echo 'Rechunk the following variable'
 echo $variable
-echo 'Input:' ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
+echo 'Inputfile:' ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
+echo 'Outputfile:' ${datafolder}${variable}_rechunked_${dataset}_${startyear}_${endyear}_noleap.nc4
 nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/720 ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4 \
     ${datafolder}${variable}_rechunked_${dataset}_${startyear}_${endyear}_noleap.nc4
 echo 'rechunked' $i 'for faster access to full timeseries'
-
-# OLD LOOP OVER ALL VARIABLES ROUTINE
-# variables=( pr ps huss rhs rlds rsds tasmax tasmin tas wind )
-# echo 'Rechunk the following variables'
-# echo $variables
-# for i in "${variables[@]}"; do
-#     echo 'Rechunking' $i
-#     nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/720 ${datafolder}${i}_${dataset}_1901_2010_noleap.nc4 \
-#         ${datafolder}${i}_rechunked_${dataset}_1901_2010_noleap.nc4
-#     echo 'rechunked' $i 'for faster access to full timeseries'
-# done

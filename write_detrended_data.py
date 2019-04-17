@@ -21,7 +21,11 @@ gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
 
 
 varname = s.variable
-file_to_write = os.path.join(s.data_dir, varname + "_detrended.nc4")
+if s.test:
+    file_to_write = os.path.join(s.data_dir, varname + "_detrended_test.nc4")
+else:
+    file_to_write = os.path.join(s.data_dir, varname + "_detrended.nc4")
+
 regression_file = os.path.join(s.data_dir, s.regression_outfile)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 
@@ -34,6 +38,17 @@ else:
     shape_of_input = (40150, 360, 720)
 
 # functions
+def fit_minimal(gmt_on_doy, intercept, slope, transform):
+
+    """ A minimal fit function"""
+    if transform is None:
+        fit = intercept + (slope * gmt_on_doy)
+    else:
+        fit = transform[1](intercept + (slope * gmt_on_doy))
+
+    return fit
+
+
 def fit_ts(
     regr_path,
     data_path,
@@ -41,10 +56,12 @@ def fit_ts(
     gmt_on_each_day,
     indices,
     shape_of_input,
+    transform=None,
     calendar="noleap",
 ):
 
-    """ detrend 2-dimensional data with linear trend from regression coefficients. """
+    """ A function to fit 2-dimensional data with linear trend from regression coefficients.
+    Employs fit_minimal()."""
 
     if calendar == "noleap":
         days_of_year = 365
@@ -56,7 +73,7 @@ def fit_ts(
         for lon in range(shape_of_input[2]):
             gmt_on_doy[:, lat, lon] = gmt_on_each_day[indices[0] :: days_of_year]
 
-    fit = intercept + (slope * gmt_on_doy)
+    fit = fit_minimal(gmt_on_doy, intercept, slope, transform)
     data_detrended = data_to_detrend - fit + fit[0, :, :]
 
     return data_detrended
@@ -114,7 +131,7 @@ def write_detrended(
     for doy in doys:
         print("Working on doy: " + str(doy))
         data_detrended = fit_ts(
-            regr_path, data_path, varname, gmt_on_each_day, [doy - 1], shape_of_input
+            regr_path, data_path, varname, gmt_on_each_day, [doy - 1], shape_of_input, transform=s.transform[s.variable]
         )
         data[doy - 1 :: days_of_year, :, :] = data_detrended
     output_ds.close()
