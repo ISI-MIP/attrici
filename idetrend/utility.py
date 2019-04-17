@@ -231,13 +231,11 @@ def expit(data):
 
 
 def log(data):
-    from settings import variable
-    data[data == 0] = np.nan
+    data[data <= 0] = np.nan
     return np.log(data)
 
 
 def exp(data):
-    from settings import variable
     trans = np.exp(data)
     trans[trans == np.nan] = 0
     return trans
