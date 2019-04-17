@@ -40,7 +40,7 @@ else:
 # functions
 def fit_minimal(gmt_on_doy, intercept, slope, transform):
 
-    """ A minimal fit function"""
+    """ A minimal fit function for 1-dimensional data with trend from regression coefficients"""
     if transform is None:
         fit = intercept + (slope * gmt_on_doy)
     else:
@@ -60,7 +60,7 @@ def fit_ts(
     calendar="noleap",
 ):
 
-    """ A function to fit 2-dimensional data with linear trend from regression coefficients.
+    """ A function to fit 2-dimensional data with trend from regression coefficients.
     Employs fit_minimal()."""
 
     if calendar == "noleap":
