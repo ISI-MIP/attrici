@@ -218,14 +218,16 @@ def check_data(data, source_path_data):
 
 def logit(data):
     from settings import variable
-    if any(data) not in range(const.minval[variable], const.maxval[variable]+1):
+    if np.any(data) not in range(int(const.minval[variable]), int(const.maxval[variable]+1)):
         warnings.warn("Some values seem to be out of range. NaNs are going to be produced!")
     return 2. * np.arctanh(2. * (data - const.minval[variable]) / (const.maxval[variable] - const.minval[variable]) - 1.)
 
 
 def expit(data):
     from settings import variable
-    return (minval[variable] + (maxval[variable] - minval[variable]) * .5 * (1. + np.tanh(.5 * data)))
+    if np.any(data) <= 0:
+        warnings.warn("Some values negative or zero. NaNs are going to be produced!")
+    return (const.minval[variable] + (const.maxval[variable] - const.minval[variable]) * .5 * (1. + np.tanh(.5 * data)))
 
 
 def log(data):
