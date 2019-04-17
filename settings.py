@@ -8,7 +8,7 @@ user = getpass.getuser()
 # fill further for convenience.
 if user == "mengel":
     data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
-else:
+elif user == "bschmidt":
     data_dir = "/home/bschmidt/temp/gswp3/"
 
 #  handle job specifications
