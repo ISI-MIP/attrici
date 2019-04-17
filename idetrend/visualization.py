@@ -11,6 +11,7 @@ import numpy as np
 import os
 import settings as set
 import netCDF4 as nc
+import const
 
 # fixed numbers for now.
 days_of_year = 365
@@ -55,7 +56,7 @@ def get_regression_coefficients(data_path, indices):
     else:
         lat = ncf.variables['lat'][:]
         lon = ncf.variables['lon'][:]
-    
+
     slope = ncf.variables['slope'][indices]
     intercept = ncf.variables['intercept'][indices]
     ncf.close()
@@ -89,28 +90,37 @@ def get_data_to_detrend(data_path, varname, indices):
             indices[0]::days_of_year, indices[1], indices[2]]
     else:
         data_to_detrend = nc_data_to_detrend.variables[varname][
-            indices[0]::days_of_year, :, :]           
+            indices[0]::days_of_year, :, :]
     nc_data_to_detrend.close()
     return data_to_detrend
 
-
-def prepare(regr_path, data_path, variable, gmt_on_each_day, indices):
+def 
+def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=None, threshold=0.):
 
     """ detrend the data with linear trend from regression coefficients.
         also do a regression on detrended data and check if slope is close to zero."""
 
+    from write_detrended_data import fit_minimal
     lat, lon, slope, intercept = get_regression_coefficients(regr_path, indices)
     data_to_detrend = get_data_to_detrend(data_path, variable, indices)
 
     gmt_on_doy = gmt_on_each_day[indices[0] :: days_of_year]
-    fit = np.poly1d([slope, intercept])  # intercept + (slope * gmt_on_doy)
-    data_detrended = data_to_detrend - fit(gmt_on_doy) + fit(gmt_on_doy)[0]
-
+    fit = fit_minimal(gmt_on_doy, intercept, slope, transform)
+    data_detrended = data_to_detrend - fit + fit[0]
+    
+    if const.minval[variable] is not None:
+        data_detrended[data_detrended < const.minval[variable]] = const.minval[variable]
+        data_detrended_for_reg = data_detrended[data_detrended > const.minval[variable]]
+        gmt_test_for_reg = gmt_on_doy[data_detrended > const.minval[variable]]
+    if const.maxval[variable] is not None:  
+        data_detrended[data_detrended < const.maxval[variable]] = const.maxval[variable]
+        
     # redo a fit on the detrended data. should have a slope of zero
-    slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy, data_detrended)
+    slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy, 
+                                                      set.transform[set.variable][0](data_detrended))
     # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
-    fit_d = np.poly1d([slope_d, intercept_d])
-
+    fit_d = fit_minimal(gmt_on_doy, intercept_d, slope_d, transform)
+    
     return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy
 
 
@@ -121,21 +131,21 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
     #                  '   lat:' + str(lat) + '   lon:' + str(lon), size=20, weight='bold')
 
     axs[0, 0].scatter(gmt_on_doy, data_to_detrend, label="data")
-    axs[0, 0].plot(gmt_on_doy, fit(gmt_on_doy), "r", label="fit against gmt")
+    axs[0, 0].plot(gmt_on_doy, fit, "r", label="fit against gmt")
     axs[0, 0].set_xlabel("gmt / K")
     set_ylim(axs[0, 0], data_to_detrend)
 
     axs[1, 0].scatter(gmt_on_doy, data_detrended, label="detrended data")
-    axs[1, 0].plot(gmt_on_doy, fit_d(gmt_on_doy), "r", label="detrended fit")
+    axs[1, 0].plot(gmt_on_doy, fit_d, "r", label="detrended fit")
     axs[1, 0].set_xlabel("gmt / K")
     set_ylim(axs[1, 0], data_detrended)
 
     axs[0, 1].scatter(time_values, data_to_detrend, label="data")
-    axs[0, 1].plot(time_values, fit(gmt_on_doy), "r", label="gmt(t) * fit")
+    axs[0, 1].plot(time_values, fit, "r", label="gmt(t) * fit")
     axs[0, 1].set_xlabel("Years")
 
     axs[1, 1].scatter(time_values, data_detrended, label="detrended data")
-    axs[1, 1].plot(time_values, fit_d(time_values), "r", label="gmt(t) * detrended fit")
+    axs[1, 1].plot(time_values, fit_d, "r", label="gmt(t) * detrended fit")
     axs[1, 1].set_xlabel("Years")
 
     #  axs[2, 0].plot(slope[lat, lon])
