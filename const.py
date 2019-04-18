@@ -7,7 +7,7 @@ unit = {
     "tasmax": "K",
     "tas": "K",
     "tasmin": "K",
-    "pr": "mm",
+    "pr": "mm/s",
     "rhs": "%",
     "ps": "hPa",
     "rsds": u"J/cm\u00B2",
