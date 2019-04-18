@@ -16,7 +16,7 @@ n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
 test = True
-variable = "rhs"
+variable = "pr"
 dataset = "gswp3"
 startyear = 1901
 endyear = 2010
@@ -65,3 +65,5 @@ else:
         + "_noleap.nc4"
     )
     regression_outfile = variable + "_regression_all.nc4"
+
+min_ts_len = 2 # minimum length of timeseries passed to regression after reduction
