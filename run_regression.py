@@ -10,7 +10,6 @@ from datetime import datetime, timedelta
 import time as t
 from operator import itemgetter
 
-# import regression
 import settings as s
 import idetrend as idtr
 
@@ -20,13 +19,8 @@ to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
 data = nc.Dataset(to_detrend_file, "r")
 
-# FIXME: such code needs to be avoided. Why not explicitely using
-# the direct name from settings anyway?
-# var = list(data.variables.keys())[-1]
-
 data_to_detrend = data.variables[s.variable]
 data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
-#  data_to_detrend = special.logit(data/100)
 
 if __name__ == "__main__":
 
