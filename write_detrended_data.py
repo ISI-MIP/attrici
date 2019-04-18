@@ -106,10 +106,12 @@ def write_detrended(
     # Set attributes
     output_ds.description = "Detrended data of variable " + variable
     output_ds.history = "Created " + t.ctime(t.time())
-    latitudes.units = "degrees north"
-    latitudes.long_name = "latitudes"
-    longitudes.units = "degrees east"
-    longitudes.long_name = "longitudes"
+    latitudes.units = "degrees_north"
+    latitudes.long_name = "latitude"
+    longitudes.standard_name = "latitude"
+    longitudes.units = "degrees_east"
+    longitudes.long_name = "longitude"
+    longitudes.standard_name = "longitude"
     data.units = "K"
     times.units = "days since 1901-01-01 00:00:00.0"
     times.calendar = "noleap"
