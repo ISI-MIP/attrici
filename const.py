@@ -26,7 +26,7 @@ minval = {
 'tasmax': None,
 'tas': None,
 'tasmin': None,
-'pr': 0.,
+'pr': .00001157407, # amounts to .1 mm per day if unit is mm per sec
 'rhs': 0.,
 'ps': None,
 'rsds': 0.,
@@ -34,7 +34,7 @@ minval = {
 'wind': 0.
 }
 
-maxval = {
+maxval = { # Maximum value for
 'tasmax': None,
 'tas': None,
 'tasmin': None,
@@ -44,7 +44,5 @@ maxval = {
 'rsds': 3025.,
 'rlds': 3025.,
 'wind': None
-}   
-             
+}
 
-             
