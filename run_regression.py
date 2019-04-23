@@ -29,7 +29,8 @@ if __name__ == "__main__":
     TIME0 = datetime.now()
     print('Variable is:')
     print(s.variable,flush=True)
-    regr = idtr.lin_regr.regression(gmt_on_each_day, s.transform[s.variable])
+    regr = idtr.lin_regr.regression(gmt_on_each_day, s.min_ts_len,
+        s.transform[s.variable])
 
     results = idtr.utility.run_function_on_dataset(
         data_to_detrend,

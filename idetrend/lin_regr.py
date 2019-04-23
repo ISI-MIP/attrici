@@ -13,10 +13,11 @@ import idetrend.const as c
 
 class regression(object):
 
-    def __init__(self, gmt_on_each_day, transform=None):
+    def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
         self.transform = transform
+        self.min_ts_len = min_ts_len
 
         # FIXME: use this once custom transforms are not needed anymore
         # currently only works on numpy arrays.
@@ -65,9 +66,14 @@ class regression(object):
         #     print('Vector of zeros passed for regression on' +
         #           '\ndoy: ' + str(doy) + ' lonindex: ' + str(loni), flush=True)
 
+        if data_of_doy.count() <= self.min_ts_len:
+            # mask the few valid datapoints left
+            data_of_doy.mask = True
+
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
 
+        # print(data_of_doy)
         return mstats.linregress(gmt_of_doy, data_of_doy)
 
 

@@ -95,7 +95,7 @@ def run_function_on_dataset(
         TIME1 = datetime.datetime.now()
         duration = TIME1 - TIME0
         i += 1
-        if i >3: break
+        # if i >3: break
 
     return results
 
