@@ -6,6 +6,7 @@ from datetime import datetime
 import numpy as np
 import netCDF4 as nc
 import idetrend as idtr
+import idetrend.const as c
 import idetrend.visualization as vis
 
 importlib.reload(vis)
@@ -139,7 +140,7 @@ def write_detrended(
             gmt_on_each_day,
             [doy - 1],
             shape_of_input,
-            transform=s.transform[s.variable],
+            transform=c.transform[s.variable],
         )
         data[doy - 1 :: days_of_year, :, :] = data_detrended
     output_ds.close()
