@@ -8,6 +8,7 @@ import numpy as np
 import netCDF4 as nc
 import settings as s
 from scipy.stats import mstats
+from collections import namedtuple
 import idetrend.const as c
 
 
@@ -38,41 +39,13 @@ class regression(object):
         # would it not be better to pass yearly GMT here?
         gmt_of_doy = self.gmt_on_each_day[doy::365]
 
-        # # FIXME: Is there a better place to do this, so its not run on every
-        # # iteration? Also do we want to produce nan's where no rain days occur?
-
-        # # Check allowed range of variable for three cases
-        # # lower limit
-        # if np.logical_or(c.minval[s.variable] is not None, c.maxval[s.variable] is None):
-        #     allowed = np.logical_not(data_of_doy < c.minval[s.variable])
-        # # upper limit
-        # elif np.logical_or(c.minval[s.variable] is None, c.maxval[s.variable] is not None):
-        #     allowed = np.logical_not(data_of_doy > c.maxval[s.variable])
-        # # lower and upper limit
-        # elif np.logical_and(c.minval[s.variable] is not None, c.maxval[s.variable] is not None):
-        #     allowed = np.logical_and(data_of_doy >= c.minval[s.variable],
-        #                              data_of_doy <= c.maxval[s.variable])
-        # elif np.logical_and(c.minval[s.variable] is None, c.maxval[s.variable] is None):
-        #     allowed = np.ones_like(data_of_doy)
-
-        # # reduce the data that will passed to regression to allowed values
-        # # if resulting vector size is not 0, else pass vector of zeros
-        # if np.sum(allowed) > s.min_ts_len:
-        #     print('Data is being reduced', flush=True)
-        #     gmt_of_doy = gmt_of_doy[allowed]
-        #     data_of_doy = data_of_doy[allowed]
-        # else:
-        #     data_of_doy = np.zeros_like(data_of_doy)
-        #     print('Vector of zeros passed for regression on' +
-        #           '\ndoy: ' + str(doy) + ' lonindex: ' + str(loni), flush=True)
-
+        # special case if too few valid datapoints left
         if data_of_doy.count() <= self.min_ts_len:
-            # mask the few valid datapoints left
-            # res = namedtuple('LinregressResult', ('slope', 'intercept',
-            #                                        'rvalue', 'pvalue',
-            #                                        'stderr'))
-            # return res(slope=None,intercept=)
-            data_of_doy.mask = True
+            res = namedtuple('LinregressResult', ('slope', 'intercept',
+                                                   'rvalue', 'pvalue',
+                                                   'stderr'))
+            return res(slope=0.0,intercept=0.0,rvalue=0.0,pvalue=0.0,stderr=0.0)
+            # data_of_doy.mask = True
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
@@ -136,18 +109,18 @@ def write_regression_stats(
     for lati in latis:
         for doy in np.arange(days_of_year):
             for loni in lonis:
-                try:
-                    ic[doy, lati, loni] = results[i].intercept
-                    s[doy, lati, loni] = results[i].slope
-                    r[doy, lati, loni] = results[i].rvalue
-                    p[doy, lati, loni] = results[i].pvalue
-                    sd[doy, lati, loni] = results[i].stderr
+                # try:
+                ic[doy, lati, loni] = results[i].intercept
+                s[doy, lati, loni] = results[i].slope
+                r[doy, lati, loni] = results[i].rvalue
+                p[doy, lati, loni] = results[i].pvalue
+                sd[doy, lati, loni] = results[i].stderr
                 # if not enough valid values appeared in timeseries,
                 # regression gives back Nones, catch this here.
-                except AttributeError:
-                    print(lati,doy,loni)
-                    print(results[i])
-                    pass
+                # except AttributeError:
+                #     print(lati,doy,loni)
+                #     print(results[i])
+                #     pass
                 i = i + 1
 
     intercepts[:] = ic
