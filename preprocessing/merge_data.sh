@@ -18,6 +18,7 @@ datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | 
     sed "s/'//g" | sed 's/"//g')"
 outputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
 echo 'Outputfile:' $outputfile
+echo 'Inputfiles:'
 echo ${datafolder}${variable}_${dataset}_????_????.nc* 
 
 if [ -e ${outputfile} ]; then

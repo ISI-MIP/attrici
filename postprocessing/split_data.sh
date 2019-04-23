@@ -1,8 +1,20 @@
-
+if [ -e settings.py ]; then
+    settings_file=settings.py 
+else 
+    settings_file=../settings.py
+fi 
+var="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 \
+    | sed "s/'//g")"
+echo 'splitting data for variable' $variable
+dataset=gswp3
+startyear=1901
+endyear=2010
+datapath=/p/tmp/bschmidt/${dataset}/
 
 var='tas'
 dataset='gswp3'
-
+cd $datapath
+# infile=${var}_gswp3_1901_2010_noleap.nc4
 infile=${var}_detrended.nc4
 cdo splitsel,3650  ${infile} ${var}_detrended
 

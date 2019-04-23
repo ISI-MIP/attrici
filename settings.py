@@ -8,7 +8,7 @@ user = getpass.getuser()
 # fill further for convenience.
 if user == "mengel":
     data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
-else:
+elif user == "bschmidt":
     data_dir = "/home/bschmidt/temp/gswp3/"
 
 #  handle job specifications
@@ -65,3 +65,5 @@ else:
         + "_noleap.nc4"
     )
     regression_outfile = variable + "_regression_all.nc4"
+
+min_ts_len = 2 # minimum length of timeseries passed to regression after reduction

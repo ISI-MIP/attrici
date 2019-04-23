@@ -7,7 +7,7 @@ import warnings
 import netCDF4 as nc
 from scipy import special
 import joblib
-import settings as s
+import const
 
 
 def run_lat_slice_parallel(
@@ -102,39 +102,38 @@ def check_data(data, source_path_data):
     precprocessing step of data for regression analysis.
     NOTE: add more check routines"""
 
-        # get data folder
+    from settings import variable
+    # get data folder
     data_folder = os.path.join("/", *source_path_data.split("/")[:-1])
 
     # get filename
     data_file = source_path_data.split("/")[-1]
-    
-    var = s.variable
 
     if isinstance(data, nc.Dataset):
-        data = data.variables[var][:]
+        data = data.variables[variable][:]
 
         # run different transforms for variables
-        if var in ["rhs", "hurs"]:
+        if variable in ["rhs", "hurs"]:
             # print('Data variable is relative humidity!')
             # raise warnings if data contains values that need replacing
-            if np.logical_or(data < const.minval[var], 
-                             data > const.maxval[var]).any():
+            if np.logical_or(data < const.minval[variable],
+                             data > const.maxval[variable]).any():
                 #  warnings.warn('Data contains values far out of range. ' +
                 #                'Replacing values by numbers just in range!')
-                data[data > const.maxval[var]] = .999999 * const.maxval[var]
-                data[data < const.minval[var]] = .000001 * const.maxval[var]
+                data[data > const.maxval[variable]] = .999999 * const.maxval[variable]
+                data[data < const.minval[variable]] = .000001 * const.maxval[variable]
                 warnings.warn(
                     "Had to replace out of range values!"
                     + "\nData seems to be erroneous!"
                 )
-            if np.logical_or(data > 1, data < const.maxval[var]).any():
-                data[data > const.maxval[var]] = const.maxval[var]
+            if np.logical_or(data > 1, data < const.maxval[variable]).any():
+                data[data > const.maxval[variable]] = const.maxval[variable]
                 warnings.warn("Replaced values of oversaturation!")
-            if np.logical_or(data == const.minval[var], data == const.maxval[var]).any():
+            if np.logical_or(data == const.minval[variable], data == const.maxval[variable]).any():
                 #  warnings.warn('Data contains values 0 and/or 100. ' +
                 #                '\nReplacing values by numbers just in range!')
-                data[data == const.maxval[var]] = 99.9999
-                data[data == const.minval[var]] = 0.0001
+                data[data == const.maxval[variable]] = 99.9999
+                data[data == const.minval[variable]] = 0.0001
                 warnings.warn("Replaced values bordering open interval (0, 100)!")
 
         elif variable == "tas":
@@ -171,101 +170,70 @@ def check_data(data, source_path_data):
                         + "larger than corresponding tas value!"
                     )
 
-        elif var == "snowfall":
+        elif variable == "snowfall":
             pr_file = os.path.join(
-                data_folder, re.sub(var, "pr", source_path_data.split("/")[-1])
+                data_folder, re.sub(variable, "pr", source_path_data.split("/")[-1])
             )
             pr = nc.Dataset(pr_file, "r").variables["pr"][:, lat_slice, :]
-            if np.sum(var >= pr) > 0:
+            if np.sum(variable >= pr) > 0:
                 raise Exception(
                     "\nAt least one value of snowfall appears to be "
                     + "larger than corresponding precipitation value!"
                 )
-        elif var == "pr":
+        elif variable == "pr":
             print("Data variable is daily precipitation!", flush=True)
-            if np.min(data) < const.minval[var]:
-                data[data < const.minval[var]] = const.minval[var]
-                warnings.warn('Set small values to ' + str(const.minval[var]))
-        elif var == "ps":
+            if np.min(data) < const.minval[variable]:
+                data[data < const.minval[variable]] = const.minval[variable]
+                warnings.warn('Set small values to ' + str(const.minval[variable]))
+        elif variable == "ps":
             print("Data variable is near surface pressure!", flush=True)
-        elif var == "huss":
+        elif variable == "huss":
             print("Data variable is specific humidity!", flush=True)
-            if np.max(data) > const.maxval[var]:
-                data[data > const.maxval[var]] = const.maxval[var]
-                warnings.warn('Set large values to ' + str(const.maxval[var]))
-            if np.min(data) < const.minval[var]:
-                data[data < const.minval[var]] = const.minval[var]
-                warnings.warn('Set small values to ' + str(const.minval[var]))
-        elif var == "rsds":
+            if np.max(data) > const.maxval[variable]:
+                data[data > const.maxval[variable]] = const.maxval[variable]
+                warnings.warn('Set large values to ' + str(const.maxval[variable]))
+            if np.min(data) < const.minval[variable]:
+                data[data < const.minval[variable]] = const.minval[variable]
+                warnings.warn('Set small values to ' + str(const.minval[variable]))
+        elif variable == "rsds":
             print("Data variable is shortwave incoming radiation!", flush=True)
-            if np.max(data) > const.maxval[var]:
-                data[data > const.maxval[var]] = const.maxval[var]
-                warnings.warn('Set large values to ' + str(const.maxval[var]))
-        elif var == "rlds":
+            if np.max(data) > const.maxval[variable]:
+                data[data > const.maxval[variable]] = const.maxval[variable]
+                warnings.warn('Set large values to ' + str(const.maxval[variable]))
+        elif variable == "rlds":
             print("Data variable is longwave incoming radiation!", flush=True)
-            if np.max(data) > const.maxval[var]:
-                data[data > const.maxval[var]] = const.maxval[var]
-                warnings.warn('Set large values to ' + str(const.maxval[var]))
-        elif var == "wind":
+            if np.max(data) > const.maxval[variable]:
+                data[data > const.maxval[variable]] = const.maxval[variable]
+                warnings.warn('Set large values to ' + str(const.maxval[variable]))
+        elif variable == "wind":
             print("Data variable is near surface wind speed!")
-            if np.min(data) < const.minval[var]:
-                data[data < const.minval[var]] = const.minval[var]
-                warnings.warn('Set negative wind speed to ' + str(const.minval[var]))
+            if np.min(data) < const.minval[variable]:
+                data[data < const.minval[variable]] = const.minval[variable]
+                warnings.warn('Set negative wind speed to ' + str(const.minval[variable]))
         else:
             raise Exception("Detected variable name not correct!")
     print("Data checked for forbidden values!", flush=True)
     return data
 
 
-# FIXME: delete code below?
-
-
-def create_doy_cube(array, original_cube_coords, **kwargs):
-
-    """ create an iris cube from a plain numpy array.
-    First dimension is always days of the year. Second and third are lat and lon
-    and are taken from the input data. """
-
-    sys.stdout.flush()
-    doy_coord = iris.coords.DimCoord(np.arange(1.0, 366.0), var_name="day_of_year")
-
-    cube = iris.cube.Cube(
-        array,
-        dim_coords_and_dims=[
-            (doy_coord, 0),
-            (original_cube_coords("latitude"), 1),
-            (original_cube_coords("longitude"), 2),
-        ],
-        **kwargs
-    )
-
-    return cube
-
-
-def remove_leap_days(data, time):
-
-    """
-    removes 366th dayofyear from numpy array that starts on Jan 1st, 1901 with daily timestep
-    """
-
-    dates = [datetime(1901, 1, 1) + n * timedelta(days=1) for n in range(time.shape[0])]
-    dates = nc.num2date(time[:], units=time.units)
-    leap_mask = []
-    for date in dates:
-        leap_mask.append(date.timetuple().tm_yday != 366)
-    return data[leap_mask]
-
 def logit(data):
-    if any(data) not in range(const.minval[var], const.maxval[var]+1):
+    from settings import variable
+    if np.any(data) not in range(int(const.minval[variable]), int(const.maxval[variable]+1)):
         warnings.warn("Some values seem to be out of range. NaNs are going to be produced!")
-    return 2. * np.arctanh(2. * (data - const.minval[var]) / (const.maxval[var] - const.minval[var]) - 1.)
+    return 2. * np.arctanh(2. * (data - const.minval[variable]) / (const.maxval[variable] - const.minval[variable]) - 1.)
+
 
 def expit(data):
-    return (minval[var] + (maxval[var] - minval[var]) * .5 * (1. + np.tanh(.5 * data)))
+    from settings import variable
+    if np.any(data) <= 0:
+        warnings.warn("Some values negative or zero. NaNs are going to be produced!")
+    return (const.minval[variable] + (const.maxval[variable] - const.minval[variable]) * .5 * (1. + np.tanh(.5 * data)))
+
 
 def log(data):
-    data[data == 0] = np.nan
+    data[data <= 0] = np.nan
     return np.log(data)
+
 
 def exp(data):
     trans = np.exp(data)

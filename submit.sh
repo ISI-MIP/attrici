@@ -21,6 +21,6 @@ source /home/bschmidt/.programs/anaconda3/bin/activate detrending
 # srun bash preprocessing/merge_data.sh
 # srun python3 preprocessing/create_test_data.py
 srun python3 run_regression.py
-# srun python3 write_detrended_data.py
+srun python3 write_detrended_data.py
 # run next line for profiling memory
 # srun mprof run --include-children --multiprocess run_regression_classic.py
