@@ -238,31 +238,31 @@ def check_data(data, source_path_data):
     return data
 
 
-def logit(data):
-    from settings import variable
+# def logit(data):
+#     from settings import variable
 
-    if np.any(data) not in range(
-        int(const.minval[variable]), int(const.maxval[variable] + 1)
-    ):
-        warnings.warn(
-            "Some values seem to be out of range. NaNs are going to be produced!"
-        )
-    return 2.0 * np.arctanh(
-        2.0
-        * (data - const.minval[variable])
-        / (const.maxval[variable] - const.minval[variable])
-        - 1.0
-    )
+#     if np.any(data) not in range(
+#         int(const.minval[variable]), int(const.maxval[variable] + 1)
+#     ):
+#         warnings.warn(
+#             "Some values seem to be out of range. NaNs are going to be produced!"
+#         )
+#     return 2.0 * np.arctanh(
+#         2.0
+#         * (data - const.minval[variable])
+#         / (const.maxval[variable] - const.minval[variable])
+#         - 1.0
+#     )
 
 
-def expit(data):
-    from settings import variable
+# def expit(data):
+#     from settings import variable
 
-    if np.any(data) <= 0:
-        warnings.warn("Some values negative or zero. NaNs are going to be produced!")
-    return const.minval[variable] + (
-        const.maxval[variable] - const.minval[variable]
-    ) * 0.5 * (1.0 + np.tanh(0.5 * data))
+#     if np.any(data) <= 0:
+#         warnings.warn("Some values negative or zero. NaNs are going to be produced!")
+#     return const.minval[variable] + (
+#         const.maxval[variable] - const.minval[variable]
+#     ) * 0.5 * (1.0 + np.tanh(0.5 * data))
 
 
 # def log(data):

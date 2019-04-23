@@ -16,27 +16,12 @@ n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
 test = True
-variable = "pr"
+variable = "rhs"
 dataset = "gswp3"
 startyear = 1901
 endyear = 2010
 
 days_of_year = 365
-
-# this dictionary sets the transformations we need to
-# do for certain variables. these come in tuples
-# [transform, inverse_transform]
-transform = {
-    "tasmin": None,
-    "tas": None,
-    "tasmax": None,
-    "pr": [np.ma.log, np.ma.exp],
-    "rhs": [u.logit, u.expit],
-    "ps": None,
-    "rsds": None,
-    "rlds": None,
-    "wind": [np.ma.log, np.ma.exp],
-}
 
 gmt_file = "test_ssa_gmt.nc4"
 base_file = (

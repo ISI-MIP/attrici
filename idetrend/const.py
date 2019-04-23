@@ -1,7 +1,32 @@
-#!/usr/bin/python
-
 
 import numpy as np
+
+def logit(data):
+    """ scaled logit for input data of values in [0, 100]
+    as for rhs """
+    return 2.0*np.arctanh(2.0*data/100 - 1.0)
+
+
+def expit(data):
+    """ scaled inverse for input data of values in [0, 100]
+    as for rhs """
+
+    return 100*0.5*(1.0 + np.tanh(0.5 * data))
+
+
+# transformations come in tuples
+# [transform, inverse_transform]
+transform = {
+    "tasmin": None,
+    "tas": None,
+    "tasmax": None,
+    "pr": [np.ma.log, np.ma.exp],
+    "rhs": [logit, expit],
+    "ps": None,
+    "rsds": None,
+    "rlds": None,
+    "wind": [np.ma.log, np.ma.exp],
+}
 
 unit = {
     "tasmax": "K",
@@ -19,7 +44,7 @@ minval = {
     "tasmax": None,
     "tas": None,
     "tasmin": None,
-    "pr": 0.000001157407,  # amounts to .1 mm per day if unit is mm per sec
+    "pr": .000001157407, # amounts to .1 mm per day if unit is mm per sec
     "rhs": 0.0,
     "ps": None,
     "rsds": 0.0,

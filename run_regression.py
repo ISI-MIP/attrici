@@ -11,6 +11,7 @@ import time as t
 from operator import itemgetter
 import settings as s
 import idetrend as idtr
+import idetrend.const as c
 
 gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     print("Variable is:")
     print(s.variable, flush=True)
     regr = idtr.lin_regr.regression(
-        gmt_on_each_day, s.min_ts_len, s.transform[s.variable]
+        gmt_on_each_day, s.min_ts_len, c.transform[s.variable]
     )
 
     results = idtr.utility.run_regression_on_dataset(
