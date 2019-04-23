@@ -94,6 +94,7 @@ def get_data_to_detrend(data_path, varname, indices):
     nc_data_to_detrend.close()
     return data_to_detrend
 
+
 def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=None, threshold=0.):
 
     """ detrend the data with linear trend from regression coefficients.
