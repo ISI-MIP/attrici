@@ -68,6 +68,10 @@ class regression(object):
 
         if data_of_doy.count() <= self.min_ts_len:
             # mask the few valid datapoints left
+            # res = namedtuple('LinregressResult', ('slope', 'intercept',
+            #                                        'rvalue', 'pvalue',
+            #                                        'stderr'))
+            # return res(slope=None,intercept=)
             data_of_doy.mask = True
 
         if self.transform is not None:
@@ -119,11 +123,11 @@ def write_regression_stats(
     print("latitudes: \n", latitudes[:])
     print("longitudes: \n", longitudes[:])
 
-    ic = np.zeros([days_of_year, shape_of_input[1], shape_of_input[2]])
-    s = np.zeros_like(ic)
-    r = np.zeros_like(ic)
-    p = np.zeros_like(ic)
-    sd = np.zeros_like(ic)
+    ic = np.ma.masked_all([days_of_year, shape_of_input[1], shape_of_input[2]])
+    s = np.ma.copy(ic)
+    r = np.ma.copy(ic)
+    p = np.ma.copy(ic)
+    sd = np.ma.copy(ic)
 
     latis = np.arange(shape_of_input[1])
     lonis = np.arange(shape_of_input[2])
@@ -132,12 +136,20 @@ def write_regression_stats(
     for lati in latis:
         for doy in np.arange(days_of_year):
             for loni in lonis:
-                ic[doy, lati, loni] = results[i].intercept
-                s[doy, lati, loni] = results[i].slope
-                r[doy, lati, loni] = results[i].rvalue
-                p[doy, lati, loni] = results[i].pvalue
-                sd[doy, lati, loni] = results[i].stderr
+                try:
+                    ic[doy, lati, loni] = results[i].intercept
+                    s[doy, lati, loni] = results[i].slope
+                    r[doy, lati, loni] = results[i].rvalue
+                    p[doy, lati, loni] = results[i].pvalue
+                    sd[doy, lati, loni] = results[i].stderr
+                # if not enough valid values appeared in timeseries,
+                # regression gives back Nones, catch this here.
+                except AttributeError:
+                    print(lati,doy,loni)
+                    print(results[i])
+                    pass
                 i = i + 1
+
     intercepts[:] = ic
     slopes[:] = s
     r_values[:] = r

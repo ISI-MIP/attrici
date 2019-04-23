@@ -32,7 +32,7 @@ if __name__ == "__main__":
     regr = idtr.lin_regr.regression(gmt_on_each_day, s.min_ts_len,
         s.transform[s.variable])
 
-    results = idtr.utility.run_function_on_dataset(
+    results = idtr.utility.run_regression_on_dataset(
         data_to_detrend,
         s.days_of_year,
         regr,

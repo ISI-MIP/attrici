@@ -57,7 +57,7 @@ def mask_invalid(data, minval=None, maxval=None):
 
     if minval is None and maxval is None:
         # mask nothing
-        return np.ma.array(data)
+        return data
 
     elif minval is None:
         return np.ma.masked_greater(data, maxval)
@@ -70,7 +70,7 @@ def mask_invalid(data, minval=None, maxval=None):
         return np.ma.masked_outside(data,minval, maxval)
 
 
-def run_function_on_dataset(
+def run_regression_on_dataset(
     data_to_detrend, days_of_year, function_to_run, n_jobs
 ):
 
