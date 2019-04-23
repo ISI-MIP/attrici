@@ -7,7 +7,7 @@ import warnings
 import netCDF4 as nc
 from scipy import special
 import joblib
-import const
+import idetrend.const
 
 
 def run_lat_slice_parallel(
@@ -45,13 +45,32 @@ def run_lat_slice_serial(
     results = []
     for doy in np.arange(days_of_year):
         for loni in np.arange(lat_slice_data.shape[1]):
-            result = function_to_run(lat_slice_data, gmt_on_each_day, doy, loni)
+            result = function_to_run.run(lat_slice_data, gmt_on_each_day, doy, loni)
             results.append(result)
 
     return results
 
 
-def run_function_on_ncdf(
+def mask_invalid(data, minval=None, maxval=None):
+
+    """ mask values that are outside the valid range as defined in const.py """
+
+    if minval is None and maxval is None:
+        # mask nothing
+        return np.ma.array(data)
+
+    elif minval is None:
+        return np.ma.masked_greater(data, maxval)
+
+    elif maxval is None:
+        return np.ma.masked_less(data, minval)
+
+    else:
+        assert minval < maxval, "minval is not smaller maxval."
+        return np.ma.masked_outside(data,minval, maxval)
+
+
+def run_function_on_dataset(
     data_to_detrend, days_of_year, function_to_run, n_jobs
 ):
 
@@ -64,7 +83,9 @@ def run_function_on_ncdf(
     i = 0
     results = []
     for lat_slice in np.arange(data_to_detrend.shape[1]):
+
         data = data_to_detrend[:, i, :]
+        # data = mask_invalid(data_to_detrend[:, i, :], minval, maxval)
         print("Working on slice " + str(i), flush=True)
         TIME0 = datetime.datetime.now()
         r = run_lat_slice_parallel(
@@ -74,6 +95,7 @@ def run_function_on_ncdf(
         TIME1 = datetime.datetime.now()
         duration = TIME1 - TIME0
         i += 1
+        if i >3: break
 
     return results
 
@@ -230,12 +252,12 @@ def expit(data):
     return (const.minval[variable] + (const.maxval[variable] - const.minval[variable]) * .5 * (1. + np.tanh(.5 * data)))
 
 
-def log(data):
-    data[data <= 0] = np.nan
-    return np.log(data)
+# def log(data):
+#     data[data <= 0] = np.nan
+#     return np.log(data)
 
 
-def exp(data):
-    trans = np.exp(data)
-    trans[trans == np.nan] = 0
-    return trans
+# def exp(data):
+#     trans = np.exp(data)
+#     trans[trans == np.nan] = 0
+#     return trans

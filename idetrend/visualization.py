@@ -11,7 +11,7 @@ import numpy as np
 import os
 import settings as set
 import netCDF4 as nc
-import const
+import idetrend.const
 
 # fixed numbers for now.
 days_of_year = 365

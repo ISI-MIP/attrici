@@ -30,12 +30,12 @@ transform = {
     "tasmin":None,
     "tas":None,
     "tasmax":None,
-    "pr":[u.log, u.exp],
+    "pr":[np.ma.log, np.ma.exp],
     "rhs":[u.logit, u.expit],
     "ps":None,
     "rsds":None,
     "rlds":None,
-    "wind":[u.log, u.exp]
+    "wind":[np.ma.log, np.ma.exp]
 }
 
 gmt_file = "test_ssa_gmt.nc4"

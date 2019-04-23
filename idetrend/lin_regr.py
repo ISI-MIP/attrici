@@ -7,8 +7,8 @@ from datetime import datetime
 import numpy as np
 import netCDF4 as nc
 import settings as s
-from scipy import stats
-import const as c
+from scipy.stats import mstats
+import idetrend.const as c
 
 
 class regression(object):
@@ -18,7 +18,9 @@ class regression(object):
         self.gmt_on_each_day = gmt_on_each_day
         self.transform = transform
 
-        #assert .3 == transform[1](transform[0](.3)), "Inverse transform does not match with transform."
+        # FIXME: use this once custom transforms are not needed anymore
+        # currently only works on numpy arrays.
+        # assert 0.3 == transform[1](transform[0](.3)), "Inverse transform does not match with transform."
 
 
     def run(self, np_data_to_detrend, doy, loni=0):
@@ -35,38 +37,38 @@ class regression(object):
         # would it not be better to pass yearly GMT here?
         gmt_of_doy = self.gmt_on_each_day[doy::365]
 
-        # FIXME: Is there a better place to do this, so its not run on every
-        # iteration? Also do we want to produce nan's where no rain days occur?
+        # # FIXME: Is there a better place to do this, so its not run on every
+        # # iteration? Also do we want to produce nan's where no rain days occur?
 
-        # Check allowed range of variable for three cases
-        # lower limit
-        if np.logical_or(c.minval[s.variable] is not None, c.maxval[s.variable] is None):
-            allowed = np.logical_not(data_of_doy < c.minval[s.variable])
-        # upper limit
-        elif np.logical_or(c.minval[s.variable] is None, c.maxval[s.variable] is not None):
-            allowed = np.logical_not(data_of_doy > c.maxval[s.variable])
-        # lower and upper limit
-        elif np.logical_and(c.minval[s.variable] is not None, c.maxval[s.variable] is not None):
-            allowed = np.logical_and(data_of_doy >= c.minval[s.variable],
-                                     data_of_doy <= c.maxval[s.variable])
-        elif np.logical_and(c.minval[s.variable] is None, c.maxval[s.variable] is None):
-            allowed = np.ones_like(data_of_doy)
+        # # Check allowed range of variable for three cases
+        # # lower limit
+        # if np.logical_or(c.minval[s.variable] is not None, c.maxval[s.variable] is None):
+        #     allowed = np.logical_not(data_of_doy < c.minval[s.variable])
+        # # upper limit
+        # elif np.logical_or(c.minval[s.variable] is None, c.maxval[s.variable] is not None):
+        #     allowed = np.logical_not(data_of_doy > c.maxval[s.variable])
+        # # lower and upper limit
+        # elif np.logical_and(c.minval[s.variable] is not None, c.maxval[s.variable] is not None):
+        #     allowed = np.logical_and(data_of_doy >= c.minval[s.variable],
+        #                              data_of_doy <= c.maxval[s.variable])
+        # elif np.logical_and(c.minval[s.variable] is None, c.maxval[s.variable] is None):
+        #     allowed = np.ones_like(data_of_doy)
 
-        # reduce the data that will passed to regression to allowed values
-        # if resulting vector size is not 0, else pass vector of zeros
-        if np.sum(allowed) > s.min_ts_len:
-            print('Data is being reduced', flush=True)
-            gmt_of_doy = gmt_of_doy[allowed]
-            data_of_doy = data_of_doy[allowed]
-        else:
-            data_of_doy = np.zeros_like(data_of_doy)
-            print('Vector of zeros passed for regression on' +
-                  '\ndoy: ' + str(doy) + ' lonindex: ' + str(loni), flush=True)
+        # # reduce the data that will passed to regression to allowed values
+        # # if resulting vector size is not 0, else pass vector of zeros
+        # if np.sum(allowed) > s.min_ts_len:
+        #     print('Data is being reduced', flush=True)
+        #     gmt_of_doy = gmt_of_doy[allowed]
+        #     data_of_doy = data_of_doy[allowed]
+        # else:
+        #     data_of_doy = np.zeros_like(data_of_doy)
+        #     print('Vector of zeros passed for regression on' +
+        #           '\ndoy: ' + str(doy) + ' lonindex: ' + str(loni), flush=True)
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
 
-        return stats.linregress(gmt_of_doy, data_of_doy)
+        return mstats.linregress(gmt_of_doy, data_of_doy)
 
 
 def write_regression_stats(
