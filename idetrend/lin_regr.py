@@ -14,15 +14,16 @@ import idetrend.const as c
 
 
 class regression(object):
+
     def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
         self.transform = transform
         self.min_ts_len = min_ts_len
 
-        # FIXME: use this once custom transforms are not needed anymore
-        # currently only works on numpy arrays.
-        # assert 0.3 == transform[1](transform[0](.3)), "Inverse transform does not match with transform."
+        # FIXME:
+        # assert np.testing.assert_almost_equal(
+        #     0.3, transform[1](transform[0](0.3))), "Inverse transform does not match with transform."
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -57,9 +58,8 @@ def write_regression_stats(
     shape_of_input, original_data_coords, results, file_to_write, days_of_year
 ):
 
-    """ write linear regression statistics to a netcdf file. This function is specific
-    to the output of the scipy.stats.linregress output.
-    TODO: make this more flexible to include more stats. """
+    """ write regression statistics to a netcdf file. This function is specific
+    to the output of the scipy.stats.linregress output.  """
 
     sys.stdout.flush()
     output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")

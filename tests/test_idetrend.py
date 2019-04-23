@@ -6,6 +6,7 @@ import idetrend as idtr
 
 doy = 30
 days_of_year = 365
+min_ts_len = 2
 
 # saved linear regression result from using data_to_detrend[:,3,5]
 # from our tas test data and doy=30.
@@ -43,13 +44,14 @@ pr_testdata = pd.read_csv(
 
 def test_tas_regr():
 
-    regr = idtr.lin_regr.regression(gmt_on_each_day)
+    regr = idtr.lin_regr.regression(gmt_on_each_day, min_ts_len)
     coeffs = regr.run(tas_testdata, doy, loni=0)
     np.testing.assert_allclose(np.array(coeffs), linregres_tas, rtol=1e-05)
 
 
 def test_pr_regr():
-
-    regr = idtr.lin_regr.regression(gmt_on_each_day, transform=[np.log,np.exp])
+    # FIXME: update to run with masked arrays
+    regr = idtr.lin_regr.regression(gmt_on_each_day, min_ts_len,
+        transform=[np.log,np.exp])
     coeffs = regr.run(pr_testdata, doy, loni=0)
     np.testing.assert_allclose(np.array(coeffs), linregres_pr, rtol=1e-05)

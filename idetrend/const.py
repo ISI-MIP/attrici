@@ -1,4 +1,3 @@
-
 import numpy as np
 
 def logit(data):
@@ -10,7 +9,6 @@ def logit(data):
 def expit(data):
     """ scaled inverse for input data of values in [0, 100]
     as for rhs """
-
     return 100*0.5*(1.0 + np.tanh(0.5 * data))
 
 
