@@ -2,6 +2,7 @@ import os
 import sys
 import time
 from datetime import datetime
+
 # import iris
 # import iris.coord_categorisation as icc
 import numpy as np
@@ -13,7 +14,6 @@ import idetrend.const as c
 
 
 class regression(object):
-
     def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
@@ -23,7 +23,6 @@ class regression(object):
         # FIXME: use this once custom transforms are not needed anymore
         # currently only works on numpy arrays.
         # assert 0.3 == transform[1](transform[0](.3)), "Inverse transform does not match with transform."
-
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -41,10 +40,10 @@ class regression(object):
 
         # special case if too few valid datapoints left
         if data_of_doy.count() <= self.min_ts_len:
-            res = namedtuple('LinregressResult', ('slope', 'intercept',
-                                                   'rvalue', 'pvalue',
-                                                   'stderr'))
-            return res(slope=0.0,intercept=0.0,rvalue=0.0,pvalue=0.0,stderr=0.0)
+            res = namedtuple(
+                "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr")
+            )
+            return res(slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr=0.0)
             # data_of_doy.mask = True
 
         if self.transform is not None:
@@ -129,4 +128,3 @@ def write_regression_stats(
     p_values[:] = p
     std_errors[:] = sd
     output_ds.close()
-

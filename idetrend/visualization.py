@@ -51,14 +51,14 @@ def get_regression_coefficients(data_path, indices):
     print(indices)
     ncf = nc.Dataset(data_path, "r")
     if len(indices) == 3:
-        lat = ncf.variables['lat'][indices[1]]
-        lon = ncf.variables['lon'][indices[2]]
+        lat = ncf.variables["lat"][indices[1]]
+        lon = ncf.variables["lon"][indices[2]]
     else:
-        lat = ncf.variables['lat'][:]
-        lon = ncf.variables['lon'][:]
+        lat = ncf.variables["lat"][:]
+        lon = ncf.variables["lon"][:]
 
-    slope = ncf.variables['slope'][indices]
-    intercept = ncf.variables['intercept'][indices]
+    slope = ncf.variables["slope"][indices]
+    intercept = ncf.variables["intercept"][indices]
     ncf.close()
 
     return lat, lon, slope, intercept
@@ -87,20 +87,31 @@ def get_data_to_detrend(data_path, varname, indices):
     nc_data_to_detrend = nc.Dataset(data_path, "r")
     if len(indices) == 3:
         data_to_detrend = nc_data_to_detrend.variables[varname][
-            indices[0]::days_of_year, indices[1], indices[2]]
+            indices[0] :: days_of_year, indices[1], indices[2]
+        ]
     else:
         data_to_detrend = nc_data_to_detrend.variables[varname][
-            indices[0]::days_of_year, :, :]
+            indices[0] :: days_of_year, :, :
+        ]
     nc_data_to_detrend.close()
     return data_to_detrend
 
 
-def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=None, threshold=0.):
+def prepare(
+    regr_path,
+    data_path,
+    variable,
+    gmt_on_each_day,
+    indices,
+    transform=None,
+    threshold=0.0,
+):
 
     """ detrend the data with linear trend from regression coefficients.
         also do a regression on detrended data and check if slope is close to zero."""
 
     from write_detrended_data import fit_minimal
+
     lat, lon, slope, intercept = get_regression_coefficients(regr_path, indices)
     data_to_detrend = get_data_to_detrend(data_path, variable, indices)
 
@@ -116,8 +127,9 @@ def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=
         data_detrended[data_detrended < const.maxval[variable]] = const.maxval[variable]
 
     # redo a fit on the detrended data. should have a slope of zero
-    slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy,
-                                                      set.transform[set.variable][0](data_detrended))
+    slope_d, intercept_d, r, p, sd = stats.linregress(
+        gmt_on_doy, set.transform[set.variable][0](data_detrended)
+    )
     # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
     fit_d = fit_minimal(gmt_on_doy, intercept_d, slope_d, transform)
 

@@ -133,7 +133,13 @@ def write_detrended(
     for doy in doys:
         print("Working on doy: " + str(doy))
         data_detrended = fit_ts(
-            regr_path, data_path, varname, gmt_on_each_day, [doy - 1], shape_of_input, transform=s.transform[s.variable]
+            regr_path,
+            data_path,
+            varname,
+            gmt_on_each_day,
+            [doy - 1],
+            shape_of_input,
+            transform=s.transform[s.variable],
         )
         data[doy - 1 :: days_of_year, :, :] = data_detrended
     output_ds.close()

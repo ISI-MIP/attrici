@@ -19,7 +19,7 @@ minval = {
     "tasmax": None,
     "tas": None,
     "tasmin": None,
-    "pr": .000001157407, # amounts to .1 mm per day if unit is mm per sec
+    "pr": 0.000001157407,  # amounts to .1 mm per day if unit is mm per sec
     "rhs": 0.0,
     "ps": None,
     "rsds": 0.0,

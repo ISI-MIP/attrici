@@ -27,15 +27,15 @@ days_of_year = 365
 # do for certain variables. these come in tuples
 # [transform, inverse_transform]
 transform = {
-    "tasmin":None,
-    "tas":None,
-    "tasmax":None,
-    "pr":[np.ma.log, np.ma.exp],
-    "rhs":[u.logit, u.expit],
-    "ps":None,
-    "rsds":None,
-    "rlds":None,
-    "wind":[np.ma.log, np.ma.exp]
+    "tasmin": None,
+    "tas": None,
+    "tasmax": None,
+    "pr": [np.ma.log, np.ma.exp],
+    "rhs": [u.logit, u.expit],
+    "ps": None,
+    "rsds": None,
+    "rlds": None,
+    "wind": [np.ma.log, np.ma.exp],
 }
 
 gmt_file = "test_ssa_gmt.nc4"
@@ -66,4 +66,4 @@ else:
     )
     regression_outfile = variable + "_regression_all.nc4"
 
-min_ts_len = 2 # minimum length of timeseries passed to regression after reduction
+min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
