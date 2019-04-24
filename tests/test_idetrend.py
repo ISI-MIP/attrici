@@ -57,3 +57,4 @@ def test_tas_regr():
 #         transform=[np.ma.log,np.ma.exp])
 #     coeffs = regr.run(pr_testdata, doy, loni=0)
 #     np.testing.assert_allclose(np.array(coeffs), linregres_pr, rtol=1e-05)
+

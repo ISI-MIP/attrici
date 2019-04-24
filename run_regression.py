@@ -31,7 +31,7 @@ if __name__ == "__main__":
     TIME0 = datetime.now()
     print("Variable is:")
     print(s.variable, flush=True)
-    regr = idtr.lin_regr.regression(
+    regr = idtr.regression.regression(
         gmt_on_each_day, s.min_ts_len, c.transform[s.variable]
     )
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     if os.path.exists(file_to_write):
         os.remove(file_to_write)
 
-    idtr.lin_regr.write_regression_stats(
+    idtr.regression.write_regression_stats(
         data_to_detrend.shape,
         (data.variables["lat"], data.variables["lon"]),
         results,

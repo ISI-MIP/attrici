@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    idtr.lin_regr.write_detrended(
+    idtr.detrending.write_detrended(
         regression_file,
         to_detrend_file,
         lats, lons,
