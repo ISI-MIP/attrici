@@ -20,26 +20,6 @@ def get_coefficient_fields(data_path):
     return lat, lon, slope, intercept
 
 
-def get_data_to_detrend(data_path, varname, indices):
-
-    """ get the timeseries of variable for a specific day of year (doy),
-    lon and lat from netcdf file. doy, lon, lat is from indices. """
-
-    days_of_year = 365
-
-    nc_data_to_detrend = nc.Dataset(data_path, "r")
-    if len(indices) == 3:
-        data_to_detrend = nc_data_to_detrend.variables[varname][
-            indices[0] :: days_of_year, indices[1], indices[2]
-        ]
-    else:
-        data_to_detrend = nc_data_to_detrend.variables[varname][
-            indices[0] :: days_of_year, :, :
-        ]
-    nc_data_to_detrend.close()
-    return data_to_detrend
-
-
 def fit_minimal(gmt_on_doy, intercept, slope, transform):
 
     """ A minimal fit function for 1-dimensional data with trend from regression coefficients"""
@@ -76,13 +56,11 @@ class detrending(object):
         self.days_of_year = days_of_year
         self.transform = c.transform[variable]
 
-    def fit_ts(self, doy):
+
+    def fit_ts(self, doy, data_to_detrend):
 
         """ A function to fit 2-dimensional data with trend from regression coefficients.
         Employs fit_minimal()."""
-
-        # lat, lon, slope, intercept = get_regression_coefficients(regr_path, [doy])
-        data_to_detrend = get_data_to_detrend(self.data_path, self.variable, [doy])
 
         gmt_on_doy = np.tile(
             self.gmt_on_each_day[doy :: self.days_of_year],
@@ -98,6 +76,18 @@ class detrending(object):
         data_detrended = data_to_detrend - fit + fit[0, :, :]
 
         return data_detrended
+
+
+    def get_data_to_detrend(self, doy):
+
+        """ get the timeseries of variable for a specific day of year (doy)
+        """
+
+        ncf = nc.Dataset(self.data_path, "r")
+        data_to_detrend = ncf.variables[self.variable][
+            doy :: self.days_of_year, :, :]
+        ncf.close()
+        return data_to_detrend
 
     def write_detrended(self, file_to_write):
 
@@ -139,6 +129,8 @@ class detrending(object):
 
         for doy in range(self.days_of_year):
             # print("Working on doy: " + str(doy))
-            data[doy :: self.days_of_year, :, :] = self.fit_ts(doy)
+
+            data_to_detrend = self.get_data_to_detrend(doy)
+            data[doy :: self.days_of_year, :, :] = self.fit_ts(doy, data_to_detrend)
 
         output_ds.close()
