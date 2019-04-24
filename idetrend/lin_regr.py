@@ -19,7 +19,6 @@ regresult = namedtuple(
 
 
 class regression(object):
-
     def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
@@ -28,8 +27,8 @@ class regression(object):
 
         # FIXME:
         assert np.isclose(
-            0.3, transform[1](transform[0](0.3))), \
-        "Inverse transform does not match with transform."
+            0.3, transform[1](transform[0](0.3))
+        ), "Inverse transform does not match with transform."
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -49,15 +48,19 @@ class regression(object):
         if data_of_doy.count() <= self.min_ts_len:
 
             return regresult(
-                slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr=0.0,
-                vdcount = data_of_doy.count()
+                slope=0.0,
+                intercept=0.0,
+                rvalue=0.0,
+                pvalue=0.0,
+                stderr=0.0,
+                vdcount=data_of_doy.count(),
             )
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
 
         res = mstats.linregress(gmt_of_doy, data_of_doy)
-        return mstats.linregress(gmt_of_doy, data_of_doy)
+        return res
 
 
 # functions
@@ -90,11 +93,12 @@ def fit_ts(
 
     lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, [doy])
     data_to_detrend = vis.get_data_to_detrend(data_path, variable, [doy])
-    gmt_on_doy = np.ones((110, data_to_detrend.shape[1], data_to_detrend.shape[2]))
-
-    for lat in range(data_to_detrend.shape[1]):
-        for lon in range(data_to_detrend.shape[2]):
-            gmt_on_doy[:, lat, lon] = gmt_on_each_day[doy::days_of_year]
+    gmt_on_doy = np.tile(
+        gmt_on_each_day[doy::days_of_year],
+        [data_to_detrend.shape[1], data_to_detrend.shape[2], 1],
+    )
+    # move time from last to first dimension
+    gmt_on_doy = np.moveaxis(gmt_on_doy, -1, 0)
 
     fit = fit_minimal(gmt_on_doy, intercept, slope, transform)
     data_detrended = data_to_detrend - fit + fit[0, :, :]
