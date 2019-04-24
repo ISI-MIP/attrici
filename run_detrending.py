@@ -32,7 +32,6 @@ if __name__ == "__main__":
         lats,
         slope,
         intercept,
-        regression_file,
         to_detrend_file,
         s.variable,
         gmt_on_each_day,

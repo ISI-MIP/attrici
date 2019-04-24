@@ -38,8 +38,7 @@ class detrending(object):
         lats,
         slope,
         intercept,
-        regr_path,
-        data_path,
+        to_detrend_file,
         variable,
         gmt_on_each_day,
         days_of_year,
@@ -49,8 +48,7 @@ class detrending(object):
         self.lats = lats
         self.slope = slope
         self.intercept = intercept
-        self.regr_path = regr_path
-        self.data_path = data_path
+        self.to_detrend_file = to_detrend_file
         self.variable = variable
         self.gmt_on_each_day = gmt_on_each_day
         self.days_of_year = days_of_year
@@ -83,7 +81,7 @@ class detrending(object):
         """ get the timeseries of variable for a specific day of year (doy)
         """
 
-        ncf = nc.Dataset(self.data_path, "r")
+        ncf = nc.Dataset(self.to_detrend_file, "r")
         data_to_detrend = ncf.variables[self.variable][
             doy :: self.days_of_year, :, :]
         ncf.close()
