@@ -84,14 +84,28 @@ def test_write_detrending():
     lats, lons, slope, intercept = \
         idetrend.visualization.get_coefficient_fields(regression_file)
 
-    idtr.detrending.write_detrended(
+    # idtr.detrending.write_detrended(
+    #     regression_file,
+    #     to_detrend_file,
+    #     lats, lons,
+    #     detrended_file,
+    #     s.variable,
+    #     gmt_on_each_day,
+    # )
+
+
+    detrend = idtr.detrending.detrending(lons,
+        lats,
+        slope,
+        intercept,
         regression_file,
         to_detrend_file,
-        lats, lons,
-        detrended_file,
         s.variable,
         gmt_on_each_day,
-    )
+        s.days_of_year
+        )
+
+    detrend.write_detrended(detrended_file)
 
     checked_detrended = get_netcdf_data(detrended_bk_file)
     now_detrended = get_netcdf_data(detrended_file)

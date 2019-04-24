@@ -29,14 +29,27 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    idtr.detrending.write_detrended(
+    detrend = idtr.detrending.detrending(lons,
+        lats,
+        slope,
+        intercept,
         regression_file,
         to_detrend_file,
-        lats, lons,
-        detrended_file,
         s.variable,
         gmt_on_each_day,
-    )
+        s.days_of_year,
+        c.transform[s.variable]
+        )
+
+    detrend.write_detrended(detrended_file)
+    # idtr.detrending.write_detrended(
+    #     regression_file,
+    #     to_detrend_file,
+    #     lats, lons,
+    #     detrended_file,
+    #     s.variable,
+    #     gmt_on_each_day,
+    # )
 
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
