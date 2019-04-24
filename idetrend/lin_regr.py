@@ -14,7 +14,7 @@ import idetrend.const as c
 import idetrend.visualization as vis
 
 regresult = namedtuple(
-    "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr", "vdcount")
+    "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount")
 )
 
 
@@ -27,9 +27,10 @@ class regression(object):
         self.min_ts_len = min_ts_len
 
         # FIXME:
-        assert np.isclose(
-            0.3, transform[1](transform[0](0.3))), \
-        "Inverse transform does not match with transform."
+        if self.transform is not None:
+            assert np.isclose(
+                0.3, transform[1](transform[0](0.3))), \
+            "Inverse transform does not match with transform."
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -49,15 +50,26 @@ class regression(object):
         if data_of_doy.count() <= self.min_ts_len:
 
             return regresult(
-                slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr=0.0,
-                vdcount = data_of_doy.count()
+                slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr_slo=0.0,
+                stderr_int= 0., vdcount = data_of_doy.count()
             )
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
-
+        
         res = mstats.linregress(gmt_of_doy, data_of_doy)
-        return mstats.linregress(gmt_of_doy, data_of_doy)
+        
+        # get mask of dependent variable to apply to independent
+        mask = np.ma.getmask(data_of_doy)
+        
+        # compute int std error from slope_stderr and gmt_of_doy
+        int_err = res.stderr*np.sqrt(1 / data_of_doy.count() * np.sum(np.power(gmt_of_doy[~mask], 2)))
+
+        return regresult(
+            slope=res.slope, intercept=res.intercept, rvalue=res.rvalue, 
+            pvalue=res.pvalue, stderr_slo=res.stderr, stderr_int=int_err,
+            vdcount=data_of_doy.count()
+            )
 
 
 # functions
@@ -88,7 +100,7 @@ def fit_ts(
     if calendar == "noleap":
         days_of_year = 365
 
-    lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, [doy])
+    lat, lon, regresult = vis.get_regression_coefficients(regr_path, [doy])
     data_to_detrend = vis.get_data_to_detrend(data_path, variable, [doy])
     gmt_on_doy = np.ones((110, data_to_detrend.shape[1], data_to_detrend.shape[2]))
 
@@ -96,7 +108,7 @@ def fit_ts(
         for lon in range(data_to_detrend.shape[2]):
             gmt_on_doy[:, lat, lon] = gmt_on_each_day[doy::days_of_year]
 
-    fit = fit_minimal(gmt_on_doy, intercept, slope, transform)
+    fit = fit_minimal(gmt_on_doy, regresult.intercept, regresult.slope, transform)
     data_detrended = data_to_detrend - fit + fit[0, :, :]
 
     return data_detrended
@@ -176,7 +188,7 @@ def write_regression_stats(
     tm = output_ds.createDimension("time", None)
     lat = output_ds.createDimension("lat", original_data_coords[0].shape[0])
     lon = output_ds.createDimension("lon", original_data_coords[1].shape[0])
-    print(output_ds.dimensions)
+    #print(output_ds.dimensions)
     times = output_ds.createVariable("time", "f8", ("time",))
     longitudes = output_ds.createVariable("lon", "f4", ("lon",))
     latitudes = output_ds.createVariable("lat", "f4", ("lat",))
@@ -184,8 +196,10 @@ def write_regression_stats(
     slopes = output_ds.createVariable("slope", "f8", ("time", "lat", "lon"))
     r_values = output_ds.createVariable("r_values", "f8", ("time", "lat", "lon"))
     p_values = output_ds.createVariable("p_values", "f8", ("time", "lat", "lon"))
-    std_errors = output_ds.createVariable("std_errors", "f8", ("time", "lat", "lon"))
-    print(intercepts)
+    std_errors_slo = output_ds.createVariable("std_errors_slo", "f8", ("time", "lat", "lon"))
+    std_errors_int = output_ds.createVariable("std_errors_int", "f8", ("time", "lat", "lon"))
+    vd_count = output_ds.createVariable("data_count", "f8", ("time", "lat", "lon"))
+    #print(intercepts)
 
     output_ds.description = "Regression test script"
     output_ds.history = "Created " + time.ctime(time.time())
@@ -202,14 +216,15 @@ def write_regression_stats(
     latitudes[:] = lats
     longitudes[:] = lons
 
-    print("latitudes: \n", latitudes[:])
-    print("longitudes: \n", longitudes[:])
-
+    #print("latitudes: \n", latitudes[:])
+    #print("longitudes: \n", longitudes[:])
     ic = np.ma.masked_all([days_of_year, shape_of_input[1], shape_of_input[2]])
     s = np.ma.copy(ic)
     r = np.ma.copy(ic)
     p = np.ma.copy(ic)
-    sd = np.ma.copy(ic)
+    sds = np.ma.copy(ic)
+    sdi = np.ma.copy(ic)
+    vdc = np.ma.copy(ic)
 
     latis = np.arange(shape_of_input[1])
     lonis = np.arange(shape_of_input[2])
@@ -223,7 +238,9 @@ def write_regression_stats(
                 s[doy, lati, loni] = results[i].slope
                 r[doy, lati, loni] = results[i].rvalue
                 p[doy, lati, loni] = results[i].pvalue
-                sd[doy, lati, loni] = results[i].stderr
+                sds[doy, lati, loni] = results[i].stderr_slo
+                sdi[doy, lati, loni] = results[i].stderr_int
+                vdc[doy, lati, loni] = results[i].vdcount
                 # if not enough valid values appeared in timeseries,
                 # regression gives back Nones, catch this here.
                 # except AttributeError:
@@ -236,5 +253,8 @@ def write_regression_stats(
     slopes[:] = s
     r_values[:] = r
     p_values[:] = p
-    std_errors[:] = sd
+    std_errors_slo[:] = sds
+    std_errors_int[:] = sdi
+    vd_count[:] = vdc
+    
     output_ds.close()
