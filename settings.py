@@ -38,6 +38,7 @@ base_file = (
 if test:
     to_detrend_file = "test_data_" + variable + ".nc4"
     regression_outfile = variable + "_regression_test.nc4"
+    detrended_file = variable + "_detrended_test.nc4"
 else:
     to_detrend_file = (
         variable
@@ -50,5 +51,6 @@ else:
         + "_noleap.nc4"
     )
     regression_outfile = variable + "_regression_all.nc4"
+    detrended_file = variable + "_detrended.nc4"
 
 min_ts_len = 2  # minimum length of timeseries passed to regression after reduction

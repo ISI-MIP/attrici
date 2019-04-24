@@ -73,7 +73,6 @@ def fit_ts(
     variable,
     gmt_on_each_day,
     indices,
-    shape_of_input,
     transform=None,
     calendar="noleap",
 ):
@@ -86,9 +85,10 @@ def fit_ts(
 
     lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, indices)
     data_to_detrend = vis.get_data_to_detrend(data_path, variable, indices)
-    gmt_on_doy = np.ones((110, shape_of_input[1], shape_of_input[2]))
-    for lat in range(shape_of_input[1]):
-        for lon in range(shape_of_input[2]):
+    gmt_on_doy = np.ones((110, data_to_detrend.shape[1], data_to_detrend.shape[2]))
+
+    for lat in range(data_to_detrend.shape[1]):
+        for lon in range(data_to_detrend.shape[2]):
             gmt_on_doy[:, lat, lon] = gmt_on_each_day[indices[0] :: days_of_year]
 
     fit = fit_minimal(gmt_on_doy, intercept, slope, transform)
@@ -98,7 +98,7 @@ def fit_ts(
 
 
 def write_detrended(
-    regr_path, data_path, shape_of_input, original_data_coords,
+    regr_path, data_path, original_data_coords,
     file_to_write, variable, gmt_on_each_day
 ):
 
@@ -144,20 +144,19 @@ def write_detrended(
 
     latitudes[:] = lats
     longitudes[:] = lons
-    times[:] = range(shape_of_input[0])
+    times[:] = range(len(gmt_on_each_day))
 
     #  latis = np.arange(shape_of_input[1])
     #  lonis = np.arange(shape_of_input[2])
 
     for doy in doys:
-        print("Working on doy: " + str(doy))
+        # print("Working on doy: " + str(doy))
         data_detrended = fit_ts(
             regr_path,
             data_path,
             variable,
             gmt_on_each_day,
             [doy - 1],
-            shape_of_input,
             transform=c.transform[s.variable],
         )
         data[doy - 1 :: days_of_year, :, :] = data_detrended

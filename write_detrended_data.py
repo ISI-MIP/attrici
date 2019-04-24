@@ -19,23 +19,11 @@ gmt_file = os.path.join(s.data_dir, s.gmt_file)
 # the daily interpolated ssa-smoothed global mean temperature
 gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
 
-
-varname = s.variable
-if s.test:
-    file_to_write = os.path.join(s.data_dir, varname + "_detrended_test.nc4")
-else:
-    file_to_write = os.path.join(s.data_dir, varname + "_detrended.nc4")
-
 regression_file = os.path.join(s.data_dir, s.regression_outfile)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
-
+detrended_file = os.path.join(s.data_dir, s.detrended_file)
 
 lats, lons, slope, intercept = vis.get_coefficient_fields(regression_file)
-
-if s.test:
-    shape_of_input = (40150, 12, 24)
-else:
-    shape_of_input = (40150, 360, 720)
 
 if __name__ == "__main__":
 
@@ -44,10 +32,9 @@ if __name__ == "__main__":
     idtr.lin_regr.write_detrended(
         regression_file,
         to_detrend_file,
-        shape_of_input,
         (lats, lons),
-        file_to_write,
-        varname,
+        detrended_file,
+        s.variable,
         gmt_on_each_day
     )
 
