@@ -26,9 +26,10 @@ class regression(object):
         self.min_ts_len = min_ts_len
 
         # FIXME:
-        assert np.isclose(
-            0.3, transform[1](transform[0](0.3))
-        ), "Inverse transform does not match with transform."
+        if transform is not None:
+            assert np.isclose(
+                0.3, transform[1](transform[0](0.3))
+            ), "Inverse transform does not match with transform."
 
     def run(self, np_data_to_detrend, doy, loni=0):
 

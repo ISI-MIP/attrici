@@ -1,9 +1,10 @@
 import os
 import numpy as np
 import pandas as pd
-# import settings as s
+import netCDF4 as nc
+import settings as s
 import idetrend as idtr
-
+import idetrend.visualization
 doy = 30
 days_of_year = 365
 min_ts_len = 2
@@ -44,7 +45,7 @@ pr_testdata = pd.read_csv(
 
 def test_tas_regr():
 
-    regr = idtr.lin_regr.regression(gmt_on_each_day, min_ts_len)
+    regr = idtr.regression.regression(gmt_on_each_day, min_ts_len)
     coeffs = regr.run(tas_testdata, doy, loni=0)
     np.testing.assert_allclose(np.array(coeffs), linregres_tas, rtol=1e-05)
 
@@ -57,4 +58,43 @@ def test_tas_regr():
 #         transform=[np.ma.log,np.ma.exp])
 #     coeffs = regr.run(pr_testdata, doy, loni=0)
 #     np.testing.assert_allclose(np.array(coeffs), linregres_pr, rtol=1e-05)
+
+
+def get_netcdf_data(dfile):
+
+    print(dfile)
+    ncf = nc.Dataset(dfile,"r")
+    data = ncf.variables[s.variable][:]
+    ncf.close()
+    return  data
+
+detrended_bk_file = os.path.join(s.data_dir, s.variable + "_detrended_test_bk.nc4")
+
+def test_write_detrending():
+
+        # the file with the smoothed global trend of global mean temperature
+    gmt_file = os.path.join(s.data_dir, s.gmt_file)
+    # the daily interpolated ssa-smoothed global mean temperature
+    gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
+
+    regression_file = os.path.join(s.data_dir, s.regression_outfile)
+    to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
+    detrended_file = os.path.join(s.data_dir, s.detrended_file)
+
+    lats, lons, slope, intercept = \
+        idetrend.visualization.get_coefficient_fields(regression_file)
+
+    idtr.detrending.write_detrended(
+        regression_file,
+        to_detrend_file,
+        lats, lons,
+        detrended_file,
+        s.variable,
+        gmt_on_each_day,
+    )
+
+    checked_detrended = get_netcdf_data(detrended_bk_file)
+    now_detrended = get_netcdf_data(detrended_file)
+
+    np.testing.assert_allclose(checked_detrended,now_detrended)
 

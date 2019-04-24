@@ -3,7 +3,64 @@ import numpy as np
 import netCDF4 as nc
 import time
 import idetrend.const as c
-import idetrend.visualization as vis
+# import idetrend.visualization as vis
+
+
+def get_data_to_detrend(data_path, varname, indices):
+
+    """ get the timeseries of variable for a specific day of year (doy),
+    lon and lat from netcdf file. doy, lon, lat is from indices. """
+
+    days_of_year = 365
+
+    nc_data_to_detrend = nc.Dataset(data_path, "r")
+    if len(indices) == 3:
+        data_to_detrend = nc_data_to_detrend.variables[varname][
+            indices[0] :: days_of_year, indices[1], indices[2]
+        ]
+    else:
+        data_to_detrend = nc_data_to_detrend.variables[varname][
+            indices[0] :: days_of_year, :, :
+        ]
+    nc_data_to_detrend.close()
+    return data_to_detrend
+
+
+def get_regression_coefficients(data_path, indices):
+
+    """ get the coefficients of the linear regression
+    for a specific day of year, lon and lat from netcdf file. """
+
+    # print(indices)
+    ncf = nc.Dataset(data_path, "r")
+    if len(indices) == 3:
+        lat = ncf.variables["lat"][indices[1]]
+        lon = ncf.variables["lon"][indices[2]]
+    else:
+        lat = ncf.variables["lat"][:]
+        lon = ncf.variables["lon"][:]
+
+    slope = ncf.variables["slope"][indices]
+    intercept = ncf.variables["intercept"][indices]
+    ncf.close()
+
+    return lat, lon, slope, intercept
+
+
+def get_coefficient_fields(data_path):
+
+    """ get the fields of coefficients of the linear regression
+    from netcdf file. """
+
+    ncf = nc.Dataset(data_path, "r")
+    slope = ncf.variables["slope"][:]
+    intercept = ncf.variables["intercept"][:]
+    lat = ncf.variables["lat"][:]
+    lon = ncf.variables["lon"][:]
+    ncf.close()
+
+    return lat, lon, slope, intercept
+
 
 # functions
 def fit_minimal(gmt_on_doy, intercept, slope, transform):
@@ -33,8 +90,8 @@ def fit_ts(
     if calendar == "noleap":
         days_of_year = 365
 
-    lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, [doy])
-    data_to_detrend = vis.get_data_to_detrend(data_path, variable, [doy])
+    lat, lon, slope, intercept = get_regression_coefficients(regr_path, [doy])
+    data_to_detrend = get_data_to_detrend(data_path, variable, [doy])
     gmt_on_doy = np.tile(
         gmt_on_each_day[doy::days_of_year],
         [data_to_detrend.shape[1], data_to_detrend.shape[2], 1],
