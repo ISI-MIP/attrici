@@ -9,9 +9,9 @@ from scipy import special
 from datetime import datetime, timedelta
 import time as t
 from operator import itemgetter
-
 import settings as s
 import idetrend as idtr
+import idetrend.const as c
 
 gmt_file = os.path.join(s.data_dir, s.gmt_file)
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
@@ -19,21 +19,24 @@ to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
 data = nc.Dataset(to_detrend_file, "r")
 
-data_to_detrend = data.variables[s.variable]
+data_to_detrend = data.variables[s.variable]  # [:]
 data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
+
+data_to_detrend = idtr.utility.mask_invalid(
+    data_to_detrend, idtr.const.minval[s.variable], idtr.const.maxval[s.variable]
+)
 
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
-    print('Variable is:')
-    print(s.variable,flush=True)
-    regr = idtr.lin_regr.regression(gmt_on_each_day, s.transform[s.variable])
-    results = idtr.utility.run_function_on_ncdf(
-        data_to_detrend,
-        # gmt_on_each_day,
-        s.days_of_year,
-        regr,
-        s.n_jobs,
+    print("Variable is:")
+    print(s.variable, flush=True)
+    regr = idtr.lin_regr.regression(
+        gmt_on_each_day, s.min_ts_len, c.transform[s.variable]
+    )
+
+    results = idtr.utility.run_regression_on_dataset(
+        data_to_detrend, s.days_of_year, regr, s.n_jobs
     )
 
     # results = run_parallel_linear_regr(n_jobs=3)
@@ -45,6 +48,7 @@ if __name__ == "__main__":
     # due to a bug in iris I guess, I cannot overwrite existing files. Remove before.
     if os.path.exists(file_to_write):
         os.remove(file_to_write)
+
     idtr.lin_regr.write_regression_stats(
         data_to_detrend.shape,
         (data.variables["lat"], data.variables["lon"]),

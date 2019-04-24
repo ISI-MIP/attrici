@@ -4,8 +4,8 @@
 ##SBATCH --partition=priority
 #SBATCH --job-name=rechunk
 #SBATCH --account=isipedia
-#SBATCH --output=../output/rechunk2.out
-#SBATCH --error=../output/rechunk2.err
+#SBATCH --output=../output/%x.out
+#SBATCH --error=../output/%x.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 
@@ -20,7 +20,7 @@ if [ "$USER" == "bschmidt" ]; then
     source /home/bschmidt/.programs/anaconda3/bin/activate detrending
 fi
 
-yes | bash merge_data.sh
+# yes | bash merge_data.sh
 bash remove_leap_days.sh
 bash rechunk.sh
 python3 create_test_data.py
