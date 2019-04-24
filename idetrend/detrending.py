@@ -4,8 +4,6 @@ import netCDF4 as nc
 import time
 import idetrend.const as c
 
-# import idetrend.visualization as vis
-
 
 def get_coefficient_fields(data_path):
 
@@ -78,7 +76,6 @@ class detrending(object):
         self.days_of_year = days_of_year
         self.transform = c.transform[variable]
 
-
     def fit_ts(self, doy):
 
         """ A function to fit 2-dimensional data with trend from regression coefficients.
@@ -94,14 +91,13 @@ class detrending(object):
         # move time from last to first dimension
         gmt_on_doy = np.moveaxis(gmt_on_doy, -1, 0)
 
-        intercept = self.intercept[doy,:,:]
-        slope = self.slope[doy,:,:]
+        intercept = self.intercept[doy, :, :]
+        slope = self.slope[doy, :, :]
 
         fit = fit_minimal(gmt_on_doy, intercept, slope, self.transform)
         data_detrended = data_to_detrend - fit + fit[0, :, :]
 
         return data_detrended
-
 
     def write_detrended(self, file_to_write):
 
@@ -143,29 +139,6 @@ class detrending(object):
 
         for doy in range(self.days_of_year):
             # print("Working on doy: " + str(doy))
-            data[doy::self.days_of_year, :, :] = self.fit_ts(doy)
+            data[doy :: self.days_of_year, :, :] = self.fit_ts(doy)
 
         output_ds.close()
-
-
-
-
-# def get_regression_coefficients(data_path, indices):
-
-#     """ get the coefficients of the linear regression
-#     for a specific day of year, lon and lat from netcdf file. """
-
-#     # print(indices)
-#     ncf = nc.Dataset(data_path, "r")
-#     if len(indices) == 3:
-#         lat = ncf.variables["lat"][indices[1]]
-#         lon = ncf.variables["lon"][indices[2]]
-#     else:
-#         lat = ncf.variables["lat"][:]
-#         lon = ncf.variables["lon"][:]
-
-#     slope = ncf.variables["slope"][indices]
-#     intercept = ncf.variables["intercept"][indices]
-#     ncf.close()
-
-#     return lat, lon, slope, intercept

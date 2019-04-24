@@ -29,7 +29,8 @@ if __name__ == "__main__":
 
     TIME0 = datetime.now()
 
-    detrend = idtr.detrending.detrending(lons,
+    detrend = idtr.detrending.detrending(
+        lons,
         lats,
         slope,
         intercept,
@@ -38,8 +39,8 @@ if __name__ == "__main__":
         s.variable,
         gmt_on_each_day,
         s.days_of_year,
-        c.transform[s.variable]
-        )
+        c.transform[s.variable],
+    )
 
     detrend.write_detrended(detrended_file)
     # idtr.detrending.write_detrended(
