@@ -3,13 +3,19 @@ import numpy as np
 def logit(data):
     """ scaled logit for input data of values in [0, 100]
     as for rhs """
-    return 2.0*np.arctanh(2.0*data/100 - 1.0)
-
+    minval = 0
+    maxval = 100
+    return 2.0 * np.ma.arctanh(2.0 *
+        (data - minval)/(maxval - minval) -
+        1.0 )
 
 def expit(data):
-    """ scaled inverse for input data of values in [0, 100]
+    """ scaled inverse logit for input data of values in [0, 100]
     as for rhs """
-    return 100*0.5*(1.0 + np.tanh(0.5 * data))
+    minval = 0
+    maxval = 100
+    return minval + (maxval - minval) * 0.5 * (
+        1.0 + np.ma.tanh(0.5 * data))
 
 
 # transformations come in tuples
@@ -43,7 +49,7 @@ minval = {
     "tas": None,
     "tasmin": None,
     "pr": .000001157407, # amounts to .1 mm per day if unit is mm per sec
-    "rhs": 0.0,
+    "rhs": 0.01,
     "ps": None,
     "rsds": 0.0,
     "rlds": 0.0,
@@ -55,7 +61,7 @@ maxval = {
     "tas": None,
     "tasmin": None,
     "pr": None,
-    "rhs": 101.0,
+    "rhs": 99.9,
     "ps": None,
     "rsds": 3025.0,
     "rlds": 3025.0,

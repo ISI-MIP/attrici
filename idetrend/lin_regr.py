@@ -59,7 +59,7 @@ def write_regression_stats(
 ):
 
     """ write regression statistics to a netcdf file. This function is specific
-    to the output of the scipy.stats.linregress output.  """
+    to the scipy.stats.linregress output.  """
 
     sys.stdout.flush()
     output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
