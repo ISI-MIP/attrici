@@ -15,13 +15,8 @@ elif user == "bschmidt":
 n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
-<<<<<<< HEAD
-test = False
-variable = "rsds"
-=======
 test = True
-variable = "rhs"
->>>>>>> a56b307cbffe23af2cc3822bb7d8dfde5f0914a4
+variable = "tasmin"
 dataset = "gswp3"
 startyear = 1901
 endyear = 2010
@@ -56,9 +51,5 @@ else:
     )
     regression_outfile = variable + "_regression_all.nc4"
 
-<<<<<<< HEAD
 min_ts_len = 2 # minimum length of timeseries passed to regression after reduction
 sig = .95 # significance level to calculate confidence intervals for fits in .
-=======
-min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
->>>>>>> a56b307cbffe23af2cc3822bb7d8dfde5f0914a4
