@@ -66,7 +66,7 @@ def fit_ts(
     if calendar == "noleap":
         days_of_year = 365
 
-    lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, indices)
+    lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, indices, slope="max")
     data_to_detrend = vis.get_data_to_detrend(data_path, variable, indices)
     gmt_on_doy = np.ones((110, shape_of_input[1], shape_of_input[2]))
     for lat in range(shape_of_input[1]):
@@ -101,18 +101,20 @@ def write_detrended(
     longitudes = output_ds.createVariable("lon", "f8", ("lon",))
     latitudes = output_ds.createVariable("lat", "f8", ("lat",))
     data = output_ds.createVariable(variable, "f4", ("time", "lat", "lon"))
+    data_max = output_ds.createVariable(variable + "_max", "f4", ("time", "lat", "lon"))
+    data_min = output_ds.createVariable(variable + "_min", "f4", ("time", "lat", "lon"))
     # print(intercepts)
 
     # Set attributes
     output_ds.description = "Detrended data of variable " + variable
     output_ds.history = "Created " + t.ctime(t.time())
-    latitudes.units = "degree_north"
+    latitudes.units = "degrees_north"
     latitudes.long_name = "latitude"
     longitudes.standard_name = "latitude"
-    longitudes.units = "degree_east"
+    longitudes.units = "degrees_east"
     longitudes.long_name = "longitude"
     longitudes.standard_name = "longitude"
-    data.units = "K"
+    data.units = ""
     times.units = "days since 1901-01-01"
     times.calendar = "noleap"
 
@@ -132,6 +134,7 @@ def write_detrended(
 
     for doy in doys:
         print("Working on doy: " + str(doy))
+        # Detrending with average parameters
         data_detrended = fit_ts(
             regr_path, data_path, varname, gmt_on_each_day, [doy - 1], shape_of_input, transform=s.transform[s.variable]
         )
@@ -151,7 +154,6 @@ if __name__ == "__main__":
         file_to_write,
         varname,
     )
-
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
     print("Calculation took", duration.total_seconds(), "seconds.")
