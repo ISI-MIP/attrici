@@ -70,9 +70,10 @@ def get_netcdf_data(dfile):
 
 detrended_bk_file = os.path.join(s.data_dir, s.variable + "_detrended_test_bk.nc4")
 
+
 def test_write_detrending():
 
-        # the file with the smoothed global trend of global mean temperature
+    # the file with the smoothed global trend of global mean temperature
     gmt_file = os.path.join(s.data_dir, s.gmt_file)
     # the daily interpolated ssa-smoothed global mean temperature
     gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
@@ -82,17 +83,7 @@ def test_write_detrending():
     detrended_file = os.path.join(s.data_dir, s.detrended_file)
 
     lats, lons, slope, intercept = \
-        idetrend.visualization.get_coefficient_fields(regression_file)
-
-    # idtr.detrending.write_detrended(
-    #     regression_file,
-    #     to_detrend_file,
-    #     lats, lons,
-    #     detrended_file,
-    #     s.variable,
-    #     gmt_on_each_day,
-    # )
-
+        idetrend.detrending.get_coefficient_fields(regression_file)
 
     detrend = idtr.detrending.detrending(lons,
         lats,

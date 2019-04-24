@@ -89,6 +89,7 @@ class detrending(object):
         ncf.close()
         return data_to_detrend
 
+
     def write_detrended(self, file_to_write):
 
         """ detrend data and write it to netCDF file. """
@@ -128,7 +129,7 @@ class detrending(object):
         times[:] = range(len(self.gmt_on_each_day))
 
         for doy in range(self.days_of_year):
-            # print("Working on doy: " + str(doy))
+            print("Working on doy: " + str(doy))
 
             data_to_detrend = self.get_data_to_detrend(doy)
             data[doy :: self.days_of_year, :, :] = self.fit_ts(doy, data_to_detrend)
