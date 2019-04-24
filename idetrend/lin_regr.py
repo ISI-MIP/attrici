@@ -2,24 +2,28 @@ import os
 import sys
 import time
 from datetime import datetime
+
 # import iris
 # import iris.coord_categorisation as icc
 import numpy as np
 import netCDF4 as nc
 import settings as s
-from scipy import stats
-import const as c
+from scipy.stats import mstats
+from collections import namedtuple
+import idetrend.const as c
 
 
 class regression(object):
 
-    def __init__(self, gmt_on_each_day, transform=None):
+    def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
         self.transform = transform
+        self.min_ts_len = min_ts_len
 
-        #assert .3 == transform[1](transform[0](.3)), "Inverse transform does not match with transform."
-
+        # FIXME:
+        # assert np.testing.assert_almost_equal(
+        #     0.3, transform[1](transform[0](0.3))), "Inverse transform does not match with transform."
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -35,47 +39,27 @@ class regression(object):
         # would it not be better to pass yearly GMT here?
         gmt_of_doy = self.gmt_on_each_day[doy::365]
 
-        # FIXME: Is there a better place to do this, so its not run on every
-        # iteration? Also do we want to produce nan's where no rain days occur?
-
-        # Check allowed range of variable for three cases
-        # lower limit
-        if np.logical_or(c.minval[s.variable] is not None, c.maxval[s.variable] is None):
-            allowed = np.logical_not(data_of_doy < c.minval[s.variable])
-        # upper limit
-        elif np.logical_or(c.minval[s.variable] is None, c.maxval[s.variable] is not None):
-            allowed = np.logical_not(data_of_doy > c.maxval[s.variable])
-        # lower and upper limit
-        elif np.logical_and(c.minval[s.variable] is not None, c.maxval[s.variable] is not None):
-            allowed = np.logical_and(data_of_doy >= c.minval[s.variable],
-                                     data_of_doy <= c.maxval[s.variable])
-        elif np.logical_and(c.minval[s.variable] is None, c.maxval[s.variable] is None):
-            allowed = np.ones_like(data_of_doy)
-
-        # reduce the data that will passed to regression to allowed values
-        # if resulting vector size is not 0, else pass vector of zeros
-        if np.sum(allowed) > s.min_ts_len:
-            print('Data is being reduced', flush=True)
-            gmt_of_doy = gmt_of_doy[allowed]
-            data_of_doy = data_of_doy[allowed]
-        else:
-            data_of_doy = np.zeros_like(data_of_doy)
-            print('Vector of zeros passed for regression on' +
-                  '\ndoy: ' + str(doy) + ' lonindex: ' + str(loni), flush=True)
+        # special case if too few valid datapoints left
+        if data_of_doy.count() <= self.min_ts_len:
+            res = namedtuple(
+                "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr")
+            )
+            return res(slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr=0.0)
+            # data_of_doy.mask = True
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
 
-        return stats.linregress(gmt_of_doy, data_of_doy)
+        # print(data_of_doy)
+        return mstats.linregress(gmt_of_doy, data_of_doy)
 
 
 def write_regression_stats(
     shape_of_input, original_data_coords, results, file_to_write, days_of_year
 ):
 
-    """ write linear regression statistics to a netcdf file. This function is specific
-    to the output of the scipy.stats.linregress output.
-    TODO: make this more flexible to include more stats. """
+    """ write regression statistics to a netcdf file. This function is specific
+    to the scipy.stats.linregress output.  """
 
     sys.stdout.flush()
     output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
@@ -111,11 +95,11 @@ def write_regression_stats(
     print("latitudes: \n", latitudes[:])
     print("longitudes: \n", longitudes[:])
 
-    ic = np.zeros([days_of_year, shape_of_input[1], shape_of_input[2]])
-    s = np.zeros_like(ic)
-    r = np.zeros_like(ic)
-    p = np.zeros_like(ic)
-    sd = np.zeros_like(ic)
+    ic = np.ma.masked_all([days_of_year, shape_of_input[1], shape_of_input[2]])
+    s = np.ma.copy(ic)
+    r = np.ma.copy(ic)
+    p = np.ma.copy(ic)
+    sd = np.ma.copy(ic)
 
     latis = np.arange(shape_of_input[1])
     lonis = np.arange(shape_of_input[2])
@@ -124,16 +108,23 @@ def write_regression_stats(
     for lati in latis:
         for doy in np.arange(days_of_year):
             for loni in lonis:
+                # try:
                 ic[doy, lati, loni] = results[i].intercept
                 s[doy, lati, loni] = results[i].slope
                 r[doy, lati, loni] = results[i].rvalue
                 p[doy, lati, loni] = results[i].pvalue
                 sd[doy, lati, loni] = results[i].stderr
+                # if not enough valid values appeared in timeseries,
+                # regression gives back Nones, catch this here.
+                # except AttributeError:
+                #     print(lati,doy,loni)
+                #     print(results[i])
+                #     pass
                 i = i + 1
+
     intercepts[:] = ic
     slopes[:] = s
     r_values[:] = r
     p_values[:] = p
     std_errors[:] = sd
     output_ds.close()
-

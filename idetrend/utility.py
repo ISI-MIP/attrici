@@ -7,12 +7,10 @@ import warnings
 import netCDF4 as nc
 from scipy import special
 import joblib
-import const
+import idetrend.const
 
 
-def run_lat_slice_parallel(
-    lat_slice_data, days_of_year, function_to_run, n_jobs
-):
+def run_lat_slice_parallel(lat_slice_data, days_of_year, function_to_run, n_jobs):
 
     """ run any function on latitude slices.
         Joblib implementation. Return a list of all stats """
@@ -45,15 +43,32 @@ def run_lat_slice_serial(
     results = []
     for doy in np.arange(days_of_year):
         for loni in np.arange(lat_slice_data.shape[1]):
-            result = function_to_run(lat_slice_data, gmt_on_each_day, doy, loni)
+            result = function_to_run.run(lat_slice_data, gmt_on_each_day, doy, loni)
             results.append(result)
 
     return results
 
 
-def run_function_on_ncdf(
-    data_to_detrend, days_of_year, function_to_run, n_jobs
-):
+def mask_invalid(data, minval=None, maxval=None):
+
+    """ mask values that are outside the valid range as defined in const.py """
+
+    if minval is None and maxval is None:
+        # mask nothing
+        return data
+
+    elif minval is None:
+        return np.ma.masked_greater(data, maxval)
+
+    elif maxval is None:
+        return np.ma.masked_less(data, minval)
+
+    else:
+        assert minval < maxval, "minval is not smaller maxval."
+        return np.ma.masked_outside(data, minval, maxval)
+
+
+def run_regression_on_dataset(data_to_detrend, days_of_year, function_to_run, n_jobs):
 
     """ use the numpy slicing to run a function on a full dataset.
     example function: regression.linear_regr_per_gridcell
@@ -64,16 +79,17 @@ def run_function_on_ncdf(
     i = 0
     results = []
     for lat_slice in np.arange(data_to_detrend.shape[1]):
+
         data = data_to_detrend[:, i, :]
+        # data = mask_invalid(data_to_detrend[:, i, :], minval, maxval)
         print("Working on slice " + str(i), flush=True)
         TIME0 = datetime.datetime.now()
-        r = run_lat_slice_parallel(
-            data, days_of_year, function_to_run, n_jobs
-        )
+        r = run_lat_slice_parallel(data, days_of_year, function_to_run, n_jobs)
         results = results + r
         TIME1 = datetime.datetime.now()
         duration = TIME1 - TIME0
         i += 1
+        # if i >3: break
 
     return results
 
@@ -103,6 +119,7 @@ def check_data(data, source_path_data):
     NOTE: add more check routines"""
 
     from settings import variable
+
     # get data folder
     data_folder = os.path.join("/", *source_path_data.split("/")[:-1])
 
@@ -116,12 +133,13 @@ def check_data(data, source_path_data):
         if variable in ["rhs", "hurs"]:
             # print('Data variable is relative humidity!')
             # raise warnings if data contains values that need replacing
-            if np.logical_or(data < const.minval[variable],
-                             data > const.maxval[variable]).any():
+            if np.logical_or(
+                data < const.minval[variable], data > const.maxval[variable]
+            ).any():
                 #  warnings.warn('Data contains values far out of range. ' +
                 #                'Replacing values by numbers just in range!')
-                data[data > const.maxval[variable]] = .999999 * const.maxval[variable]
-                data[data < const.minval[variable]] = .000001 * const.maxval[variable]
+                data[data > const.maxval[variable]] = 0.999999 * const.maxval[variable]
+                data[data < const.minval[variable]] = 0.000001 * const.maxval[variable]
                 warnings.warn(
                     "Had to replace out of range values!"
                     + "\nData seems to be erroneous!"
@@ -129,7 +147,9 @@ def check_data(data, source_path_data):
             if np.logical_or(data > 1, data < const.maxval[variable]).any():
                 data[data > const.maxval[variable]] = const.maxval[variable]
                 warnings.warn("Replaced values of oversaturation!")
-            if np.logical_or(data == const.minval[variable], data == const.maxval[variable]).any():
+            if np.logical_or(
+                data == const.minval[variable], data == const.maxval[variable]
+            ).any():
                 #  warnings.warn('Data contains values 0 and/or 100. ' +
                 #                '\nReplacing values by numbers just in range!')
                 data[data == const.maxval[variable]] = 99.9999
@@ -184,58 +204,73 @@ def check_data(data, source_path_data):
             print("Data variable is daily precipitation!", flush=True)
             if np.min(data) < const.minval[variable]:
                 data[data < const.minval[variable]] = const.minval[variable]
-                warnings.warn('Set small values to ' + str(const.minval[variable]))
+                warnings.warn("Set small values to " + str(const.minval[variable]))
         elif variable == "ps":
             print("Data variable is near surface pressure!", flush=True)
         elif variable == "huss":
             print("Data variable is specific humidity!", flush=True)
             if np.max(data) > const.maxval[variable]:
                 data[data > const.maxval[variable]] = const.maxval[variable]
-                warnings.warn('Set large values to ' + str(const.maxval[variable]))
+                warnings.warn("Set large values to " + str(const.maxval[variable]))
             if np.min(data) < const.minval[variable]:
                 data[data < const.minval[variable]] = const.minval[variable]
-                warnings.warn('Set small values to ' + str(const.minval[variable]))
+                warnings.warn("Set small values to " + str(const.minval[variable]))
         elif variable == "rsds":
             print("Data variable is shortwave incoming radiation!", flush=True)
             if np.max(data) > const.maxval[variable]:
                 data[data > const.maxval[variable]] = const.maxval[variable]
-                warnings.warn('Set large values to ' + str(const.maxval[variable]))
+                warnings.warn("Set large values to " + str(const.maxval[variable]))
         elif variable == "rlds":
             print("Data variable is longwave incoming radiation!", flush=True)
             if np.max(data) > const.maxval[variable]:
                 data[data > const.maxval[variable]] = const.maxval[variable]
-                warnings.warn('Set large values to ' + str(const.maxval[variable]))
+                warnings.warn("Set large values to " + str(const.maxval[variable]))
         elif variable == "wind":
             print("Data variable is near surface wind speed!")
             if np.min(data) < const.minval[variable]:
                 data[data < const.minval[variable]] = const.minval[variable]
-                warnings.warn('Set negative wind speed to ' + str(const.minval[variable]))
+                warnings.warn(
+                    "Set negative wind speed to " + str(const.minval[variable])
+                )
         else:
             raise Exception("Detected variable name not correct!")
     print("Data checked for forbidden values!", flush=True)
     return data
 
 
-def logit(data):
-    from settings import variable
-    if np.any(data) not in range(int(const.minval[variable]), int(const.maxval[variable]+1)):
-        warnings.warn("Some values seem to be out of range. NaNs are going to be produced!")
-    return 2. * np.arctanh(2. * (data - const.minval[variable]) / (const.maxval[variable] - const.minval[variable]) - 1.)
+# def logit(data):
+#     from settings import variable
+
+#     if np.any(data) not in range(
+#         int(const.minval[variable]), int(const.maxval[variable] + 1)
+#     ):
+#         warnings.warn(
+#             "Some values seem to be out of range. NaNs are going to be produced!"
+#         )
+#     return 2.0 * np.arctanh(
+#         2.0
+#         * (data - const.minval[variable])
+#         / (const.maxval[variable] - const.minval[variable])
+#         - 1.0
+#     )
 
 
-def expit(data):
-    from settings import variable
-    if np.any(data) <= 0:
-        warnings.warn("Some values negative or zero. NaNs are going to be produced!")
-    return (const.minval[variable] + (const.maxval[variable] - const.minval[variable]) * .5 * (1. + np.tanh(.5 * data)))
+# def expit(data):
+#     from settings import variable
+
+#     if np.any(data) <= 0:
+#         warnings.warn("Some values negative or zero. NaNs are going to be produced!")
+#     return const.minval[variable] + (
+#         const.maxval[variable] - const.minval[variable]
+#     ) * 0.5 * (1.0 + np.tanh(0.5 * data))
 
 
-def log(data):
-    data[data <= 0] = np.nan
-    return np.log(data)
+# def log(data):
+#     data[data <= 0] = np.nan
+#     return np.log(data)
 
 
-def exp(data):
-    trans = np.exp(data)
-    trans[trans == np.nan] = 0
-    return trans
+# def exp(data):
+#     trans = np.exp(data)
+#     trans[trans == np.nan] = 0
+#     return trans

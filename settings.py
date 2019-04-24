@@ -15,28 +15,18 @@ elif user == "bschmidt":
 n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
+<<<<<<< HEAD
 test = False
 variable = "rsds"
+=======
+test = True
+variable = "rhs"
+>>>>>>> a56b307cbffe23af2cc3822bb7d8dfde5f0914a4
 dataset = "gswp3"
 startyear = 1901
 endyear = 2010
 
 days_of_year = 365
-
-# this dictionary sets the transformations we need to
-# do for certain variables. these come in tuples
-# [transform, inverse_transform]
-transform = {
-    "tasmin":None,
-    "tas":None,
-    "tasmax":None,
-    "pr":[u.log, u.exp],
-    "rhs":[u.logit, u.expit],
-    "ps":None,
-    "rsds":None,
-    "rlds":None,
-    "wind":[u.log, u.exp]
-}
 
 gmt_file = "test_ssa_gmt.nc4"
 base_file = (
@@ -66,5 +56,9 @@ else:
     )
     regression_outfile = variable + "_regression_all.nc4"
 
+<<<<<<< HEAD
 min_ts_len = 2 # minimum length of timeseries passed to regression after reduction
 sig = .95 # significance level to calculate confidence intervals for fits in .
+=======
+min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
+>>>>>>> a56b307cbffe23af2cc3822bb7d8dfde5f0914a4
