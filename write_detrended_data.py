@@ -32,7 +32,7 @@ if __name__ == "__main__":
     idtr.lin_regr.write_detrended(
         regression_file,
         to_detrend_file,
-        (lats, lons),
+        lats, lons,
         detrended_file,
         s.variable,
         gmt_on_each_day,

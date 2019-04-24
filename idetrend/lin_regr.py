@@ -13,8 +13,13 @@ from collections import namedtuple
 import idetrend.const as c
 import idetrend.visualization as vis
 
+regresult = namedtuple(
+    "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr", "vdcount")
+)
+
 
 class regression(object):
+
     def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
@@ -22,8 +27,9 @@ class regression(object):
         self.min_ts_len = min_ts_len
 
         # FIXME:
-        # assert np.testing.assert_almost_equal(
-        #     0.3, transform[1](transform[0](0.3))), "Inverse transform does not match with transform."
+        assert np.isclose(
+            0.3, transform[1](transform[0](0.3))), \
+        "Inverse transform does not match with transform."
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -41,16 +47,16 @@ class regression(object):
 
         # special case if too few valid datapoints left
         if data_of_doy.count() <= self.min_ts_len:
-            res = namedtuple(
-                "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr")
+
+            return regresult(
+                slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr=0.0,
+                vdcount = data_of_doy.count()
             )
-            return res(slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr=0.0)
-            # data_of_doy.mask = True
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
 
-        # print(data_of_doy)
+        res = mstats.linregress(gmt_of_doy, data_of_doy)
         return mstats.linregress(gmt_of_doy, data_of_doy)
 
 
@@ -71,7 +77,7 @@ def fit_ts(
     data_path,
     variable,
     gmt_on_each_day,
-    indices,
+    doy,
     transform=None,
     calendar="noleap",
 ):
@@ -82,13 +88,13 @@ def fit_ts(
     if calendar == "noleap":
         days_of_year = 365
 
-    lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, indices)
-    data_to_detrend = vis.get_data_to_detrend(data_path, variable, indices)
+    lat, lon, slope, intercept = vis.get_regression_coefficients(regr_path, [doy])
+    data_to_detrend = vis.get_data_to_detrend(data_path, variable, [doy])
     gmt_on_doy = np.ones((110, data_to_detrend.shape[1], data_to_detrend.shape[2]))
 
     for lat in range(data_to_detrend.shape[1]):
         for lon in range(data_to_detrend.shape[2]):
-            gmt_on_doy[:, lat, lon] = gmt_on_each_day[indices[0] :: days_of_year]
+            gmt_on_doy[:, lat, lon] = gmt_on_each_day[doy::days_of_year]
 
     fit = fit_minimal(gmt_on_doy, intercept, slope, transform)
     data_detrended = data_to_detrend - fit + fit[0, :, :]
@@ -97,7 +103,7 @@ def fit_ts(
 
 
 def write_detrended(
-    regr_path, data_path, original_data_coords, file_to_write, variable, gmt_on_each_day
+    regr_path, data_path, lats, lons, file_to_write, variable, gmt_on_each_day
 ):
 
     """ datrend data and write it to netCDF file. """
@@ -109,8 +115,8 @@ def write_detrended(
     output_ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
 
     tm = output_ds.createDimension("time", None)
-    lat = output_ds.createDimension("lat", original_data_coords[0].shape[0])
-    lon = output_ds.createDimension("lon", original_data_coords[1].shape[0])
+    lat = output_ds.createDimension("lat", len(lats))
+    lon = output_ds.createDimension("lon", len(lons))
     # print(output_ds.dimensions)
 
     # create variables
@@ -135,10 +141,7 @@ def write_detrended(
 
     if times.calendar == "noleap":
         days_of_year = 365
-        doys = range(1, 366)
-
-    lats = original_data_coords[0][:]
-    lons = original_data_coords[1][:]
+        # doys = range(1, 366)
 
     latitudes[:] = lats
     longitudes[:] = lons
@@ -147,17 +150,17 @@ def write_detrended(
     #  latis = np.arange(shape_of_input[1])
     #  lonis = np.arange(shape_of_input[2])
 
-    for doy in doys:
+    for doy in range(days_of_year):
         # print("Working on doy: " + str(doy))
         data_detrended = fit_ts(
             regr_path,
             data_path,
             variable,
             gmt_on_each_day,
-            [doy - 1],
+            doy,
             transform=c.transform[s.variable],
         )
-        data[doy - 1 :: days_of_year, :, :] = data_detrended
+        data[doy::days_of_year, :, :] = data_detrended
     output_ds.close()
 
 
