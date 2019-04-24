@@ -59,9 +59,10 @@ def get_regression_coefficients(data_path, indices):
 
     slope = ncf.variables['slope'][indices]
     intercept = ncf.variables['intercept'][indices]
+    se = ncf.variables['std_errors'][indices]
     ncf.close()
 
-    return lat, lon, slope, intercept
+    return lat, lon, slope, intercept, se
 
 
 def get_coefficient_fields(data_path):
@@ -94,13 +95,13 @@ def get_data_to_detrend(data_path, varname, indices):
     nc_data_to_detrend.close()
     return data_to_detrend
 
-def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=None, threshold=0.):
+def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=None):
 
     """ detrend the data with linear trend from regression coefficients.
         also do a regression on detrended data and check if slope is close to zero."""
 
     from write_detrended_data import fit_minimal
-    lat, lon, slope, intercept = get_regression_coefficients(regr_path, indices)
+    lat, lon, slope, intercept, se = get_regression_coefficients(regr_path, indices)
     data_to_detrend = get_data_to_detrend(data_path, variable, indices)
 
     gmt_on_doy = gmt_on_each_day[indices[0] :: days_of_year]
@@ -113,10 +114,12 @@ def prepare(regr_path, data_path, variable, gmt_on_each_day, indices, transform=
         gmt_test_for_reg = gmt_on_doy[data_detrended > const.minval[variable]]
     if const.maxval[variable] is not None:
         data_detrended[data_detrended < const.maxval[variable]] = const.maxval[variable]
-
-    # redo a fit on the detrended data. should have a slope of zero
-    slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy,
-                                                      set.transform[set.variable][0](data_detrended))
+    if transform is not None:
+        # redo a fit on the detrended data. should have a slope of zero
+        slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy,
+                                                          set.transform[set.variable][0](data_detrended))
+    else:
+        slope_d, intercept_d, r, p, sd = stats.linregress(gmt_on_doy, data_detrended)
     # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
     fit_d = fit_minimal(gmt_on_doy, intercept_d, slope_d, transform)
 
