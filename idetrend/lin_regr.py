@@ -15,7 +15,6 @@ import idetrend.visualization as vis
 
 
 class regression(object):
-
     def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
@@ -98,8 +97,7 @@ def fit_ts(
 
 
 def write_detrended(
-    regr_path, data_path, original_data_coords,
-    file_to_write, variable, gmt_on_each_day
+    regr_path, data_path, original_data_coords, file_to_write, variable, gmt_on_each_day
 ):
 
     """ datrend data and write it to netCDF file. """
@@ -161,7 +159,6 @@ def write_detrended(
         )
         data[doy - 1 :: days_of_year, :, :] = data_detrended
     output_ds.close()
-
 
 
 def write_regression_stats(

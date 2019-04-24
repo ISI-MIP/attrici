@@ -35,7 +35,7 @@ if __name__ == "__main__":
         (lats, lons),
         detrended_file,
         s.variable,
-        gmt_on_each_day
+        gmt_on_each_day,
     )
 
     TIME1 = datetime.now()
