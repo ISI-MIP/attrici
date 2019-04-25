@@ -25,18 +25,10 @@ class regression(object):
         self.transform = transform
         self.min_ts_len = min_ts_len
 
-        # FIXME:
-<<<<<<< HEAD:idetrend/lin_regr.py
-        if self.transform is not None:
-            assert np.isclose(
-                0.3, transform[1](transform[0](0.3))), \
-            "Inverse transform does not match with transform."
-=======
         if transform is not None:
             assert np.isclose(
                 0.3, transform[1](transform[0](0.3))
             ), "Inverse transform does not match with transform."
->>>>>>> origin/master:idetrend/regression.py
 
     def run(self, np_data_to_detrend, doy, loni=0):
 
@@ -56,33 +48,24 @@ class regression(object):
         if data_of_doy.count() <= self.min_ts_len:
 
             return regresult(
-<<<<<<< HEAD:idetrend/lin_regr.py
-                slope=0.0, intercept=0.0, rvalue=0.0, pvalue=0.0, stderr_slo=0.0,
-                stderr_int= 0., vdcount = data_of_doy.count()
-=======
                 slope=0.0,
                 intercept=0.0,
                 rvalue=0.0,
                 pvalue=0.0,
                 stderr=0.0,
                 vdcount=data_of_doy.count(),
->>>>>>> origin/master:idetrend/regression.py
             )
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
-        
         res = mstats.linregress(gmt_of_doy, data_of_doy)
-<<<<<<< HEAD:idetrend/lin_regr.py
-        
         # get mask of dependent variable to apply to independent
         mask = np.ma.getmask(data_of_doy)
-        
         # compute int std error from slope_stderr and gmt_of_doy
         int_err = res.stderr*np.sqrt(1 / data_of_doy.count() * np.sum(np.power(gmt_of_doy[~mask], 2)))
 
         return regresult(
-            slope=res.slope, intercept=res.intercept, rvalue=res.rvalue, 
+            slope=res.slope, intercept=res.intercept, rvalue=res.rvalue,
             pvalue=res.pvalue, stderr_slo=res.stderr, stderr_int=int_err,
             vdcount=data_of_doy.count()
             )
@@ -190,9 +173,7 @@ def write_detrended(
         )
         data[doy::days_of_year, :, :] = data_detrended
     output_ds.close()
-=======
         return res
->>>>>>> origin/master:idetrend/regression.py
 
 
 def write_regression_stats(
@@ -275,5 +256,4 @@ def write_regression_stats(
     std_errors_slo[:] = sds
     std_errors_int[:] = sdi
     vd_count[:] = vdc
-    
     output_ds.close()
