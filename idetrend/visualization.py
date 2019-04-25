@@ -50,7 +50,9 @@ def get_gmt_on_each_day(gmt_data_path):
 
 def get_regression_coefficients(data_path, indices):
 
-    """ get the coefficients of the linear regression
+    """
+    FIXME: use from detrending.py instead
+    get the coefficients of the linear regression
     for a specific day of year, lon and lat from netcdf file. """
     
     print(indices)
@@ -79,7 +81,9 @@ def get_regression_coefficients(data_path, indices):
 
 def get_coefficient_fields(data_path):
 
-    """ get the fields of coefficients of the linear regression
+    """
+    FIXME: use from detrending.py instead
+    get the fields of coefficients of the linear regression
     from netcdf file. """
 
     ncf = nc.Dataset(data_path, "r")
