@@ -5,8 +5,8 @@
 ##SBATCH --constraint=broadwell
 #SBATCH --job-name=test
 #SBATCH --account=isipedia
-#SBATCH --output=output/test.out
-#SBATCH --error=output/test.err
+#SBATCH --output=output/%x.out
+#SBATCH --error=output/%x.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 
