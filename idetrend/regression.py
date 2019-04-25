@@ -173,7 +173,7 @@ def write_detrended(
         )
         data[doy::days_of_year, :, :] = data_detrended
     output_ds.close()
-        return res
+    return res
 
 
 def write_regression_stats(

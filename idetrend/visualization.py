@@ -22,7 +22,7 @@ regresult = namedtuple(
 days_of_year = 365
 years_of_data = 110  # from 1900 to 2010
 doy = np.arange(days_of_year)
-time_values = np.arange(years_of_data) + 1901
+time = np.arange(years_of_data) + 1901
 
 
 def set_ylim(ax, data):
@@ -30,8 +30,16 @@ def set_ylim(ax, data):
     """ manually set ylimit. needed to for plt.scatter, which has
     a bug for setting ylim for small values. """
 
-    dy = (max(data) - min(data)) / 20.0
-    ax.set_ylim(min(data) - dy, max(data) + dy)
+    dy = (np.max(data) - np.min(data)) / 20.0
+    ax.set_ylim(np.min(data) - dy, np.max(data) + dy)
+    
+def set_xlim(ax, data):
+
+    """ manually set ylimit. needed to for plt.scatter, which has
+    a bug for setting ylim for small values. """
+
+    dx = (np.max(data) - np.min(data)) / 20.0
+    ax.set_xlim(np.min(data) - dx, np.max(data) + dx)
 
 
 def get_gmt_on_each_day(gmt_data_path):
@@ -54,8 +62,7 @@ def get_regression_coefficients(data_path, indices):
     FIXME: use from detrending.py instead
     get the coefficients of the linear regression
     for a specific day of year, lon and lat from netcdf file. """
-    
-    print(indices)
+
     ncf = nc.Dataset(data_path, "r")
     if len(indices) == 3:
         lat = ncf.variables["lat"][indices[1]]
@@ -74,7 +81,7 @@ def get_regression_coefficients(data_path, indices):
     ncf.close()
 
     return lat, lon, regresult(
-        slope=slope, intercept=intercept, rvalue=rvalue, 
+        slope=slope, intercept=intercept, rvalue=rvalue,
         pvalue=pvalue, stderr_slo=stderr_slo, stderr_int=stderr_int,
         vdcount=vdcount)
 
@@ -121,13 +128,13 @@ def prepare(
     gmt_on_each_day,
     indices,
     transform=None,
-    threshold=0.0,
+    intervals=True,
 ):
 
     """ detrend the data with linear trend from regression coefficients.
         also do a regression on detrended data and check if slope is close to zero."""
 
-    from idetrend.lin_regr import fit_minimal
+    from idetrend.regression import fit_minimal
 
     lat, lon, regresult = get_regression_coefficients(regr_path, indices)
     data_to_detrend = get_data_to_detrend(data_path, variable, indices)
@@ -142,7 +149,7 @@ def prepare(
         gmt_test_for_reg = gmt_on_doy[data_detrended > const.minval[variable]]
     if const.maxval[variable] is not None:
         data_detrended[data_detrended < const.maxval[variable]] = const.maxval[variable]
-
+    
     # redo a fit on the detrended data. should have a slope of zero
     slope_d, intercept_d, r, p, sd = stats.linregress(
         gmt_on_doy, const.transform[set.variable][0](data_detrended)
@@ -152,30 +159,136 @@ def prepare(
 
     return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy
 
+def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
+    
+    ''' 
+    The function computes confidence and prediction intervals for 
+    regression of the input data and the given significane level.
+    
+    Input:
+    x = numpy.array - independent variable
+    y = numpy.masked.array - dependent variable 
+    fit = numpy.array - fit of regression on dependent variable
+    sig_level = int, float - significane level for two-sided t-test
+    
+    Output:
+    CI = array - confidence intervals for y sample
+    PI = array - prediction intervals for y sample
+    '''
+    #if y.mask == False:
+    #    lCI, uCI, lPI, uPI = get_intervals_unmasked(x, y, fit, sig_level=.95, polyfit=False, transform=None)
+    #else:
+        # Hyperparameters
+    alpha = 1. - sig_level # rejection region (here still one sided)
+    K = 2. # number of parameters in model
+    print(fit)
+    # input recalc
+    if transform is not None:
+        y = transform[0](y)
+        fit = transform[0](fit)
 
-def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, lon):
+    # Calculations    
+    # calculate sum of squared residuals
+    ssr = np.sum(np.power(y[~y.mask] - fit[~y.mask], 2))
+    # calculate sum of squared x values
+    ssx = np.sum(np.power((x[~y.mask] - np.mean(x[~y.mask])), 2))
+    # calculate empirical variance (not divided by sample count and not summed)
+    x_var = np.power((x[~y.mask] - np.mean(x[~y.mask])), 2)
+    N = len(np.squeeze(x_var)) # length of sample data
+
+    t = stats.distributions.t.ppf(1-(alpha/2.), N - K) # student T multiplier crit_value
+
+    # Calculate confidence interval CI and prediction interval PI
+    CI = t * np.sqrt(ssr/(N-K)) * np.sqrt(((1/N) + (x_var/ssx)))
+    PI = t * np.sqrt(ssr/(N-K)) * np.sqrt((1 + (1/N) + (x_var/ssx)))
+
+    if polyfit:
+        # fit 2nd-order polynomial to the margins to extrapolate for all values of x
+        coeffs = np.polyfit(x[~y.mask], CI, 2)
+        poly = np.polynomial.Polynomial(np.flip(coeffs))
+        CI = poly(x)
+        coeffs = np.polyfit(x[~y.mask], PI, 2)
+        poly = np.polynomial.Polynomial(np.flip(coeffs))
+        PI = poly(x)
+
+        # calculate interval margins
+        uCI = fit + CI
+        lCI = fit - CI
+        uPI = fit + PI
+        lPI = fit - PI
+    else:
+        uCI = np.squeeze(fit[~y.mask]) + CI
+        lCI = fit[~y.mask] - CI
+        uPI = fit[~y.mask] + PI
+        lPI = fit[~y.mask] - PI
+
+    if transform is not None:
+        uCI = transform[1](uCI)
+        lCI = transform[1](lCI)
+        uPI = transform[1](uPI)
+        lPI = transform[1](lPI)
+    print('Here')
+    print(fit)
+    return np.squeeze(lCI), np.squeeze(uCI), np.squeeze(lPI), np.squeeze(uPI)
+
+def plot(var, data, data_d, fit, fit_d, gmt, lat, lon, intervals=True, sig_level=.95):
 
     fig, axs = plt.subplots(2, 2, sharey="row", figsize=(16, 12))
     #     fig.suptitle('var:' + variable + '   doy:' + str(indices[0]) +
     #                  '   lat:' + str(lat) + '   lon:' + str(lon), size=20, weight='bold')
-
-    axs[0, 0].scatter(gmt_on_doy, data_to_detrend, label="data")
-    axs[0, 0].plot(gmt_on_doy, fit, "r", label="fit against gmt")
+    
+    axs[0, 0].scatter(gmt, data, label="data")
+    axs[0, 0].plot(gmt, fit, "r", label="fit against gmt")
     axs[0, 0].set_xlabel("gmt / K")
-    set_ylim(axs[0, 0], data_to_detrend)
-
-    axs[1, 0].scatter(gmt_on_doy, data_detrended, label="detrended data")
-    axs[1, 0].plot(gmt_on_doy, fit_d, "r", label="detrended fit")
+    if intervals:
+        # get lower and upper conf- and pred-interval margins
+        lCI, uCI, lPI, uPI = get_intervals(gmt, data, fit, sig_level, polyfit=False, transform=const.transform[var])
+        # plot intervals
+        x = np.squeeze(gmt[~data.mask])
+        axs[0, 0].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
+        axs[0, 0].plot(x, lCI, "b")
+        axs[0, 0].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))        
+        axs[0, 0].plot(x, lPI, "k--")
+    set_ylim(axs[0, 0], data)
+    set_xlim(axs[0, 0], gmt)
+        
+    axs[1, 0].scatter(gmt, data_d, label="detrended data")
+    axs[1, 0].plot(gmt, fit_d, "r", label="detrended fit")
     axs[1, 0].set_xlabel("gmt / K")
-    set_ylim(axs[1, 0], data_detrended)
+    set_ylim(axs[1, 0], data_d)
+    set_xlim(axs[1, 0], gmt)
+    if intervals:
+        lCI, uCI, lPI, uPI = get_intervals(gmt, data_d, fit_d, sig_level, polyfit=False, transform=const.transform[var])
+        x = np.squeeze(gmt[~data.mask])
+        axs[1, 0].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
+        axs[1, 0].plot(x, lCI, "b")
+        axs[1, 0].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
+        axs[1, 0].plot(x, lPI, "k--")
 
-    axs[0, 1].scatter(time_values, data_to_detrend, label="data")
-    axs[0, 1].plot(time_values, fit, "r", label="gmt(t) * fit")
+        
+    axs[0, 1].scatter(time, data, label="data")
+    axs[0, 1].plot(time, fit, "r", label="gmt(t) * fit")
     axs[0, 1].set_xlabel("Years")
+    set_xlim(axs[0, 1], time)
+    if intervals:
+        lCI, uCI, lPI, uPI = get_intervals(time, data, fit, sig_level, polyfit=False,  transform=const.transform[var])
+        x = np.squeeze(time[~data.mask])
+        axs[0, 1].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
+        axs[0, 1].plot(x, lCI, "b")
+        axs[0, 1].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
+        axs[0, 1].plot(x, lPI, "k--")
 
-    axs[1, 1].scatter(time_values, data_detrended, label="detrended data")
-    axs[1, 1].plot(time_values, fit_d, "r", label="gmt(t) * detrended fit")
+    axs[1, 1].scatter(time, data_d, label="detrended data")
+    axs[1, 1].plot(time, fit_d, "r", label="gmt(t) * detrended fit")
     axs[1, 1].set_xlabel("Years")
+    set_xlim(axs[1, 1], time)
+    if intervals:
+        lCI, uCI, lPI, uPI = get_intervals(time, data_d, fit, sig_level, polyfit=False,  transform=const.transform[var])
+        x = np.squeeze(time[~data.mask])
+        axs[1, 1].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
+        axs[1, 1].plot(x, lCI, "b")
+        axs[1, 1].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
+        axs[1, 1].plot(x, lPI, "k--")
 
     #  axs[2, 0].plot(slope[lat, lon])
     #  axs[2, 0].set_xlabel('Day of Year')
@@ -190,7 +303,7 @@ def plot(varname, data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy, lat, 
     for ax in axs.ravel():
         ax.grid()
         ax.legend(ncol=1)
-        ax.set_ylabel(varname + " in [unit]")
+        ax.set_ylabel(var + " in [unit]")
 
 
 def plot_map(
