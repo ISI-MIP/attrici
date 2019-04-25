@@ -45,7 +45,7 @@ pr_testdata = pd.read_csv(
 
 def test_tas_regr():
 
-    regr = idtr.regression.regression(gmt_on_each_day, min_ts_len)
+    regr = idtr.regression.regression(gmt_on_each_day, min_ts_len, None, None)
     coeffs = regr.run(tas_testdata, doy, loni=0)
     np.testing.assert_allclose(np.array(coeffs), linregres_tas, rtol=1e-05)
 
@@ -143,6 +143,6 @@ def test_detrending():
 
     checked_detrended = get_netcdf_data(detrended_bk_file, s.variable)
     now_detrended = get_netcdf_data(detrended_file, s.variable)
-
+    # print(now_detrended)
     np.testing.assert_allclose(checked_detrended,now_detrended)
-
+    # assert False

@@ -3,7 +3,8 @@ import numpy as np
 
 def logit(data):
     """ scaled logit for input data of values in [0, 100]
-    as for rhs """
+    as for rhs. minval and maxval differ by purpose from these
+    in dictionaries below. """
     minval = 0
     maxval = 100
     return 2.0 * np.ma.arctanh(2.0 * (data - minval) / (maxval - minval) - 1.0)
@@ -11,7 +12,8 @@ def logit(data):
 
 def expit(data):
     """ scaled inverse logit for input data of values in [0, 100]
-    as for rhs """
+    as for rhs. minval and maxval differ by purpose from these
+    in dictionaries below."""
     minval = 0
     maxval = 100
     return minval + (maxval - minval) * 0.5 * (1.0 + np.ma.tanh(0.5 * data))
