@@ -22,30 +22,34 @@ data = nc.Dataset(to_detrend_file, "r")
 data_to_detrend = data.variables[s.variable]  # [:]
 data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
 
-data_to_detrend = idtr.utility.mask_invalid(
-    data_to_detrend, idtr.const.minval[s.variable], idtr.const.maxval[s.variable]
-)
+# data_to_detrend = idtr.utility.mask_invalid(
+#     data_to_detrend, idtr.const.minval[s.variable], idtr.const.maxval[s.variable]
+# )
 
 if __name__ == "__main__":
 
     TIME0 = datetime.now()
     print("Variable is:")
     print(s.variable, flush=True)
+
     regr = idtr.regression.regression(
-        gmt_on_each_day, s.min_ts_len, c.transform[s.variable]
+        gmt_on_each_day,
+        s.min_ts_len,
+        c.minval[s.variable],
+        c.maxval[s.variable],
+        c.transform[s.variable],
     )
 
     results = idtr.utility.run_regression_on_dataset(
         data_to_detrend, s.days_of_year, regr, s.n_jobs
     )
 
-    # results = run_parallel_linear_regr(n_jobs=3)
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
     print("Calculation took", duration.total_seconds(), "seconds.")
 
     file_to_write = os.path.join(s.data_dir, s.regression_outfile)
-    # due to a bug in iris I guess, I cannot overwrite existing files. Remove before.
+
     if os.path.exists(file_to_write):
         os.remove(file_to_write)
 

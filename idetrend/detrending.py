@@ -54,7 +54,6 @@ class detrending(object):
         self.days_of_year = days_of_year
         self.transform = c.transform[variable]
 
-
     def fit_ts(self, doy, data_to_detrend):
 
         """ A function to fit 2-dimensional data with trend from regression coefficients.
@@ -75,18 +74,15 @@ class detrending(object):
 
         return data_detrended
 
-
     def get_data_to_detrend(self, doy):
 
         """ get the timeseries of variable for a specific day of year (doy)
         """
 
         ncf = nc.Dataset(self.to_detrend_file, "r")
-        data_to_detrend = ncf.variables[self.variable][
-            doy :: self.days_of_year, :, :]
+        data_to_detrend = ncf.variables[self.variable][doy :: self.days_of_year, :, :]
         ncf.close()
         return data_to_detrend
-
 
     def write_detrended(self, file_to_write):
 
