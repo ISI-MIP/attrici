@@ -150,10 +150,15 @@ def prepare(
     if const.maxval[variable] is not None:
         data_detrended[data_detrended < const.maxval[variable]] = const.maxval[variable]
     
-    # redo a fit on the detrended data. should have a slope of zero
-    slope_d, intercept_d, r, p, sd = stats.linregress(
-        gmt_on_doy, const.transform[set.variable][0](data_detrended)
-    )
+    if const.transform[set.variable] is not None:
+        # redo a fit on the detrended data. should have a slope of zero
+        slope_d, intercept_d, r, p, sd = stats.linregress(
+            gmt_on_doy, const.transform[set.variable][0](data_detrended)
+        )
+    else:
+        slope_d, intercept_d, r, p, sd = stats.linregress(
+            gmt_on_doy, data_detrended
+        )
     # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
     fit_d = fit_minimal(gmt_on_doy, intercept_d, slope_d, transform)
 
@@ -181,7 +186,6 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
         # Hyperparameters
     alpha = 1. - sig_level # rejection region (here still one sided)
     K = 2. # number of parameters in model
-    print(fit)
     # input recalc
     if transform is not None:
         y = transform[0](y)
@@ -227,8 +231,6 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
         lCI = transform[1](lCI)
         uPI = transform[1](uPI)
         lPI = transform[1](lPI)
-    print('Here')
-    print(fit)
     return np.squeeze(lCI), np.squeeze(uCI), np.squeeze(lPI), np.squeeze(uPI)
 
 def plot(var, data, data_d, fit, fit_d, gmt, lat, lon, intervals=True, sig_level=.95):
@@ -259,7 +261,7 @@ def plot(var, data, data_d, fit, fit_d, gmt, lat, lon, intervals=True, sig_level
     set_xlim(axs[1, 0], gmt)
     if intervals:
         lCI, uCI, lPI, uPI = get_intervals(gmt, data_d, fit_d, sig_level, polyfit=False, transform=const.transform[var])
-        x = np.squeeze(gmt[~data.mask])
+        x = np.squeeze(gmt[~data_d.mask])
         axs[1, 0].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
         axs[1, 0].plot(x, lCI, "b")
         axs[1, 0].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
@@ -283,8 +285,8 @@ def plot(var, data, data_d, fit, fit_d, gmt, lat, lon, intervals=True, sig_level
     axs[1, 1].set_xlabel("Years")
     set_xlim(axs[1, 1], time)
     if intervals:
-        lCI, uCI, lPI, uPI = get_intervals(time, data_d, fit, sig_level, polyfit=False,  transform=const.transform[var])
-        x = np.squeeze(time[~data.mask])
+        lCI, uCI, lPI, uPI = get_intervals(time, data_d, fit_d, sig_level, polyfit=False,  transform=const.transform[var])
+        x = np.squeeze(time[~data_d.mask])
         axs[1, 1].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
         axs[1, 1].plot(x, lCI, "b")
         axs[1, 1].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
