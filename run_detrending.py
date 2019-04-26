@@ -10,8 +10,6 @@ import idetrend.const as c
 
 import settings as s
 
-# parameters and data paths
-
 # the file with the smoothed global trend of global mean temperature
 gmt_file = os.path.join(s.data_dir, s.gmt_file)
 # the daily interpolated ssa-smoothed global mean temperature

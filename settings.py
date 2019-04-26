@@ -15,8 +15,8 @@ elif user == "bschmidt":
 n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
-test = False
-variable = "pr"
+test = True
+variable = "rhs"
 dataset = "gswp3"
 startyear = 1901
 endyear = 2010
@@ -53,5 +53,5 @@ else:
     regression_outfile = variable + "_regression_all.nc4"
     detrended_file = variable + "_detrended.nc4"
 
-min_ts_len = 2 # minimum length of timeseries passed to regression after reduction
-sig = .95 # significance level to calculate confidence intervals for fits in .
+min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
+sig = 0.95  # significance level to calculate confidence intervals for fits in .

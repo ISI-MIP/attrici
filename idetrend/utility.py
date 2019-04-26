@@ -49,25 +49,6 @@ def run_lat_slice_serial(
     return results
 
 
-def mask_invalid(data, minval=None, maxval=None):
-
-    """ mask values that are outside the valid range as defined in const.py """
-
-    if minval is None and maxval is None:
-        # mask nothing
-        return data
-
-    elif minval is None:
-        return np.ma.masked_greater(data, maxval)
-
-    elif maxval is None:
-        return np.ma.masked_less(data, minval)
-
-    else:
-        assert minval < maxval, "minval is not smaller maxval."
-        return np.ma.masked_outside(data, minval, maxval)
-
-
 def run_regression_on_dataset(data_to_detrend, days_of_year, function_to_run, n_jobs):
 
     """ use the numpy slicing to run a function on a full dataset.

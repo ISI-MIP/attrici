@@ -11,7 +11,6 @@ import settings as s
 from scipy.stats import mstats
 from collections import namedtuple
 import idetrend.const as c
-import idetrend.visualization as vis
 
 regresult = namedtuple(
     "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount")
@@ -19,12 +18,14 @@ regresult = namedtuple(
 
 
 class regression(object):
-    def __init__(self, gmt_on_each_day, min_ts_len, transform=None):
+    def __init__(self, gmt_on_each_day, min_ts_len, minval, maxval, transform=None):
 
         self.gmt_on_each_day = gmt_on_each_day
         self.transform = transform
         self.min_ts_len = min_ts_len
-
+        self.minval = minval
+        self.maxval = maxval
+        # FIXME:
         if transform is not None:
             assert np.isclose(
                 0.3, transform[1](transform[0](0.3))
@@ -43,6 +44,8 @@ class regression(object):
         # so gmt_of_doy depends on gmt[i] and gmt[i+1] or so. do we want that?
         # would it not be better to pass yearly GMT here?
         gmt_of_doy = self.gmt_on_each_day[doy::365]
+
+        data_of_doy = self.mask_invalid(data_of_doy, self.minval, self.maxval)
 
         # special case if too few valid datapoints left
         if data_of_doy.count() <= self.min_ts_len:
@@ -174,6 +177,24 @@ def write_detrended(
         data[doy::days_of_year, :, :] = data_detrended
     output_ds.close()
     return res
+
+    def mask_invalid(self, data, minval, maxval):
+
+        """ mask values that are outside the valid range as defined in const.py """
+
+        if minval is None and maxval is None:
+            # mask nothing
+            return data
+
+        elif minval is None:
+            return np.ma.masked_greater(data, maxval)
+
+        elif maxval is None:
+            return np.ma.masked_less(data, minval)
+
+        else:
+            assert minval < maxval, "minval is not smaller maxval."
+            return np.ma.masked_outside(data, minval, maxval)
 
 
 def write_regression_stats(

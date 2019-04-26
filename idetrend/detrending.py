@@ -32,6 +32,7 @@ def fit_minimal(gmt_on_doy, intercept, slope, transform):
 
 
 class detrending(object):
+
     def __init__(
         self,
         lons,
@@ -52,8 +53,9 @@ class detrending(object):
         self.variable = variable
         self.gmt_on_each_day = gmt_on_each_day
         self.days_of_year = days_of_year
+        self.minval = c.minval[variable]
+        self.maxval = c.maxval[variable]
         self.transform = c.transform[variable]
-
 
     def fit_ts(self, doy, data_to_detrend):
 
@@ -75,17 +77,39 @@ class detrending(object):
 
         return data_detrended
 
-
     def get_data_to_detrend(self, doy):
 
         """ get the timeseries of variable for a specific day of year (doy)
         """
 
         ncf = nc.Dataset(self.to_detrend_file, "r")
-        data_to_detrend = ncf.variables[self.variable][
-            doy :: self.days_of_year, :, :]
+        data_to_detrend = ncf.variables[self.variable][doy :: self.days_of_year, :, :]
         ncf.close()
         return data_to_detrend
+
+
+
+    def get_invalid_mask(self, data, minval, maxval):
+
+        """ return mask ofvalues that are outside the valid range
+        as defined in const.py. See also mask_invalid in regression.py """
+
+        if minval is None and maxval is None:
+            # mask nothing
+            mdata = np.ma.array(data, mask=False)
+
+        elif minval is None:
+            mdata = np.ma.masked_greater(data, maxval)
+
+        elif maxval is None:
+            mdata = np.ma.masked_less(data, minval)
+
+        else:
+            assert minval < maxval, "minval is not smaller maxval."
+            mdata = np.ma.masked_outside(data, minval, maxval)
+
+        return np.ma.getmaskarray(mdata)
+
 
 
     def write_detrended(self, file_to_write):
@@ -130,6 +154,10 @@ class detrending(object):
             print("Working on doy: " + str(doy))
 
             data_to_detrend = self.get_data_to_detrend(doy)
-            data[doy :: self.days_of_year, :, :] = self.fit_ts(doy, data_to_detrend)
+            mask = self.get_invalid_mask(data_to_detrend, self.minval, self.maxval)
+            data_doy = self.fit_ts(doy, data_to_detrend)
+            # detrend only datapoints within the valid range
+            data_to_detrend[~mask] = data_doy[~mask]
+            data[doy :: self.days_of_year, :, :] = data_to_detrend
 
         output_ds.close()

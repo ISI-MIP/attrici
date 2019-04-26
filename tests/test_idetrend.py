@@ -45,7 +45,7 @@ pr_testdata = pd.read_csv(
 
 def test_tas_regr():
 
-    regr = idtr.regression.regression(gmt_on_each_day, min_ts_len)
+    regr = idtr.regression.regression(gmt_on_each_day, min_ts_len, None, None)
     coeffs = regr.run(tas_testdata, doy, loni=0)
     np.testing.assert_allclose(np.array(coeffs), linregres_tas, rtol=1e-05)
 
@@ -60,18 +60,62 @@ def test_tas_regr():
 #     np.testing.assert_allclose(np.array(coeffs), linregres_pr, rtol=1e-05)
 
 
-def get_netcdf_data(dfile):
+# def test_rhs_regr():
+
+#     to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
+
+#     data = nc.Dataset(to_detrend_file, "r")
+
+#     data_to_detrend = data.variables[s.variable]  # [:]
+#     data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
+
+#     data_to_detrend = idtr.utility.mask_invalid(
+#         data_to_detrend, idtr.const.minval[s.variable], idtr.const.maxval[s.variable]
+#     )
+
+#         regr = idtr.regression.regression(
+#         gmt_on_each_day, s.min_ts_len, c.transform[s.variable]
+#     )
+
+#     results = idtr.utility.run_regression_on_dataset(
+#         data_to_detrend, s.days_of_year, regr, s.n_jobs
+#     )
+
+#     file_to_write = os.path.join(test_path, "data/rhs_testdata.nc")
+
+#     if os.path.exists(file_to_write):
+#         os.remove(file_to_write)
+
+#     idtr.regression.write_regression_stats(
+#         data_to_detrend.shape,
+#         (data.variables["lat"], data.variables["lon"]),
+#         results,
+#         file_to_write,
+#         s.days_of_year,
+#     )
+
+#     checked_slope = get_netcdf_data(detrended_bk_file, "slope")
+#     now_slope = get_netcdf_data(detrended_file, "slope")
+
+#     np.testing.assert_allclose(checked_detrended,now_detrended)
+
+
+
+
+def get_netcdf_data(dfile, variable):
 
     print(dfile)
     ncf = nc.Dataset(dfile,"r")
-    data = ncf.variables[s.variable][:]
+    data = ncf.variables[variable][:]
     ncf.close()
-    return  data
-
-detrended_bk_file = os.path.join(s.data_dir, s.variable + "_detrended_test_bk.nc4")
+    return data
 
 
-def test_write_detrending():
+def test_detrending():
+
+    # FIXME: make less dependent on settings.py
+
+    detrended_bk_file = os.path.join(s.data_dir, s.variable + "_detrended_test_bk.nc4")
 
     # the file with the smoothed global trend of global mean temperature
     gmt_file = os.path.join(s.data_dir, s.gmt_file)
@@ -97,8 +141,8 @@ def test_write_detrending():
 
     detrend.write_detrended(detrended_file)
 
-    checked_detrended = get_netcdf_data(detrended_bk_file)
-    now_detrended = get_netcdf_data(detrended_file)
-
+    checked_detrended = get_netcdf_data(detrended_bk_file, s.variable)
+    now_detrended = get_netcdf_data(detrended_file, s.variable)
+    # print(now_detrended)
     np.testing.assert_allclose(checked_detrended,now_detrended)
-
+    # assert False
