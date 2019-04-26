@@ -25,6 +25,7 @@ class regression(object):
         self.min_ts_len = min_ts_len
         self.minval = minval
         self.maxval = maxval
+        self.mask_invalid = mask_invalid
         # FIXME:
         if transform is not None:
             assert np.isclose(
@@ -178,23 +179,23 @@ def write_detrended(
     output_ds.close()
     return res
 
-    def mask_invalid(self, data, minval, maxval):
+def mask_invalid(data, minval, maxval):
 
-        """ mask values that are outside the valid range as defined in const.py """
+    """ mask values that are outside the valid range as defined in const.py """
 
-        if minval is None and maxval is None:
-            # mask nothing
-            return data
+    if minval is None and maxval is None:
+        # mask nothing
+        return data
 
-        elif minval is None:
-            return np.ma.masked_greater(data, maxval)
+    elif minval is None:
+        return np.ma.masked_greater(data, maxval)
 
-        elif maxval is None:
-            return np.ma.masked_less(data, minval)
+    elif maxval is None:
+        return np.ma.masked_less(data, minval)
 
-        else:
-            assert minval < maxval, "minval is not smaller maxval."
-            return np.ma.masked_outside(data, minval, maxval)
+    else:
+        assert minval < maxval, "minval is not smaller maxval."
+        return np.ma.masked_outside(data, minval, maxval)
 
 
 def write_regression_stats(
