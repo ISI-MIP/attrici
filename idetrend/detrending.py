@@ -154,10 +154,12 @@ class detrending(object):
             print("Working on doy: " + str(doy))
 
             data_to_detrend = self.get_data_to_detrend(doy)
-            mask = self.get_invalid_mask(data_to_detrend, self.minval, self.maxval)
+            m1 = self.get_invalid_mask(data_to_detrend, self.minval, self.maxval)
             data_doy = self.fit_ts(doy, data_to_detrend)
+            m2 = self.get_invalid_mask(data_doy, self.minval, self.maxval)
+            invalid = m1 | m2
             # detrend only datapoints within the valid range
-            data_to_detrend[~mask] = data_doy[~mask]
+            data_to_detrend[~invalid] = data_doy[~invalid]
             data[doy :: self.days_of_year, :, :] = data_to_detrend
 
         output_ds.close()
