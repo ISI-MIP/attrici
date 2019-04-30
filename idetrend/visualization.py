@@ -165,7 +165,6 @@ def prepare(
         )
     # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
     fit_d = fit_minimal(gmt_on_doy, intercept_d, slope_d, transform)
-    
     return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy
 
 def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
@@ -184,7 +183,7 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
     CI = array - confidence intervals for y sample
     PI = array - prediction intervals for y sample
     '''
-    
+
     # Hyperparameters
     alpha = 1. - sig_level # rejection region (here still one sided)
     K = 2. # number of parameters in model
@@ -234,7 +233,7 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
         uPI = transform[1](uPI)
         lPI = transform[1](lPI)
         mask = y.mask
-    else: 
+    else:
         mask = False
     return np.squeeze(lCI), np.squeeze(uCI), np.squeeze(lPI), np.squeeze(uPI), mask
 
@@ -331,8 +330,10 @@ def plot_map(
     plt.figure(figsize=(16, 10))
     ax = plt.subplot(111, projection=ccrs.PlateCarree(central_longitude=0))
     variable_at_doy = variable[day_of_year, :, :]
+    vmin = np.percentile(variable_at_doy, 1)
+    vmax = np.percentile(variable_at_doy, 99)
     # ab = np.max(np.abs(variable_at_doy))
-    p = ax.pcolormesh(lon, lat, variable_at_doy, **kwargs)
+    p = ax.pcolormesh(lon, lat, variable_at_doy, vmin=vmin, vmax=vmax, **kwargs)
     plt.colorbar(p, ax=ax, shrink=0.6, label=varname)
 
     if cross is not None:
@@ -589,6 +590,8 @@ def plot_2d_doy(data, doy, title):
     intercept_2d = data.variables["intercept"][doy, :, :]
     lat = data.variables["lat"][:]
     lon = data.variables["lon"][:]
+    vmin = np.percentile(data, 1)
+    vmax = np.percentile(data, 99)
 
     plt.figure(figsize=(16, 10))
 
@@ -615,7 +618,7 @@ def plot_2d_doy(data, doy, title):
     lat_formatter = LatitudeFormatter()
     ax.xaxis.set_major_formatter(lon_formatter)
     ax.yaxis.set_major_formatter(lat_formatter)
-    ax2 = plt.pcolormesh(lon, lat, intercept_2d, cmap="coolwarm")
+    ax2 = plt.pcolormesh(lon, lat, intercept_2d, cmap="coolwarm", vmin=vmin, vmax=vmax)
     plt.title("var: " + title + " -- intercept -- doy: " + str(doy))
     # plt.colorbar(orientation='horizontal')
 
