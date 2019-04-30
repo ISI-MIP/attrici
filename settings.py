@@ -17,9 +17,9 @@ n_jobs = 16  # number of childprocesses created by the job
 # if test=True use smaller test dataset
 test = False
 variable = "pr"
-dataset = "gswp3"
-startyear = 1901
-endyear = 2010
+dataset = "era5"
+startyear = 1979
+endyear = 2018
 
 days_of_year = 365
 
@@ -36,9 +36,9 @@ base_file = (
 )
 
 if test:
-    to_detrend_file = "test_data_" + variable + ".nc4"
-    regression_outfile = variable + dataset + "_regression_test.nc4"
-    detrended_file = variable + dataset + "_detrended_test.nc4"
+    to_detrend_file = variable + "_" + dataset + "_test.nc4"
+    regression_outfile = variable + "_" + dataset + "_regression_test.nc4"
+    detrended_file = variable + "_" + dataset + "_detrended_test.nc4"
 else:
     to_detrend_file = (
         variable
@@ -50,8 +50,25 @@ else:
         + str(endyear)
         + "_noleap.nc4"
     )
-    regression_outfile = variable + dataset + "_regression_all.nc4"
-    detrended_file = variable + dataset + "_detrended.nc4"
+    regression_outfile = (
+        variable
+        + "_"
+        + dataset
+        + "_"
+        + str(startyear)
+        + "_"
+        + str(endyear)
+        + "_regression_all.nc4"
+    )
+    detrended_file = (
+        variable
+        + "_"
+        + dataset
+        + "_"
+        + str(startyear)
+        + "_"
+        + str(endyear)
+        + "_detrended.nc4"
 
 min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
 sig = 0.95  # significance level to calculate confidence intervals for fits in .
