@@ -42,12 +42,13 @@ if test:
 else:
     to_detrend_file = (
         variable
-        + "_rechunked_"
+        + "_"
         + dataset
         + "_"
         + str(startyear)
         + "_"
         + str(endyear)
+        + "_rechunked_"
         + "_noleap.nc4"
     )
     regression_outfile = (
@@ -69,6 +70,7 @@ else:
         + "_"
         + str(endyear)
         + "_detrended.nc4"
+    )
 
 min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
 sig = 0.95  # significance level to calculate confidence intervals for fits in .
