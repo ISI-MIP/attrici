@@ -1,3 +1,4 @@
+import sys
 from datetime import datetime
 import numpy as np
 import iris
@@ -5,15 +6,23 @@ import iris.coord_categorisation as icc
 from pyts.decomposition import SSA
 import netCDF4 as nc
 
+if "../" not in sys.path: sys.path.append("../")
+import settings as s
+
 # SSA options
 # real window size will be window size* (selection step in col)
 window_size = 365
 grouping = 1
 
 # specify paths
-out_script = '/home/bschmidt/scripts/detrending/output/gmt.out'
-source_path = '/home/bschmidt/temp/gswp3/test_data_tas.nc4'
-dest_path = '/home/bschmidt/temp/gswp3/test_gmt.nc'
+# script for standard output
+out_script = '../output/gmt.out'
+source_path = s.data_dir + 'tas_' + s.dataset + '_test.nc4'
+dest_path = s.data_dir + s.dataset + '_ssa_gmt.nc4'
+print('Source path:')
+print(source_path)
+print('Destination path:')
+print(dest_path)
 
 # Get jobs starting time
 STIME = datetime.now()
@@ -42,16 +51,15 @@ col = np.array(col.data[::10], ndmin=2)
 ssa = SSA(window_size)
 X_ssa = ssa.fit_transform(col)
 
-
-output_ds = nc.Dataset('/home/bschmidt/temp/gswp3/test_ssa_gmt.nc4', "w", format="NETCDF4")
+output_ds = nc.Dataset(dest_path, "w", format="NETCDF4")
 time = output_ds.createDimension("time", None)
 times = output_ds.createVariable("time", "f8", ("time",))
 tas = output_ds.createVariable('tas', "f8", ("time"))
 
 output_ds.description = "GMT created from daily values by SSA (10 day step)"
-times.units = "days since 1901-01-01 00:00:00.0"
+times.units = "days since" + str(s.startyear) + "-01-01 00:00:00.0"
 times.calendar = "365_day"
 
-times[:] = range(0, 40150, 10)
+times[:] = range(0, 10*len(X_ssa[0, 0]), 10)
 tas[:] = X_ssa[0, 0]
 output_ds.close()
