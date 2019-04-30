@@ -8,6 +8,7 @@ import netCDF4 as nc
 from scipy import special
 import joblib
 import idetrend.const
+import settings as s
 
 
 def run_lat_slice_parallel(lat_slice_data, days_of_year, function_to_run, n_jobs):
@@ -77,9 +78,7 @@ def run_regression_on_dataset(data_to_detrend, days_of_year, function_to_run, n_
 
 def get_gmt_on_each_day(gmt_file, days_of_year):
 
-    # FIXME: make flexible later
-    length_of_record = 110
-
+    length_of_record = s.endyear - s.startyear + 1
     ncgmt = nc.Dataset(gmt_file, "r")
 
     # interpolate from yearly to daily values
