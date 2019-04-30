@@ -16,7 +16,7 @@ n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
 test = False
-variable = "pr"
+variable = "tas"
 dataset = "era5"
 startyear = 1979
 endyear = 2018
@@ -26,12 +26,13 @@ days_of_year = 365
 gmt_file = dataset + "_ssa_gmt.nc4"
 base_file = (
     variable
-    + "_rechunked_"
+    + "_"
     + dataset
     + "_"
     + str(startyear)
     + "_"
     + str(endyear)
+    + "_rechunked"
     + "_noleap.nc4"
 )
 
@@ -48,7 +49,7 @@ else:
         + str(startyear)
         + "_"
         + str(endyear)
-        + "_rechunked_"
+        + "_rechunked"
         + "_noleap.nc4"
     )
     regression_outfile = (
