@@ -30,9 +30,9 @@ def set_ylim(ax, data):
     """ manually set ylimit. needed to for plt.scatter, which has
     a bug for setting ylim for small values. """
 
-    dy = (np.max(data) - np.min(data)) / 20.0
+    dy = (np.max(data) - np.min(data)) / 10.0
     ax.set_ylim(np.min(data) - dy, np.max(data) + dy)
-    
+
 def set_xlim(ax, data):
 
     """ manually set ylimit. needed to for plt.scatter, which has
@@ -96,11 +96,13 @@ def get_coefficient_fields(data_path):
     ncf = nc.Dataset(data_path, "r")
     slope = ncf.variables["slope"][:]
     intercept = ncf.variables["intercept"][:]
+    stderr_slo = ncf.variables["std_errors_slo"][:]
+    stderr_int = ncf.variables["std_errors_int"][:]
     lat = ncf.variables["lat"][:]
     lon = ncf.variables["lon"][:]
     ncf.close()
 
-    return lat, lon, slope, intercept
+    return lat, lon, slope, intercept, stderr_slo, stderr_int
 
 
 def get_data_to_detrend(data_path, varname, indices):
@@ -134,26 +136,28 @@ def prepare(
     """ detrend the data with linear trend from regression coefficients.
         also do a regression on detrended data and check if slope is close to zero."""
 
-    from idetrend.regression import fit_minimal
+    from idetrend.detrending import fit_minimal
+    from idetrend.regression import mask_invalid
 
     lat, lon, regresult = get_regression_coefficients(regr_path, indices)
     data_to_detrend = get_data_to_detrend(data_path, variable, indices)
 
     gmt_on_doy = gmt_on_each_day[indices[0] :: days_of_year]
     fit = fit_minimal(gmt_on_doy, regresult.intercept, regresult.slope, transform)
-    data_detrended = data_to_detrend - fit + fit[0]
+    data_detrended = mask_invalid(np.copy(data_to_detrend), const.minval[variable], const.maxval[variable])
+    data_detrended[~data_detrended.mask] = data_detrended[~data_detrended.mask] - fit[~data_detrended.mask] + fit[0]
 
     if const.minval[variable] is not None:
         data_detrended[data_detrended < const.minval[variable]] = const.minval[variable]
-        data_detrended_for_reg = data_detrended[data_detrended > const.minval[variable]]
-        gmt_test_for_reg = gmt_on_doy[data_detrended > const.minval[variable]]
+        #data_detrended_for_reg = data_detrended[data_detrended > const.minval[variable]]
+        #gmt_test_for_reg = gmt_on_doy[data_detrended > const.minval[variable]]
     if const.maxval[variable] is not None:
-        data_detrended[data_detrended < const.maxval[variable]] = const.maxval[variable]
-    
+        data_detrended[data_detrended > const.maxval[variable]] = const.maxval[variable]
+    data_detrended = mask_invalid(np.copy(data_to_detrend), const.minval[variable], const.maxval[variable])
     if const.transform[set.variable] is not None:
         # redo a fit on the detrended data. should have a slope of zero
         slope_d, intercept_d, r, p, sd = stats.linregress(
-            gmt_on_doy, const.transform[set.variable][0](data_detrended)
+            gmt_on_doy[~data_detrended.mask], transform[0](data_detrended[~data_detrended.mask])
         )
     else:
         slope_d, intercept_d, r, p, sd = stats.linregress(
@@ -161,29 +165,27 @@ def prepare(
         )
     # assert(abs(slope_d) < 1e-10), ("Slope in detrended data is",abs(slope_d),"and not close to zero.")
     fit_d = fit_minimal(gmt_on_doy, intercept_d, slope_d, transform)
-
+    
     return data_to_detrend, data_detrended, fit, fit_d, gmt_on_doy
 
 def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
-    
-    ''' 
-    The function computes confidence and prediction intervals for 
+
+    '''
+    The function computes confidence and prediction intervals for
     regression of the input data and the given significane level.
-    
+
     Input:
     x = numpy.array - independent variable
-    y = numpy.masked.array - dependent variable 
+    y = numpy.masked.array - dependent variable
     fit = numpy.array - fit of regression on dependent variable
     sig_level = int, float - significane level for two-sided t-test
-    
+
     Output:
     CI = array - confidence intervals for y sample
     PI = array - prediction intervals for y sample
     '''
-    #if y.mask == False:
-    #    lCI, uCI, lPI, uPI = get_intervals_unmasked(x, y, fit, sig_level=.95, polyfit=False, transform=None)
-    #else:
-        # Hyperparameters
+    
+    # Hyperparameters
     alpha = 1. - sig_level # rejection region (here still one sided)
     K = 2. # number of parameters in model
     # input recalc
@@ -191,7 +193,7 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
         y = transform[0](y)
         fit = transform[0](fit)
 
-    # Calculations    
+    # Calculations
     # calculate sum of squared residuals
     ssr = np.sum(np.power(y[~y.mask] - fit[~y.mask], 2))
     # calculate sum of squared x values
@@ -221,7 +223,7 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
         uPI = fit + PI
         lPI = fit - PI
     else:
-        uCI = np.squeeze(fit[~y.mask]) + CI
+        uCI = fit[~y.mask] + CI
         lCI = fit[~y.mask] - CI
         uPI = fit[~y.mask] + PI
         lPI = fit[~y.mask] - PI
@@ -231,66 +233,72 @@ def get_intervals(x, y, fit, sig_level=.95, polyfit=False, transform=None):
         lCI = transform[1](lCI)
         uPI = transform[1](uPI)
         lPI = transform[1](lPI)
-    return np.squeeze(lCI), np.squeeze(uCI), np.squeeze(lPI), np.squeeze(uPI)
+        mask = y.mask
+    else: 
+        mask = False
+    return np.squeeze(lCI), np.squeeze(uCI), np.squeeze(lPI), np.squeeze(uPI), mask
 
 def plot(var, data, data_d, fit, fit_d, gmt, lat, lon, intervals=True, sig_level=.95):
 
     fig, axs = plt.subplots(2, 2, sharey="row", figsize=(16, 12))
     #     fig.suptitle('var:' + variable + '   doy:' + str(indices[0]) +
     #                  '   lat:' + str(lat) + '   lon:' + str(lon), size=20, weight='bold')
-    
+
     axs[0, 0].scatter(gmt, data, label="data")
     axs[0, 0].plot(gmt, fit, "r", label="fit against gmt")
     axs[0, 0].set_xlabel("gmt / K")
     if intervals:
         # get lower and upper conf- and pred-interval margins
-        lCI, uCI, lPI, uPI = get_intervals(gmt, data, fit, sig_level, polyfit=False, transform=const.transform[var])
+        lCI, uCI, lPI, uPI, mask = get_intervals(gmt, data, fit, sig_level, polyfit=False, transform=const.transform[var])
         # plot intervals
-        x = np.squeeze(gmt[~data.mask])
+        x = np.squeeze(gmt[~mask])
         axs[0, 0].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
         axs[0, 0].plot(x, lCI, "b")
-        axs[0, 0].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))        
+        axs[0, 0].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
         axs[0, 0].plot(x, lPI, "k--")
-    set_ylim(axs[0, 0], data)
+        axs[0, 0].scatter(gmt[mask], data[mask], color="r")
+    set_ylim(axs[0, 0], data[~mask])
     set_xlim(axs[0, 0], gmt)
-        
+
     axs[1, 0].scatter(gmt, data_d, label="detrended data")
     axs[1, 0].plot(gmt, fit_d, "r", label="detrended fit")
     axs[1, 0].set_xlabel("gmt / K")
     set_ylim(axs[1, 0], data_d)
     set_xlim(axs[1, 0], gmt)
     if intervals:
-        lCI, uCI, lPI, uPI = get_intervals(gmt, data_d, fit_d, sig_level, polyfit=False, transform=const.transform[var])
-        x = np.squeeze(gmt[~data_d.mask])
+        lCI, uCI, lPI, uPI, mask = get_intervals(gmt, data_d, fit_d, sig_level, polyfit=False, transform=const.transform[var])
+        x = np.squeeze(gmt[~mask])
         axs[1, 0].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
         axs[1, 0].plot(x, lCI, "b")
         axs[1, 0].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
         axs[1, 0].plot(x, lPI, "k--")
+        axs[1, 0].scatter(gmt[mask], data[mask], color="r")
 
-        
     axs[0, 1].scatter(time, data, label="data")
     axs[0, 1].plot(time, fit, "r", label="gmt(t) * fit")
     axs[0, 1].set_xlabel("Years")
     set_xlim(axs[0, 1], time)
     if intervals:
-        lCI, uCI, lPI, uPI = get_intervals(time, data, fit, sig_level, polyfit=False,  transform=const.transform[var])
-        x = np.squeeze(time[~data.mask])
+        lCI, uCI, lPI, uPI, mask = get_intervals(time, data, fit, sig_level, polyfit=False,  transform=const.transform[var])
+        x = np.squeeze(time[~mask])
         axs[0, 1].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
         axs[0, 1].plot(x, lCI, "b")
         axs[0, 1].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
         axs[0, 1].plot(x, lPI, "k--")
+        axs[0, 1].scatter(time[mask], data[mask], color="r")
 
     axs[1, 1].scatter(time, data_d, label="detrended data")
     axs[1, 1].plot(time, fit_d, "r", label="gmt(t) * detrended fit")
     axs[1, 1].set_xlabel("Years")
     set_xlim(axs[1, 1], time)
     if intervals:
-        lCI, uCI, lPI, uPI = get_intervals(time, data_d, fit_d, sig_level, polyfit=False,  transform=const.transform[var])
-        x = np.squeeze(time[~data_d.mask])
+        lCI, uCI, lPI, uPI, mask = get_intervals(time, data_d, fit_d, sig_level, polyfit=False,  transform=const.transform[var])
+        x = np.squeeze(time[~mask])
         axs[1, 1].plot(x, uCI, "b", label="confidence interval " + str(sig_level))
         axs[1, 1].plot(x, lCI, "b")
         axs[1, 1].plot(x, uPI, "k--", label="prediction interval " + str(sig_level))
         axs[1, 1].plot(x, lPI, "k--")
+        axs[1, 1].scatter(time[mask], data[mask], color="r")
 
     #  axs[2, 0].plot(slope[lat, lon])
     #  axs[2, 0].set_xlabel('Day of Year')
@@ -360,17 +368,27 @@ def plot_map(
     )
 
 
-def plot_1d_doy(data, rstat, variable, lat_ind, lon_ind):
+def plot_1d_doy(data, std_err, rstat, variable, lat_ind, lon_ind):
 
     """ Take a 1d slice with doy on x axis """
 
     #  lat = data.variables['lat'][lat_ind]
     #  lon = data.variables['lon'][lon_ind]
     #  fig = plt.plot(data_1d)
-    fig = plt.figure()
+    fig = plt.figure(figsize=(16, 12))
     #  data_1d = data.variables[rstat][:, lat_ind, lon_ind]
     data_1d = data[:, lat_ind, lon_ind]
-    plt.plot(data_1d)
+    std_err_1d = std_err[:, lat_ind, lon_ind]
+    doy = np.arange(1, 366)
+    plt.plot(doy, data_1d)
+    #  plt.plot(doy, data_1d + 1.96 * std_err_1d, "r--")
+    #  plt.plot(doy, data_1d - 1.96 * std_err_1d, "r--")
+    plt.fill_between(doy,
+                     data_1d - 1.96 * std_err_1d,
+                     data_1d + 1.96 * std_err_1d,
+                     facecolor="k",
+                     alpha=.3)
+    plt.grid()
     plt.xlabel("Day of Year")
     plt.ylabel(rstat)
     plt.title("var: " + variable)
