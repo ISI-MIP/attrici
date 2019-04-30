@@ -56,7 +56,8 @@ class regression(object):
                 intercept=0.0,
                 rvalue=0.0,
                 pvalue=0.0,
-                stderr=0.0,
+                stderr_slo=0.0,
+                stderr_int=0.0,
                 vdcount=data_of_doy.count(),
             )
 
