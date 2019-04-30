@@ -20,7 +20,7 @@ def get_coefficient_fields(data_path):
     return lat, lon, slope, intercept
 
 
-def fit_minimal(gmt_on_doy, intercept, slope, transform):
+def fit_minimal(gmt_on_doy, intercept, slope, transform=None):
 
     """ A minimal fit function for 1-dimensional data with trend from regression coefficients"""
     if transform is None:

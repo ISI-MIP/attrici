@@ -35,6 +35,6 @@ echo $variable
 echo "Starting deletion of leap days (29th of feb) for variable" $i
 echo 'Inputfile:' ${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
 echo 'Outputfile:' ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
-cdo delete,month=2,day=29 ${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4 temp.nc
-mv temp.nc ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
+cdo delete,month=2,day=29 ${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4 \
+    ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
 echo 'Removed leap day from' $variable

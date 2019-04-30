@@ -13,7 +13,7 @@ from collections import namedtuple
 import idetrend.const as c
 
 regresult = namedtuple(
-    "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr", "vdcount")
+    "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount")
 )
 
 
@@ -25,6 +25,7 @@ class regression(object):
         self.min_ts_len = min_ts_len
         self.minval = minval
         self.maxval = maxval
+        self.mask_invalid = mask_invalid
         # FIXME:
         if transform is not None:
             assert np.isclose(
@@ -55,33 +56,44 @@ class regression(object):
                 intercept=0.0,
                 rvalue=0.0,
                 pvalue=0.0,
-                stderr=0.0,
+                stderr_slo=0.0,
+                stderr_int=0.0,
                 vdcount=data_of_doy.count(),
             )
 
         if self.transform is not None:
             data_of_doy = self.transform[0](data_of_doy)
-
         res = mstats.linregress(gmt_of_doy, data_of_doy)
-        return res
+        # get mask of dependent variable to apply to independent
+        mask = np.ma.getmask(data_of_doy)
+        # compute int std error from slope_stderr and gmt_of_doy
+        int_err = res.stderr*np.sqrt(1 / data_of_doy.count() * np.sum(np.power(gmt_of_doy[~mask], 2)))
 
-    def mask_invalid(self, data, minval, maxval):
+        return regresult(
+            slope=res.slope, intercept=res.intercept, rvalue=res.rvalue,
+            pvalue=res.pvalue, stderr_slo=res.stderr, stderr_int=int_err,
+            vdcount=data_of_doy.count()
+            )
 
-        """ mask values that are outside the valid range as defined in const.py """
 
-        if minval is None and maxval is None:
-            # mask nothing
-            return data
+# functions
+def mask_invalid(data, minval, maxval):
 
-        elif minval is None:
-            return np.ma.masked_greater(data, maxval)
+    """ mask values that are outside the valid range as defined in const.py """
 
-        elif maxval is None:
-            return np.ma.masked_less(data, minval)
+    if minval is None and maxval is None:
+        # mask nothing
+        return data
 
-        else:
-            assert minval < maxval, "minval is not smaller maxval."
-            return np.ma.masked_outside(data, minval, maxval)
+    elif minval is None:
+        return np.ma.masked_greater(data, maxval)
+
+    elif maxval is None:
+        return np.ma.masked_less(data, minval)
+
+    else:
+        assert minval < maxval, "minval is not smaller maxval."
+        return np.ma.masked_outside(data, minval, maxval)
 
 
 def write_regression_stats(
@@ -96,7 +108,7 @@ def write_regression_stats(
     tm = output_ds.createDimension("time", None)
     lat = output_ds.createDimension("lat", original_data_coords[0].shape[0])
     lon = output_ds.createDimension("lon", original_data_coords[1].shape[0])
-    print(output_ds.dimensions)
+    #print(output_ds.dimensions)
     times = output_ds.createVariable("time", "f8", ("time",))
     longitudes = output_ds.createVariable("lon", "f4", ("lon",))
     latitudes = output_ds.createVariable("lat", "f4", ("lat",))
@@ -104,8 +116,10 @@ def write_regression_stats(
     slopes = output_ds.createVariable("slope", "f8", ("time", "lat", "lon"))
     r_values = output_ds.createVariable("r_values", "f8", ("time", "lat", "lon"))
     p_values = output_ds.createVariable("p_values", "f8", ("time", "lat", "lon"))
-    std_errors = output_ds.createVariable("std_errors", "f8", ("time", "lat", "lon"))
-    print(intercepts)
+    std_errors_slo = output_ds.createVariable("std_errors_slo", "f8", ("time", "lat", "lon"))
+    std_errors_int = output_ds.createVariable("std_errors_int", "f8", ("time", "lat", "lon"))
+    vd_count = output_ds.createVariable("data_count", "f8", ("time", "lat", "lon"))
+    #print(intercepts)
 
     output_ds.description = "Regression test script"
     output_ds.history = "Created " + time.ctime(time.time())
@@ -122,14 +136,15 @@ def write_regression_stats(
     latitudes[:] = lats
     longitudes[:] = lons
 
-    print("latitudes: \n", latitudes[:])
-    print("longitudes: \n", longitudes[:])
-
+    #print("latitudes: \n", latitudes[:])
+    #print("longitudes: \n", longitudes[:])
     ic = np.ma.masked_all([days_of_year, shape_of_input[1], shape_of_input[2]])
     s = np.ma.copy(ic)
     r = np.ma.copy(ic)
     p = np.ma.copy(ic)
-    sd = np.ma.copy(ic)
+    sds = np.ma.copy(ic)
+    sdi = np.ma.copy(ic)
+    vdc = np.ma.copy(ic)
 
     latis = np.arange(shape_of_input[1])
     lonis = np.arange(shape_of_input[2])
@@ -143,7 +158,9 @@ def write_regression_stats(
                 s[doy, lati, loni] = results[i].slope
                 r[doy, lati, loni] = results[i].rvalue
                 p[doy, lati, loni] = results[i].pvalue
-                sd[doy, lati, loni] = results[i].stderr
+                sds[doy, lati, loni] = results[i].stderr_slo
+                sdi[doy, lati, loni] = results[i].stderr_int
+                vdc[doy, lati, loni] = results[i].vdcount
                 # if not enough valid values appeared in timeseries,
                 # regression gives back Nones, catch this here.
                 # except AttributeError:
@@ -156,5 +173,7 @@ def write_regression_stats(
     slopes[:] = s
     r_values[:] = r
     p_values[:] = p
-    std_errors[:] = sd
+    std_errors_slo[:] = sds
+    std_errors_int[:] = sdi
+    vd_count[:] = vdc
     output_ds.close()
