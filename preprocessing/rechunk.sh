@@ -30,10 +30,11 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
+inputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
+outputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}_rechunked_noleap.nc4
 echo 'Rechunk the following variable'
 echo $variable
-echo 'Inputfile:' ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
-echo 'Outputfile:' ${datafolder}${variable}_rechunked_${dataset}_${startyear}_${endyear}_noleap.nc4
-nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/720 ${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4 \
-    ${datafolder}${variable}_rechunked_${dataset}_${startyear}_${endyear}_noleap.nc4
-echo 'rechunked' $i 'for faster access to full timeseries'
+echo 'Inputfile:' ${inputfile}
+echo 'Outputfile:' ${outputfile}
+nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/720 ${inputfile} ${outputfile}
+echo 'rechunked' $variable 'for faster access to full timeseries'
