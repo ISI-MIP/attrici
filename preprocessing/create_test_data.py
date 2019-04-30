@@ -9,7 +9,12 @@ import settings as s
 print('Creating test dataset')
 file_to_read = os.path.join(s.data_dir, s.base_file)
 print('Inputfile: ' + file_to_read)
-file_to_write = os.path.join(s.data_dir, 'test_data_' + s.variable + '.nc4')
+file_to_write = os.path.join(
+    s.data_dir,
+    s.variable
+    + '_'
+    + s.dataset
+    + '_test.nc4')
 print('Outputfile: ' + file_to_write)
 start_time = datetime.now()
 data = xr.open_dataset(file_to_read, chunks={'lat': 10, 'lon': 10}).isel(
