@@ -16,7 +16,7 @@ n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
 test = False
-variable = "pr"
+variable = "rhs"
 dataset = "gswp3"
 startyear = 1901
 endyear = 2010
@@ -26,12 +26,13 @@ days_of_year = 365
 gmt_file = dataset + "_ssa_gmt.nc4"
 base_file = (
     variable
-    + "_rechunked_"
+    + "_"
     + dataset
     + "_"
     + str(startyear)
     + "_"
     + str(endyear)
+    + "_rechunked"
     + "_noleap.nc4"
 )
 
@@ -42,15 +43,16 @@ if test:
 else:
     to_detrend_file = (
         variable
-        + "_rechunked_"
+        + "_"
         + dataset
         + "_"
         + str(startyear)
         + "_"
         + str(endyear)
+        + "_rechunked"
         + "_noleap.nc4"
     )
-    regression_outfile = variable + dataset + "_regression_all.nc4"
+    regression_outfile = variable + dataset + "_regression.nc4"
     detrended_file = variable + dataset + "_detrended.nc4"
 
 min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
