@@ -16,10 +16,10 @@ n_jobs = 16  # number of childprocesses created by the job
 
 # if test=True use smaller test dataset
 test = False
-variable = "tas"
-dataset = "era5"
-startyear = 1979
-endyear = 2018
+variable = "rhs"
+dataset = "gswp3"
+startyear = 1901
+endyear = 2010
 
 days_of_year = 365
 
