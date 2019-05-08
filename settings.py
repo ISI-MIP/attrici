@@ -1,6 +1,6 @@
 import getpass
-import numpy as np
-import idetrend.utility as u
+#  import numpy as np
+#  import idetrend.utility as u
 
 user = getpass.getuser()
 
@@ -13,16 +13,25 @@ elif user == "bschmidt":
 
 #  handle job specifications
 n_jobs = 16  # number of childprocesses created by the job
+regtype = 'bayes'  # regression type: 'bayes' or 'linear'
 
 # if test=True use smaller test dataset
-test = False
-variable = "rhs"
-dataset = "gswp3"
-startyear = 1901
-endyear = 2010
+test = True
+variable = "tas"
+dataset = "era5"
+startyear = 1979
+endyear = 2018
 
-days_of_year = 365
+calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 
+################### For Bayesian ############
+modes = 3
+ntraces = 1000
+nchains = 2
+linear_mu = 0
+linear_sigma = 5
+
+sigma_beta = .5
 gmt_file = dataset + "_ssa_gmt.nc4"
 base_file = (
     variable
@@ -37,41 +46,61 @@ base_file = (
 )
 
 if test:
-    to_detrend_file = variable + "_" + dataset + "_test.nc4"
-    regression_outfile = variable + "_" + dataset + "_regression_test.nc4"
-    detrended_file = variable + "_" + dataset + "_detrended_test.nc4"
-else:
     to_detrend_file = (
         variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_rechunked"
-        + "_noleap.nc4"
+        + "_" + dataset
+        + "_" + str(startyear)
+        + "_" + str(endyear)
+        + "_" + calendar
+        + "_test.nc4"
     )
     regression_outfile = (
         variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_regression_all.nc4"
+        + "_" + dataset
+        + "_" + str(startyear)
+        + "_" + str(endyear)
+        + "_" + regtype
+        + "_test.nc4"
     )
     detrended_file = (
         variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
+        + "_" + dataset
+        + "_" + str(startyear)
+        + "_" + str(endyear)
+        + "_" + regtype
+        + "_detrended_test.nc4"
+    )
+else:
+    to_detrend_file = (
+        variable
+        + "_" + dataset
+        + "_" + str(startyear)
+        + "_" + str(endyear)
+        + "_" + calendar
+        + "_rechunked"
+        + ".nc4"
+    )
+    regression_outfile = (
+        variable
+        + "_" + dataset
+        + "_" + str(startyear)
+        + "_" + str(endyear)
+        + "_" + regtype
+        + ".nc4"
+    )
+    detrended_file = (
+        variable
+        + "_" + dataset
+        + "_" + str(startyear)
+        + "_" + str(endyear)
+        + "_" + regtype
         + "_detrended.nc4"
     )
 
 min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
 sig = 0.95  # significance level to calculate confidence intervals for fits in .
+
+if calendar == 'gregorian':
+    days_of_year = 365.25
+elif calendar == 'noleap':
+    days_of_year = 365

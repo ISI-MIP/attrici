@@ -1,9 +1,10 @@
 import sys
-if "../" not in sys.path: sys.path.append("../")
+import xarray as xr
 import os
 import numpy as np
-import xarray as xr
 from datetime import datetime
+if "../" not in sys.path:
+    sys.path.append("../")
 import settings as s
 
 print('Creating test dataset')

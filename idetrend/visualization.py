@@ -2,14 +2,14 @@
 # coding: utf-8
 
 from __future__ import absolute_import, division, print_function
-from six.moves import filter, input, map, range, zip  # noqa
+#  from six.moves import filter, input, map, range, zip  # noqa
 from scipy import stats
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import settings as set
+#  import os
+import settings as s
 import netCDF4 as nc
 import idetrend.const as const
 from collections import namedtuple
@@ -154,7 +154,7 @@ def prepare(
     if const.maxval[variable] is not None:
         data_detrended[data_detrended > const.maxval[variable]] = const.maxval[variable]
     data_detrended = mask_invalid(np.copy(data_to_detrend), const.minval[variable], const.maxval[variable])
-    if const.transform[set.variable] is not None:
+    if const.transform[s.variable] is not None:
         # redo a fit on the detrended data. should have a slope of zero
         slope_d, intercept_d, r, p, sd = stats.linregress(
             gmt_on_doy[~data_detrended.mask], transform[0](data_detrended[~data_detrended.mask])

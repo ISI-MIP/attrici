@@ -2,13 +2,13 @@
 # coding: utf-8
 
 import os
-import sys
-import numpy as np
+#  import sys
+#  import numpy as np
 import netCDF4 as nc
-from scipy import special
-from datetime import datetime, timedelta
-import time as t
-from operator import itemgetter
+#  from scipy import special
+from datetime import datetime
+#  import time as t
+#  from operator import itemgetter
 import settings as s
 import idetrend as idtr
 import idetrend.const as c

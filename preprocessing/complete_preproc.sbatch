@@ -20,8 +20,8 @@ if [ "$USER" == "bschmidt" ]; then
     source /home/bschmidt/.programs/anaconda3/bin/activate detrending
 fi
 
-srun yes | bash merge_data.sh
-srun bash remove_leap_days.sh
+# srun yes | bash merge_data.sh
+# srun bash remove_leap_days.sh
 srun bash rechunk.sh
 srun python3 create_test_data.py
 # python3 calc_gmt_by_ssa.py

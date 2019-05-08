@@ -5,9 +5,9 @@ import numpy as np
 import re
 import warnings
 import netCDF4 as nc
-from scipy import special
+#  from scipy import special
 import joblib
-import idetrend.const
+#  import idetrend.const
 import settings as s
 
 
@@ -20,11 +20,17 @@ def run_lat_slice_parallel(lat_slice_data, days_of_year, function_to_run, n_jobs
     lonis = np.arange(lat_slice_data.shape[1])
     doys = np.arange(days_of_year)
     TIME0 = datetime.datetime.now()
-    results = joblib.Parallel(n_jobs=n_jobs, backend="threading")(
-        joblib.delayed(function_to_run.run)(lat_slice_data, doy, loni)
-        for doy in doys
-        for loni in lonis
-    )
+    if s.regtype == "linear":
+        results = joblib.Parallel(n_jobs=n_jobs, backend="threading")(
+            joblib.delayed(function_to_run.run)(lat_slice_data, doy, loni)
+            for doy in doys
+            for loni in lonis
+        )
+    elif s.regtype == "bayes":
+        results = joblib.Parallel(n_jobs=n_jobs, backend="threading")(
+            joblib.delayed(function_to_run.mcs)(lat_slice_data, loni)
+            for loni in lonis
+        )
 
     print("Done with slice", flush=True)
     TIME1 = datetime.datetime.now()

@@ -1,16 +1,16 @@
 import os
 import sys
 import time
-from datetime import datetime
+#  from datetime import datetime
 
 # import iris
 # import iris.coord_categorisation as icc
 import numpy as np
 import netCDF4 as nc
-import settings as s
+#  import settings as s
 from scipy.stats import mstats
 from collections import namedtuple
-import idetrend.const as c
+#  import idetrend.const as c
 
 regresult = namedtuple(
     "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount")

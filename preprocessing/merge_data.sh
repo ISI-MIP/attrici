@@ -31,6 +31,7 @@ if [ -e ${outputfile} ]; then
                 echo 'Merging files!'
                 cdo mergetime ${datafolder}${variable}_${dataset}_????_????.nc* \
                 $outputfile
+                echo 'Done with merge!'
             break;;
             [Nn]* ) \
                 echo 'Aborted'
