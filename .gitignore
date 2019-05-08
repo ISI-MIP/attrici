@@ -2,4 +2,6 @@ joblib_memmap/
 notebooks/
 .ipynb_checkpoints/
 __pycache__/
+output/
+gswp3
 
