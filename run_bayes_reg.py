@@ -18,15 +18,14 @@ import sys
 #  data = nc.Dataset(to_detrend_file, "r")
 #  data_to_detrend = data.variables[s.variable]  # [:]
 #  data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
-print("Hallo!", flush=True)
 gmt_file = os.path.join(s.data_dir, 'era5_ssa_gmt_leap.nc4')
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 data = nc.Dataset(to_detrend_file, "r")
-#  data_to_detrend = data.variables[s.variable][:, 10, 10]
+data_to_detrend = data.variables[s.variable][:, 10, :]
 nct = data.variables["time"]
 ncg = nc.Dataset(gmt_file, "r")
-tdf = bt.create_dataframe(nct, data.variables[s.variable][:, :, 10], ncg.variables["tas"][:])
-print(data_to_detrend.shape)
+tdf = bt.create_dataframe(nct, data_to_detrend, ncg.variables["tas"][:])
+#  print(data_to_detrend.shape)
 data.close()
 ncg.close()
 
@@ -39,11 +38,10 @@ if __name__ == "__main__":
     # Create bayesian regression model instance
     bayes = bt.bayes_regression(tdf["gmt_scaled"])
 
+    #  print(bt.subset_tbf(tdf, 0))
     with MPIPoolExecutor() as executor:
         future = executor.map(bayes.mcs,
-                              (bt.subset_tbf(i) for i in range(data_to_detrend.shape[1])),
-                              1000)
-    print("jap!")
+                              (bt.mcs_helper(tdf, i, 1000) for i in range(data_to_detrend.shape[1])))
     print(future.result())
     #  results = idtr.utility.run_regression_on_dataset(
     #      data_to_detrend, s.days_of_year, bayes, s.n_jobs

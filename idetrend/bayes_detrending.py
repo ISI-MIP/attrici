@@ -182,7 +182,6 @@ def get_gmt_on_each_day(gmt_file, days_of_year):
 
     return gmt_on_each_day
 
-def subset_tbf(loni):
+def mcs_helper(tdf, i, nchains):
     subset = tdf[['ds', 't', 'gmt', 'gmt_scaled', 'y_' + str(i), 'y_scaled_' + str(i)]]
-    print('Hallo!', flush=True)
-    return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'})
+    return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'}), nchains
