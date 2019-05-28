@@ -43,60 +43,52 @@ if __name__ == "__main__":
     bayes = bt.bayes_regression(tdf1["gmt_scaled"])
 
 
-    # loop through latitudes
+    lat_tdf = bt.create_dataframe(nct,
+                                  data.variables[s.variable][:, 0, 0],
+                                  gmt)
+    TIME0 = datetime.now()
+    if s.mpi:
+        with MPIPoolExecutor() as executor:
+            futures = executor.map(bayes.mcs,
+                                   (bt.mcs_helper(nct, data, gmt, i, j)
+                                    for i in range(data.dimensions["lat"].size)
+                                    for j in range(data.dimensions["lon"].size)))
+
+    else:
+        print("serial mode")
+        futures = map(bayes.mcs, (bt.mcs_helper(nct, data, gmt, i, j)
+                                    for i in range(data.dimensions["lat"].size)
+                                    for j in range(data.dimensions["lon"].size)))
+
+    futures=list(futures)
+    print("finished batch")
+    TIME1 = datetime.now()
+    duration = TIME1 - TIME0
+    #  print("Sampling models for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
+
+
+
+    # create output file
+    ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
+    coords = (
+        range(s.ndraws * s.nchains),
+        data.variables["lat"],
+        data.variables["lon"]
+    )
+    bt.create_bayes_reg(ds, futures[0], coords)
+    print("Shaped output file.")
+
+    var = ds.groups["variables"]
+    sampler_stats = ds.groups["sampler_stats"]
+    k = 0
     for i in range(data.dimensions["lat"].size):
+        for j in range(data.dimensions["lon"].size):
+            bt.write_bayes_reg(var, sampler_stats, futures[k], (i, j))
+            k += 1
 
-        print("Latitude index is:")
-        print(i, flush=True)
-        lat_tdf = bt.create_dataframe(nct,
-                                      data.variables[s.variable][:, i, 0],
-                                      gmt)
-        TIME0 = datetime.now()
-        if s.mpi:
-            with MPIPoolExecutor() as executor:
-                futures = executor.map(bayes.mcs,
-                                       (bt.mcs_helper(nct, data, gmt, i, j)
-                                        for i in range(data.dimensions["lat"].size)
-                                        for j in range(data.dimensions["lon"].size)))
-
-        else:
-            print("serial mode")
-            futures = map(bayes.mcs, (bt.mcs_helper(nct, data, gmt, i, j)
-                                        for i in range(data.dimensions["lat"].size)
-                                        for j in range(data.dimensions["lon"].size)))
-
-        futures=list(futures)
-        print("finished batch")
-        TIME1 = datetime.now()
-        duration = TIME1 - TIME0
-        print("Sampling models for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
-
-        j = 0
-
-        TIME0 = datetime.now()
-        for result in futures:
-            if first_iteration:
-                # create output file
-                ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
-                coords = (
-                    range(s.ndraws * s.nchains),
-                    data.variables["lat"],
-                    data.variables["lon"]
-                )
-                bt.create_bayes_reg(ds, futures[0], coords)
-                ds.close()
-                print("Shaped output file.")
-                first_iteration = False
-
-            ds = nc.Dataset(file_to_write, "a")
-            var = ds.groups["variables"]
-            sampler_stats = ds.groups["sampler_stats"]
-            bt.write_bayes_reg(var, sampler_stats, result, (i, j))
-            j += 1
-
-        TIME1 = datetime.now()
-        duration = TIME1 - TIME0
-        print("Saving model parameter traces for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
-        ds.close()
+    TIME1 = datetime.now()
+    duration = TIME1 - TIME0
+    print("Saving model parameter traces for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
+    ds.close()
 
     data.close()
