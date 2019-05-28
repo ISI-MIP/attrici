@@ -11,7 +11,7 @@ from mpi4py.futures import MPIPoolExecutor
 import sys
 
 # get gmt file
-gmt_file = os.path.join(s.data_dir, 'era5_ssa_gmt_leap.nc4')
+gmt_file = os.path.join(s.data_dir, s.gmt_file)
 gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
 gmt_scaled = bt.y_norm(gmt, gmt)
 # get data to detrend

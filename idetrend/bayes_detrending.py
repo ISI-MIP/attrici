@@ -79,7 +79,7 @@ class bayes_regression(object):
             return pm.find_MAP()
 
     def mcs(self,
-            data,
+            datazip,
             init=s.init,
             draws=s.ndraws,
             cores=s.ncores_per_job,
@@ -90,6 +90,9 @@ class bayes_regression(object):
         #  from random import randint
         #  from time import sleep
         #  sleep(randint(1,10))
+        data = datazip[0]
+        i = datazip[1]
+        j = datazip[2]
         print("Working on [", i, j, "]", flush=True)
 
         # create instance of pymc model class
@@ -209,7 +212,7 @@ def mcs_helper(nct, data_to_detrend, gmt, i, j):
     tdf = create_dataframe(nct, data, gmt)
     #  subset = tdf[['ds', 't', 'gmt', 'gmt_scaled', 'y_' + str(i), 'y_scaled_' + str(i)]]
     #  return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'})
-    return tdf
+    return (tdf, i, j)
 
 #  write functions
 
