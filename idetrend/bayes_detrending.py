@@ -90,6 +90,7 @@ class bayes_regression(object):
         #  from random import randint
         #  from time import sleep
         #  sleep(randint(1,10))
+        print("Working on [", i, j, "]", flush=True)
 
         # create instance of pymc model class
         self.model = pm.Model()
@@ -176,14 +177,13 @@ def create_dataframe(nct, data_to_detrend, gmt):
     t_scaled = (ds-ds.min())/(ds.max()-ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
     gmt_scaled = y_norm(gmt_on_data_cal, gmt_on_data_cal)
+    y_scaled = y_norm(data_to_detrend,data_to_detrend)
 
     tdf = pd.DataFrame({"ds": ds, "t":t_scaled,
-                        "gmt":gmt_on_data_cal,"gmt_scaled":gmt_scaled})
-
-    for i in range(data_to_detrend.shape[-1]):
-        tdf["y_" + str(i)] = data_to_detrend[:, i]
-        y_scaled = y_norm(data_to_detrend[:, i], data_to_detrend[:, i])
-        tdf["y_scaled_" + str(i)] = y_scaled
+                        "y":data_to_detrend,
+                        "y_scaled":y_scaled,
+                        "gmt":gmt_on_data_cal,
+                        "gmt_scaled":gmt_scaled})
 
     return tdf
 
@@ -204,10 +204,12 @@ def get_gmt_on_each_day(gmt_file, days_of_year):
 
     return gmt_on_each_day
 
-def mcs_helper(tdf, i):
-    #  tdf = create_dataframe(nct, data_to_detrend[i, j], gmt)
-    subset = tdf[['ds', 't', 'gmt', 'gmt_scaled', 'y_' + str(i), 'y_scaled_' + str(i)]]
-    return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'})
+def mcs_helper(nct, data_to_detrend, gmt, i, j):
+    data = data_to_detrend.variables[s.variable][:, i, j]
+    tdf = create_dataframe(nct, data, gmt)
+    #  subset = tdf[['ds', 't', 'gmt', 'gmt_scaled', 'y_' + str(i), 'y_scaled_' + str(i)]]
+    #  return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'})
+    return tdf
 
 #  write functions
 

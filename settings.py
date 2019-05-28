@@ -28,14 +28,14 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 
 # model run settings
 debug = True           # use to turn on debug settings
-mpi = False             # use True to run on cluster (multiple nodes)
+mpi = True             # use True to run on cluster (multiple nodes)
 init = "jitter+adapt_diag"           # init method for nuts sampler
 ntunes = 800            # number of draws to tune model
 ndraws = 1000           # number of sampling draws per chaiin
 nchains = 5             # number of chains to calculate (min 2 to check for convergence)
 ncores_per_job = 2      # number of cores to use for one gridpoint
                         # automatically set to 1 for mpi (last line)
-progressbar=True        # print progress in output (.err file for mpi)
+progressbar=False        # print progress in output (.err file for mpi)
 live_plot=False         # show live plot (does not work yet)
 
 # set model parameters

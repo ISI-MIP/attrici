@@ -11,11 +11,11 @@
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 
 # # block one node completely to get all its memory.
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=12
-##SBATCH --ntasks=21
+##SBATCH --nodes=2
+##SBATCH --ntasks-per-node=12
+#SBATCH --ntasks=40
 ##SBATCH --cpus-per-task=3
-#SBATCH --exclusive
+##SBATCH --exclusive
 # echo 'Available memory of node is:'
 # cat /proc/meminfo | grep MemFree | awk '{ print $2 }'
 # source /home/bschmidt/.programs/anaconda3/bin/activate detrending_idp

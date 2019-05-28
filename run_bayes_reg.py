@@ -22,7 +22,7 @@ nct = data.variables["time"]
 
 # combine data to first data table
 tdf1 = bt.create_dataframe(nct,
-                              data.variables[s.variable][:, 0, :],
+                              data.variables[s.variable][:, 0, 0],
                               gmt)
 # delete output file if already existent
 if os.path.isfile(s.regression_outfile):
@@ -49,20 +49,21 @@ if __name__ == "__main__":
         print("Latitude index is:")
         print(i, flush=True)
         lat_tdf = bt.create_dataframe(nct,
-                                      data.variables[s.variable][:, i, :],
+                                      data.variables[s.variable][:, i, 0],
                                       gmt)
         TIME0 = datetime.now()
         if s.mpi:
             with MPIPoolExecutor() as executor:
                 futures = executor.map(bayes.mcs,
-                                       (bt.mcs_helper(lat_tdf, j)
+                                       (bt.mcs_helper(nct, data, gmt, i, j)
+                                        for i in range(data.dimensions["lat"].size)
                                         for j in range(data.dimensions["lon"].size)))
 
         else:
             print("serial mode")
-            futures = map(bayes.mcs, (bt.mcs_helper(lat_tdf, j)
+            futures = map(bayes.mcs, (bt.mcs_helper(nct, data, gmt, i, j)
+                                        for i in range(data.dimensions["lat"].size)
                                         for j in range(data.dimensions["lon"].size)))
-                                        #  for j in range(2)))
 
         futures=list(futures)
         print("finished batch")
