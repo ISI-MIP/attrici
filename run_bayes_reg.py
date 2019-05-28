@@ -1,4 +1,3 @@
-print("Beginning of run_bayes_reg.py")
 import os
 import numpy as np
 import netCDF4 as nc
@@ -11,84 +10,92 @@ import pymc3 as pm
 from mpi4py.futures import MPIPoolExecutor
 import sys
 
-#  Data Paths (now ignored for bayes implementation)
-#  gmt_file = os.path.join(s.data_dir, s.gmt_file)
-#  to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
-#  gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
-#  data = nc.Dataset(to_detrend_file, "r")
-#  data_to_detrend = data.variables[s.variable]  # [:]
-#  data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
+# get gmt file
 gmt_file = os.path.join(s.data_dir, 'era5_ssa_gmt_leap.nc4')
+gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
+gmt_scaled = bt.y_norm(gmt, gmt)
+# get data to detrend
 to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
 data = nc.Dataset(to_detrend_file, "r")
-data_to_detrend = data.variables[s.variable][:, 10, :]
+# get time data
 nct = data.variables["time"]
-ncg = nc.Dataset(gmt_file, "r")
-tdf = bt.create_dataframe(nct, data_to_detrend, ncg.variables["tas"][:])
-#  print(data_to_detrend.shape)
-data.close()
-ncg.close()
+
+# combine data to first data table
+tdf1 = bt.create_dataframe(nct,
+                              data.variables[s.variable][:, 0, :],
+                              gmt)
+# delete output file if already existent
+if os.path.isfile(s.regression_outfile):
+    os.remove(s.regression_outfile)
+    print("removed old output file")
+# output path
+file_to_write = os.path.join(s.data_dir, s.regression_outfile)
+
+# set switch for first iteration to allow creation of variables
+# in output file based on results
+first_iteration = True
 
 if __name__ == "__main__":
 
-    TIME0 = datetime.now()
     print("Variable is:")
     print(s.variable, flush=True)
-
     # Create bayesian regression model instance
-    bayes = bt.bayes_regression(tdf["gmt_scaled"])
+    bayes = bt.bayes_regression(tdf1["gmt_scaled"])
 
-    #  print(bt.subset_tbf(tdf, 0))
-    with MPIPoolExecutor() as executor:
-        future = executor.map(bayes.mcs,
-                              (bt.mcs_helper(tdf, i, 1000) for i in range(data_to_detrend.shape[1])))
-    print(future.result())
-    #  results = idtr.utility.run_regression_on_dataset(
-    #      data_to_detrend, s.days_of_year, bayes, s.n_jobs
-    #  )
-    #  traces = bayes.mcs(s.ntraces, s.
 
-    # And run the sanity check
-    #  bt.sanity_check(bayes.model, tdf)
+    # loop through latitudes
+    for i in range(data.dimensions["lat"].size):
 
-    #  model = pm.Model()
-    #
-    #  with model:
-    #      y = bt.trend_model(model, tdf["gmt_scaled"])
-    #
-    #      sigma = pm.HalfCauchy('sigma', 0.5, testval=1)
-    #      pm.Normal('obs',
-    #                   mu=y,
-    #                   sd=sigma,
-    #                   observed=tdf["y_scaled"])
-    #  regr = idtr.regression.regression(
-    #      gmt_on_each_day,
-    #      s.min_ts_len,
-    #      c.minval[s.variable],
-    #      c.maxval[s.variable],
-    #      c.transform[s.variable],
-    #  )
-    #
-    #  results = idtr.utility.run_regression_on_dataset(
-    #      data_to_detrend, s.days_of_year, regr, s.n_jobs
-    #  )
-    #
-    #  TIME1 = datetime.now()
-    #  duration = TIME1 - TIME0
-    #  print("Calculation took", duration.total_seconds(), "seconds.")
-    #
-    #  file_to_write = os.path.join(s.data_dir, s.regression_outfile)
-    #
-    #  if os.path.exists(file_to_write):
-    #      os.remove(file_to_write)
-    #
-    #  idtr.regression.write_regression_stats(
-    #      data_to_detrend.shape,
-    #      (data.variables["lat"], data.variables["lon"]),
-    #      results,
-    #      file_to_write,
-    #      s.days_of_year,
-    #  )
-    #  TIME2 = datetime.now()
-    #  duration = TIME2 - TIME1
-    #  print("Saving took", duration.total_seconds(), "seconds.")
+        print("Latitude index is:")
+        print(i, flush=True)
+        lat_tdf = bt.create_dataframe(nct,
+                                      data.variables[s.variable][:, i, :],
+                                      gmt)
+        TIME0 = datetime.now()
+        if s.mpi:
+            with MPIPoolExecutor() as executor:
+                futures = executor.map(bayes.mcs,
+                                       (bt.mcs_helper(lat_tdf, j)
+                                        for j in range(data.dimensions["lon"].size)))
+
+        else:
+            print("serial mode")
+            futures = map(bayes.mcs, (bt.mcs_helper(lat_tdf, j)
+                                        for j in range(data.dimensions["lon"].size)))
+                                        #  for j in range(2)))
+
+        futures=list(futures)
+        print("finished batch")
+        TIME1 = datetime.now()
+        duration = TIME1 - TIME0
+        print("Sampling models for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
+
+        j = 0
+
+        TIME0 = datetime.now()
+        for result in futures:
+            if first_iteration:
+                # create output file
+                ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
+                coords = (
+                    range(s.ndraws * s.nchains),
+                    data.variables["lat"],
+                    data.variables["lon"]
+                )
+                bt.create_bayes_reg(ds, futures[0], coords)
+                ds.close()
+                print("Shaped output file.")
+                first_iteration = False
+
+            ds = nc.Dataset(file_to_write, "a")
+            var = ds.groups["variables"]
+            sampler_stats = ds.groups["sampler_stats"]
+            bt.write_bayes_reg(var, sampler_stats, result, (i, j))
+            j += 1
+
+        TIME1 = datetime.now()
+        duration = TIME1 - TIME0
+        print("Saving model parameter traces for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
+        ds.close()
+
+    data.close()

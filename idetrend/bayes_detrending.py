@@ -1,14 +1,22 @@
+import os
+base_compiledir = os.path.expandvars("$HOME/.theano/slot-%d"% ( os.getpid() %500) )
+os.environ['THEANO_FLAGS'] = "base_compiledir=%s"% base_compiledir
+import theano
 import numpy as np
 import pymc3 as pm
 import matplotlib.pylab as plt
 import pandas as pd
 import settings as s
+import netCDF4 as nc
 
+#  print(theano.config)
 
 class bayes_regression(object):
     def __init__(self, regressor):
-        self.regressor = regressor
+        self.regressor = y_norm(regressor, regressor)
         self.model = pm.Model()
+        print("created bayesian regression model instance with regressor:")
+        print(self.regressor.head())
 
     def add_linear_model(self, mu=0, sig=5):
         """
@@ -19,8 +27,9 @@ class bayes_regression(object):
         """
 
         with self.model:
-            m = pm.Normal('k', mu, sig, testval=0)
-            k = pm.Normal('m', mu, sig, testval=0)
+
+            k = pm.Normal('k', mu, sig)
+            m = pm.Normal('m', mu, sig)
             #  return k + m * self.regressor
 
     def add_sigma(self, beta=.5):
@@ -32,32 +41,30 @@ class bayes_regression(object):
 
         with self.model:
             sigma = pm.HalfCauchy('sigma', beta, testval=1)
+            #  sigma = pm.HalfStudentT('sigma', lam=4, nu=10)
             #  return sigma
 
-    def add_season_model(self, data, modes, beta_name):
+    def add_season_model(self, data, modes, smu, sps, beta_name):
         """
         Creates a model of dominant in the data by using
         a fourier series wiht specified number of modes.
         :param data:
         """
 
-        seasonality_prior_scale = 10
-
         # rescale the period, as t is also scaled
-        #  FIXME: Where does the numerator in p come from?
         p = 365.25 / (data['ds'].max() - data['ds'].min()).days
         x = fourier_series(data['t'], p, modes)
 
         with self.model:
-            beta = pm.Normal(beta_name, mu=0,
-                             sd=seasonality_prior_scale, shape=2 * modes)
-        return x # , beta
+            beta = pm.Normal(beta_name, mu=smu,
+                             sd=sps, shape=2 * modes)
+        return x #, beta
 
-    def add_observations(self, data, x_yearly, x_trend):
+    def add_observations(self, data, x_yearly, *x_trend):
         with self.model as mod:
             y = (
                 mod['k']
-                + (mod['m'] * self.regressor)
+                + mod['m'] * self.regressor
                 + det_dot(x_yearly, mod['beta_yearly'])
                 + (data["t"].values * det_dot(x_trend, mod['beta_trend']))
             )
@@ -71,27 +78,42 @@ class bayes_regression(object):
         with self.model:
             return pm.find_MAP()
 
-    def mcs(self, data, traces, cores=1, chains=2, progressbar=False,
-            live_plot=False):
+    def mcs(self,
+            data,
+            init=s.init,
+            draws=s.ndraws,
+            cores=s.ncores_per_job,
+            chains=s.nchains,
+            tune=s.ntunes,
+            progressbar=s.progressbar,
+            live_plot=s.progressbar):
+        #  from random import randint
+        #  from time import sleep
+        #  sleep(randint(1,10))
+
+        # create instance of pymc model class
+        self.model = pm.Model()
         # add linear model and sigma
         self.add_linear_model(mu=s.linear_mu)
-        print('step 1 done')
         self.add_sigma(beta=s.sigma_beta)
-        print('step 2 done')
         # add seasonality models
-        x_yearly = self.add_season_model(data, s.modes, beta_name="beta_yearly")
-        print('step 3 done')
-        x_trend = self.add_season_model(data, s.modes, beta_name="beta_trend")
-        print('step 4 done')
+        x_yearly = self.add_season_model(data, s.modes, smu= s.smu,
+                                         sps=s.sps, beta_name="beta_yearly")
+        x_trend = self.add_season_model(data, s.modes, smu=s.stmu,
+                                        sps=s.stps, beta_name="beta_trend")
         # add observations to finished model
         dist, y = self.add_observations(data, x_yearly, x_trend)
-        print('step 5 done')
         with self.model:
-            return pm.sample(traces,
+            trace = pm.sample(draws=draws,
+                              init=init,
                              cores=cores,
                              chains=chains,
+                             tune=tune,
                              progressbar=progressbar,
                              live_plot=live_plot)
+            print("Finished Job %d" %os.getpid(), flush=True)
+
+        return trace
 
     #  def write_traces(traces):
 
@@ -158,7 +180,7 @@ def create_dataframe(nct, data_to_detrend, gmt):
     tdf = pd.DataFrame({"ds": ds, "t":t_scaled,
                         "gmt":gmt_on_data_cal,"gmt_scaled":gmt_scaled})
 
-    for i in range(data_to_detrend.shape[1]):
+    for i in range(data_to_detrend.shape[-1]):
         tdf["y_" + str(i)] = data_to_detrend[:, i]
         y_scaled = y_norm(data_to_detrend[:, i], data_to_detrend[:, i])
         tdf["y_scaled_" + str(i)] = y_scaled
@@ -182,6 +204,63 @@ def get_gmt_on_each_day(gmt_file, days_of_year):
 
     return gmt_on_each_day
 
-def mcs_helper(tdf, i, nchains):
+def mcs_helper(tdf, i):
+    #  tdf = create_dataframe(nct, data_to_detrend[i, j], gmt)
     subset = tdf[['ds', 't', 'gmt', 'gmt_scaled', 'y_' + str(i), 'y_scaled_' + str(i)]]
-    return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'}), nchains
+    return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'})
+
+#  write functions
+
+def create_bayes_reg(ds, data, original_data_coords):
+
+    trace = ds.createDimension("trace", None)
+    nchain = ds.createDimension("nchain", None)
+    lat = ds.createDimension("lat", original_data_coords[1].shape[0])
+    lon = ds.createDimension("lon", original_data_coords[2].shape[0])
+
+    s = ds.createGroup("sampler_stats")
+    v = ds.createGroup("variables")
+
+    # create variables for group "variables"
+    traces = ds.createVariable("traces", "u1", ("trace",))
+    nchain = ds.createVariable("nchains", "u1", ("nchain"))
+    longitudes = ds.createVariable("lon", "f4", ("lon",))
+    latitudes = ds.createVariable("lat", "f4", ("lat",))
+
+    variables = []
+    for varname in data.varnames:
+        if data.get_values(varname).ndim == 1:
+            variables.append(v.createVariable(varname, "f4", ("trace", "lat", "lon")))
+        elif data.get_values(varname).ndim == 2:
+            variables.append(v.createVariable(varname, "f4", ("trace", "nchain", "lat", "lon")))
+    stats = []
+    for stat in data.stat_names:
+        stats.append(s.createVariable(stat, "f4", ("trace", "lat", "lon")))
+
+    ds.description = "bayesian regression test script"
+    #ds.history = "Created " + time.ctime(time.time())
+    latitudes.units = "degrees north"
+    longitudes.units = "degrees east"
+    traces.units = "."
+
+    tras = original_data_coords[0][:]
+    lats = original_data_coords[1][:]
+    lons = original_data_coords[2][:]
+
+    traces[:] = tras
+    latitudes[:] = lats
+    longitudes[:] = lons
+
+
+def write_bayes_reg(vargroup, statgroup, trace, indices):
+    print("writing to indices:")
+    print(indices[0])
+    print(indices[1])
+    for varname in trace.varnames:
+        if trace.get_values(varname).ndim == 1:
+            vargroup.variables[varname][:, indices[0], indices[1]] = trace.get_values(varname)
+        elif trace.get_values(varname).ndim == 2:
+            vargroup.variables[varname][:, :, indices[0], indices[1]] = trace.get_values(varname)
+    for stat_name in trace.stat_names:
+        statgroup.variables[stat_name][:, indices[0], indices[1]] = trace.get_sampler_stats(stat_name)
+

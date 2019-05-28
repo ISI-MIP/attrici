@@ -11,18 +11,22 @@
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 
 # # block one node completely to get all its memory.
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=2
-##SBATCH --cpus-per-task=16
-##SBATCH --exclusive
+#SBATCH --nodes=2
+#SBATCH --ntasks-per-node=12
+##SBATCH --ntasks=21
+##SBATCH --cpus-per-task=3
+#SBATCH --exclusive
 # echo 'Available memory of node is:'
 # cat /proc/meminfo | grep MemFree | awk '{ print $2 }'
 # source /home/bschmidt/.programs/anaconda3/bin/activate detrending_idp
 
-modul purge
+module purge
 module load anaconda/5.0.0_py3
+module load compiler/gnu/7.3.0
+module load intel/2019.3
 source activate mpi_py3
-which python3
+# echo `env | grep CXX`
+# which g++
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/bschmidt/.conda/envs/mpi_py3/lib/libfabric/libfabric.so
 export FI_PROVIDER_PATH=/home/bschmidt/.conda/envs/mpi_py3/lib/libfabric/prov
@@ -43,6 +47,9 @@ export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
 echo "Number of processes started:"
 echo $SLURM_NPROCS
 # srun -n $SLURM_NTASKS /home/bschmidt/.conda/envs/mpi_py3/bin/python3 -m mpi4py.futures run_bayes_reg.py
-srun -n $SLURM_NTASKS /home/bschmidt/.conda/envs/mpi_py3/bin/python3 -m mpi4py.futures run_bayes_reg.py
+# THEANO_FLAGS='cxx=/usr/bin/'
+
+srun -n $SLURM_NTASKS \
+    /home/bschmidt/.conda/envs/mpi_py3/bin/python3 -m mpi4py.futures run_bayes_reg.py
 
 echo "executed mpi"
