@@ -19,7 +19,6 @@ freetype=2.9=3
 gcc_impl_linux-64=7.3.0=habb00fd_1
 gcc_linux-64=7.3.0=h553295d_7
 get_terminal_size=1.0.0=py36_7
-greenlet=0.4.15=pypi_0
 gxx_impl_linux-64=7.3.0=hdf63c60_1
 gxx_linux-64=7.3.0=h553295d_7
 h5py=2.7.1=py36h3585f63_0
@@ -63,7 +62,6 @@ mkl-service=1.0.0=py36_7
 mkl_fft=1.0.2=np114py36_6
 mkl_random=1.0.1=np114py36_6
 mpi4py=3.0.0=py36_3
-msgpack=0.6.1=pypi_0
 nbconvert=5.2.1=py36_2
 nbformat=4.4.0=py36_2
 ncurses=6.1=he6710b0_1
@@ -80,14 +78,12 @@ path.py=11.0.1=py36_2
 patsy=0.5.1=py36_0
 pexpect=4.2.1=py36_4
 pickleshare=0.7.4=py36_3
-pip=19.1.1=pypi_0
 prompt_toolkit=1.0.15=py36_2
 psutil=5.6.2=py36h7b6447c_0
 ptyprocess=0.5.2=py36_2
 pygments=2.2.0=py36_5
 pygpu=0.7.6=py36h035aef0_0
 pymc3=3.6=py36_0
-pynvim=0.3.2=pypi_0
 pyparsing=2.2.0=py36_2
 python=3.6.8=7
 python-dateutil=2.6.0=py36_12
