@@ -21,9 +21,7 @@ data = nc.Dataset(to_detrend_file, "r")
 nct = data.variables["time"]
 
 # combine data to first data table
-tdf1 = bt.create_dataframe(nct,
-                              data.variables[s.variable][:, 0, 0],
-                              gmt)
+tdf1 = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
 # delete output file if already existent
 if os.path.isfile(s.regression_outfile):
     os.remove(s.regression_outfile)
@@ -42,39 +40,39 @@ if __name__ == "__main__":
     # Create bayesian regression model instance
     bayes = bt.bayes_regression(tdf1["gmt_scaled"])
 
-
-    lat_tdf = bt.create_dataframe(nct,
-                                  data.variables[s.variable][:, 0, 0],
-                                  gmt)
+    lat_tdf = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
     TIME0 = datetime.now()
     if s.mpi:
         with MPIPoolExecutor() as executor:
-            futures = executor.map(bayes.mcs,
-                                   (bt.mcs_helper(nct, data, gmt, i, j)
-                                    for i in range(data.dimensions["lat"].size)
-                                    for j in range(data.dimensions["lon"].size)))
+            futures = executor.map(
+                bayes.mcs,
+                (
+                    bt.mcs_helper(nct, data, gmt, i, j)
+                    for i in range(data.dimensions["lat"].size)
+                    for j in range(data.dimensions["lon"].size)
+                ),
+            )
 
     else:
         print("serial mode")
-        futures = map(bayes.mcs, (bt.mcs_helper(nct, data, gmt, i, j)
-                                    for i in range(data.dimensions["lat"].size)
-                                    for j in range(data.dimensions["lon"].size)))
+        futures = map(
+            bayes.mcs,
+            (
+                bt.mcs_helper(nct, data, gmt, i, j)
+                for i in range(data.dimensions["lat"].size)
+                for j in range(data.dimensions["lon"].size)
+            ),
+        )
 
-    futures=list(futures)
+    futures = list(futures)
     print("finished batch")
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
     #  print("Sampling models for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
 
-
-
     # create output file
     ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
-    coords = (
-        range(s.ndraws * s.nchains),
-        data.variables["lat"],
-        data.variables["lon"]
-    )
+    coords = (range(s.ndraws * s.nchains), data.variables["lat"], data.variables["lon"])
     bt.create_bayes_reg(ds, futures[0], coords)
     print("Shaped output file.")
 
@@ -88,7 +86,11 @@ if __name__ == "__main__":
 
     TIME1 = datetime.now()
     duration = TIME1 - TIME0
-    print("Saving model parameter traces for lat slice " + str(i) + " took", duration.total_seconds(), "seconds.")
+    print(
+        "Saving model parameter traces for lat slice " + str(i) + " took",
+        duration.total_seconds(),
+        "seconds.",
+    )
     ds.close()
 
     data.close()
