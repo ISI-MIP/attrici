@@ -8,10 +8,16 @@ user = getpass.getuser()
 # this will hopefully avoid hand editing paths everytime.
 # fill further for convenience.
 if user == "mengel":
-    data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
+    # data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
+    data_dir = "/p/tmp/mengel/isimip/isi-cfact"
+    conda_name = "pymc3"
+    conda_path = "/home/mengel/anaconda3/envs/pymc3/"
+    log_dir = "./log"
 elif user == "bschmidt":
+    conda_name = "mpi_py3"
+    conda_path = "/home/bschmidt/.conda/envs/mpi_py3"
     data_dir = "/home/bschmidt/temp/gswp3/"
-
+    log_dir = "./output"
 #  handle job specifications
 n_jobs = 16  # number of childprocesses created by the job
 regtype = "bayes"  # regression type: 'bayes' or 'linear'
@@ -28,8 +34,9 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 ################### For Bayesian ############
 
 # model run settings
+ntasks = 64 # used through submit.sh
 debug = True  # use to turn on debug settings
-mpi = True  # use True to run on cluster (multiple nodes)
+mpi = False  # use True to run on cluster (multiple nodes)
 init = "jitter+adapt_diag"  # init method for nuts sampler
 ntunes = 800  # number of draws to tune model
 ndraws = 1000  # number of sampling draws per chaiin
