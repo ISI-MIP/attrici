@@ -6,4 +6,5 @@ output/
 gswp3
 *.egg-info/
 submit.sh
+log/
 

@@ -49,6 +49,8 @@ if __name__ == "__main__":
     lat_tdf = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
     TIME0 = datetime.now()
     if submitted:
+
+        s.ncores_per_job = 1
         with MPIPoolExecutor() as executor:
             futures = executor.map(
                 bayes.mcs,

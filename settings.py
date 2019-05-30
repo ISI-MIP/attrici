@@ -38,12 +38,13 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 # model run settings
 ntasks = 64  # used through submit.sh
 debug = True  # use to turn on debug settings
-mpi = True  # use True to run on cluster (multiple nodes)
 init = "jitter+adapt_diag"  # init method for nuts sampler
 ntunes = 800  # number of draws to tune model
 ndraws = 1000  # number of sampling draws per chaiin
 nchains = 5  # number of chains to calculate (min 2 to check for convergence)
-ncores_per_job = 2  # number of cores to use for one gridpoint
+# number of cores to use for one gridpoint
+# submitted jobs will have ncores_per_job=1 always.
+ncores_per_job = 2
 # automatically set to 1 for mpi (last line)
 progressbar = False  # print progress in output (.err file for mpi)
 live_plot = False  # show live plot (does not work yet)
@@ -72,8 +73,3 @@ if calendar == "gregorian":
     days_of_year = 365.25
 elif calendar == "noleap":
     days_of_year = 365
-
-if mpi:
-    ncores_per_job = 1
-# if debug:
-#     regression_outfile = "debug_reg_out.nc4"
