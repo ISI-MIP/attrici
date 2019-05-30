@@ -7,18 +7,21 @@ import numpy as np
 import pymc3 as pm
 import matplotlib.pylab as plt
 import pandas as pd
-import settings as s
 import netCDF4 as nc
+from datetime import datetime
+import settings as s
 
 #  print(theano.config)
 
 
 class bayes_regression(object):
-    def __init__(self, regressor):
+
+    def __init__(self, regressor, output_dir):
         self.regressor = y_norm(regressor, regressor)
-        self.model = pm.Model()
-        print("created bayesian regression model instance with regressor:")
+        self.model = pm.Model() # FIXME: appears below as well.
+        print("Created bayesian regression model instance with regressor:")
         print(self.regressor.head())
+        self.output_dir = output_dir
 
     def add_linear_model(self, mu=0, sig=5):
         """
@@ -76,24 +79,14 @@ class bayes_regression(object):
         with self.model:
             return pm.find_MAP()
 
-    def mcs(
-        self,
-        datazip,
-        init=s.init,
-        draws=s.ndraws,
-        cores=s.ncores_per_job,
-        chains=s.nchains,
-        tune=s.ntunes,
-        progressbar=s.progressbar,
-        live_plot=s.progressbar,
-    ):
-        #  from random import randint
-        #  from time import sleep
-        #  sleep(randint(1,10))
-        data = datazip[0]
-        i = datazip[1]
-        j = datazip[2]
-        print("Working on [", i, j, "]", flush=True)
+    def run(self, datazip):
+
+        data, i, j = datazip
+        self.setup_model(data)
+        self.sample(i, j)
+        self.save_trace(i, j)
+
+    def setup_model(self, data):
 
         # create instance of pymc model class
         self.model = pm.Model()
@@ -109,8 +102,24 @@ class bayes_regression(object):
         )
         # add observations to finished model
         dist, y = self.add_observations(data, x_yearly, x_trend)
+
+
+    def sample(
+        self, i, j,
+        init=s.init,
+        draws=s.ndraws,
+        cores=s.ncores_per_job,
+        chains=s.nchains,
+        tune=s.ntunes,
+        progressbar=s.progressbar,
+        live_plot=s.progressbar,
+    ):
+
+        print("Working on [", i, j, "]", flush=True)
+        TIME0 = datetime.now()
+
         with self.model:
-            trace = pm.sample(
+            self.trace = pm.sample(
                 draws=draws,
                 init=init,
                 cores=cores,
@@ -119,11 +128,19 @@ class bayes_regression(object):
                 progressbar=progressbar,
                 live_plot=live_plot,
             )
-            print("Finished Job %d" % os.getpid(), flush=True)
+        TIME1 = datetime.now()
+        print(
+            "Finished job {0} in {1:.0f} seconds".format(
+                os.getpid(), (TIME1 - TIME0).total_seconds()
+            )
+        )
 
-        return trace
+        return self.trace
 
-    #  def write_traces(traces):
+    def save_trace(self, i, j):
+
+        output_dir = self.output_dir / "traces" / ("trace_"+str(i)+"_"+str(j))
+        pm.backends.save_trace(self.trace, output_dir)
 
 
 def det_dot(a, b):
@@ -145,8 +162,13 @@ def fourier_series(t, p=s.days_of_year, n=10):
     return x
 
 
+# TODO: move these helper functions to other files.
+
+
 def sanity_check(m, df):
     """
+    FIXME: plotting should not appear in the main code files.
+
     :param m: (pm.Model)
     :param df: (pd.DataFrame)
     """
@@ -223,14 +245,10 @@ def get_gmt_on_each_day(gmt_file, days_of_year):
 
 
 def mcs_helper(nct, data_to_detrend, gmt, i, j):
+
     data = data_to_detrend.variables[s.variable][:, i, j]
     tdf = create_dataframe(nct, data, gmt)
-    #  subset = tdf[['ds', 't', 'gmt', 'gmt_scaled', 'y_' + str(i), 'y_scaled_' + str(i)]]
-    #  return subset.rename(columns={'y_' + str(i):'y', 'y_scaled_' + str(i): 'y_scaled'})
     return (tdf, i, j)
-
-
-#  write functions
 
 
 def create_bayes_reg(ds, data, original_data_coords):

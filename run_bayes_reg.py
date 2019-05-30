@@ -2,6 +2,7 @@ import os
 import numpy as np
 import netCDF4 as nc
 from datetime import datetime
+from pathlib import Path
 import settings as s
 import idetrend as idtr
 import idetrend.const as c
@@ -10,7 +11,10 @@ import pymc3 as pm
 from mpi4py.futures import MPIPoolExecutor
 import sys
 
-submitted = os.environ["SUBMITTED"] == "1"
+try:
+    submitted = os.environ["SUBMITTED"] == "1"
+except KeyError:
+    submitted = False
 
 # get gmt file
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
@@ -31,6 +35,7 @@ if os.path.isfile(s.params_file):
 
 if not os.path.exists(s.output_dir):
     os.makedirs(s.output_dir)
+    os.makedirs(Path(s.output_dir) / "traces")
 
 # output path
 file_to_write = os.path.join(s.output_dir, s.params_file)
@@ -44,7 +49,7 @@ if __name__ == "__main__":
     print("Variable is:")
     print(s.variable, flush=True)
     # Create bayesian regression model instance
-    bayes = bt.bayes_regression(tdf1["gmt_scaled"])
+    bayes = bt.bayes_regression(tdf1["gmt_scaled"], s.output_dir)
 
     lat_tdf = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
     TIME0 = datetime.now()
@@ -53,7 +58,7 @@ if __name__ == "__main__":
         s.ncores_per_job = 1
         with MPIPoolExecutor() as executor:
             futures = executor.map(
-                bayes.mcs,
+                bayes.run,
                 (
                     bt.mcs_helper(nct, data, gmt, i, j)
                     for i in range(data.dimensions["lat"].size)
@@ -64,7 +69,7 @@ if __name__ == "__main__":
     else:
         print("serial mode")
         futures = map(
-            bayes.mcs,
+            bayes.run,
             (
                 bt.mcs_helper(nct, data, gmt, i, j)
                 for i in range(data.dimensions["lat"].size)
