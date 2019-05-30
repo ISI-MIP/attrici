@@ -1,23 +1,25 @@
 import getpass
-
-#  import numpy as np
-#  import idetrend.utility as u
+from pathlib import Path
 
 user = getpass.getuser()
 
 # this will hopefully avoid hand editing paths everytime.
 # fill further for convenience.
 if user == "mengel":
+    conda_path = "/home/mengel/anaconda3/envs/pymc3/"
     # data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
     data_dir = "/p/tmp/mengel/isimip/isi-cfact"
-    conda_name = "pymc3"
-    conda_path = "/home/mengel/anaconda3/envs/pymc3/"
     log_dir = "./log"
+
 elif user == "bschmidt":
-    conda_name = "mpi_py3"
     conda_path = "/home/bschmidt/.conda/envs/mpi_py3"
     data_dir = "/home/bschmidt/temp/gswp3/"
     log_dir = "./output"
+
+input_dir = Path(data_dir) / "input"
+# make output dir same as cwd. Helps if running more than one.
+output_dir = Path(data_dir) / "output" / Path.cwd().name
+
 #  handle job specifications
 n_jobs = 16  # number of childprocesses created by the job
 regtype = "bayes"  # regression type: 'bayes' or 'linear'
@@ -34,9 +36,9 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 ################### For Bayesian ############
 
 # model run settings
-ntasks = 64 # used through submit.sh
+ntasks = 64  # used through submit.sh
 debug = True  # use to turn on debug settings
-mpi = False  # use True to run on cluster (multiple nodes)
+mpi = True  # use True to run on cluster (multiple nodes)
 init = "jitter+adapt_diag"  # init method for nuts sampler
 ntunes = 800  # number of draws to tune model
 ndraws = 1000  # number of sampling draws per chaiin
@@ -56,96 +58,13 @@ stmu = 0.5  # trend in season prior mean
 sps = 20  # seasonality prior scale (sd)
 stps = 20  # trend in season scale (sd)
 
-
 gmt_file = dataset + "_ssa_gmt.nc4"
-base_file = (
-    variable
-    + "_"
-    + dataset
-    + "_"
-    + str(startyear)
-    + "_"
-    + str(endyear)
-    + "_rechunked"
-    + "_noleap.nc4"
-)
 
-if test:
-    to_detrend_file = (
-        variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_"
-        + calendar
-        + "_test.nc4"
-    )
-    regression_outfile = (
-        variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_"
-        + regtype
-        + "_test.nc4"
-    )
-    detrended_file = (
-        variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_"
-        + regtype
-        + "_detrended_test.nc4"
-    )
-else:
-    to_detrend_file = (
-        variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_"
-        + calendar
-        + "_rechunked"
-        + ".nc4"
-    )
-    regression_outfile = (
-        variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_"
-        + regtype
-        + ".nc4"
-    )
-    detrended_file = (
-        variable
-        + "_"
-        + dataset
-        + "_"
-        + str(startyear)
-        + "_"
-        + str(endyear)
-        + "_"
-        + regtype
-        + "_detrended.nc4"
-    )
+source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
+params_file = variable + "_" + dataset + "_parameters.nc4"
+cfactual_file = variable + "_" + dataset + "_cfactual.nc4"
 
+# FIXME: can this be deleted?
 min_ts_len = 2  # minimum length of timeseries passed to regression after reduction
 sig = 0.95  # significance level to calculate confidence intervals for fits in .
 
@@ -156,5 +75,5 @@ elif calendar == "noleap":
 
 if mpi:
     ncores_per_job = 1
-if debug:
-    regression_outfile = "debug_reg_out.nc4"
+# if debug:
+#     regression_outfile = "debug_reg_out.nc4"

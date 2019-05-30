@@ -10,12 +10,14 @@ import pymc3 as pm
 from mpi4py.futures import MPIPoolExecutor
 import sys
 
+submitted = os.environ["SUBMITTED"] == "1"
+
 # get gmt file
-gmt_file = os.path.join(s.data_dir, s.gmt_file)
+gmt_file = os.path.join(s.input_dir, s.gmt_file)
 gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
 gmt_scaled = bt.y_norm(gmt, gmt)
 # get data to detrend
-to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
+to_detrend_file = os.path.join(s.input_dir, s.source_file)
 data = nc.Dataset(to_detrend_file, "r")
 # get time data
 nct = data.variables["time"]
@@ -23,11 +25,15 @@ nct = data.variables["time"]
 # combine data to first data table
 tdf1 = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
 # delete output file if already existent
-if os.path.isfile(s.regression_outfile):
-    os.remove(s.regression_outfile)
+if os.path.isfile(s.params_file):
+    os.remove(s.params_file)
     print("removed old output file")
+
+if not os.path.exists(s.output_dir):
+    os.makedirs(s.output_dir)
+
 # output path
-file_to_write = os.path.join(s.data_dir, s.regression_outfile)
+file_to_write = os.path.join(s.output_dir, s.params_file)
 
 # set switch for first iteration to allow creation of variables
 # in output file based on results
@@ -42,7 +48,7 @@ if __name__ == "__main__":
 
     lat_tdf = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
     TIME0 = datetime.now()
-    if s.mpi:
+    if submitted:
         with MPIPoolExecutor() as executor:
             futures = executor.map(
                 bayes.mcs,
