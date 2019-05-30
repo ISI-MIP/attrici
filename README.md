@@ -22,6 +22,8 @@ This code is currently taylored to run on the supercomputer at the Potsdam Insti
 
 `module load intel/2019.3`
 
+`conda activate yourenv`
+
 Adjust `settings.py`
 
 For estimating parameter distributions (above step 1) and smaller datasets
@@ -36,13 +38,26 @@ For producing counterfactuals (above step 2)
 
 `python run_detrending.py`
 
+### Running multiple instances at once.
+
+
+`conda activate yourenv`
+
+In the root package directory.
+
+`pip install -e .`
+
+
+Copy the `settings.py` and the `run_bayes_reg.py` to a separate directory,
+for example `myrunscripts`. Adjust `settings.py` and continue as in Usage.
+
 ## Install
 
 We use the `from mpi4py.futures import MPIPoolExecutor` to distribute jobs via MPI. We needed the intel-optimized python libraries to make this work with `theano`. The configuration is very much tailored to the PIK supercomputer at the moment. Please do
 
 `conda config --add channels intel`
 
-`conda env create --name pymc3 -f config/environment.yml`
+`conda env create --name yourenv -f config/environment.yml`
 
 You may also optionally
 
