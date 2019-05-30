@@ -140,7 +140,7 @@ class bayes_regression(object):
     def save_trace(self, i, j):
 
         output_dir = self.output_dir / "traces" / ("trace_"+str(i)+"_"+str(j))
-        pm.backends.save_trace(self.trace, output_dir)
+        pm.backends.save_trace(self.trace, output_dir, overwrite=True)
 
 
 def det_dot(a, b):
