@@ -12,6 +12,10 @@ as we aim to compare impact events of the past (for which we have data) to the e
 2. We subtract the estimated trends from to global mean temperature change from the observed data. This provides a counterfactual, which comes without the trends easily explained by global mean temperature change.
 
 
+The following graph illustrates the approach. Grey is the original data, red is our estimation of change. Blue is the original data minus the parts that were estimated to driven by global mean temperature change.
+
+![Counterfactual example](image01.png)
+
 ## Usage
 
 This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate impact research. Generalizing it into a package is ongoing work.
