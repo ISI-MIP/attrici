@@ -5,7 +5,7 @@ ISI-CFACT produces counterfactual climate data from past datasets for the ISIMIP
 ## Idea
 Counterfactual climate is a hypothetical climate in a world without climate change.
 For impact models, such climate should stay as close as possible to the observed past,
-as we aim to compare impact events of the past (for which we have data) to the events in the counterfactual. The difference is a proxy for the impact of climate change.
+as we aim to compare impact events of the past (for which we have data) to the events in the counterfactual. The difference is a proxy for the impact of climate change. We run the following steps:
 
 1. We approximate the change in past climate through a model with three parts. Long-term trend, an ever-repeating yearly cycle, and a trend in the yearly cycle. Trends are induced by global mean temperature change. We use a Bayesian approach to estimate all parameters of the model and their dependencies at once, here implemented through pymc3. Yearly cycle and trend in yearly cycles are approximated through a finite number of modes, which are periodic in the year. The parameter distributions tell us which part of changes in the variables can be explained through global mean temperature as a direct driver.
 
@@ -18,7 +18,7 @@ The following graph illustrates the approach. Grey is the original data, red is 
 
 ## Usage
 
-This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate impact research. Generalizing it into a package is ongoing work.
+This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work.
 
 Adjust `settings.py`
 
