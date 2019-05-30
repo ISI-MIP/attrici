@@ -20,6 +20,8 @@ The following graph illustrates the approach. Grey is the original data, red is 
 
 This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work.
 
+`module load intel/2019.3`
+
 Adjust `settings.py`
 
 For estimating parameter distributions (above step 1) and smaller datasets
@@ -38,9 +40,9 @@ For producing counterfactuals (above step 2)
 
 We use the `from mpi4py.futures import MPIPoolExecutor` to distribute jobs via MPI. We needed the intel-optimized python libraries to make this work with `theano`. The configuration is very much tailored to the PIK supercomputer at the moment. Please do
 
-conda config --add channels intel
+`conda config --add channels intel`
 
-conda env create --name pymc3 -f config/environment.yml
+`conda env create --name pymc3 -f config/environment.yml`
 
 You may also optionally
 
