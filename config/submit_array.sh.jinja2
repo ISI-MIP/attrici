@@ -8,8 +8,8 @@
 #SBATCH --error={{s.log_dir}}/%x.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user={{s.user}}@pik-potsdam.de
-#SBATCH --ntasks=2
-#SBATCH --array=0-{{s.ntasks}}
+#SBATCH --ntasks=1
+#SBATCH --array=0-{{s.njobarray-1}}
 #SBATCH --time=00:10:00
 
 module purge

@@ -8,7 +8,6 @@ from pathlib import Path
 from mpi4py.futures import MPIPoolExecutor
 import settings as s
 import idetrend as idtr
-import idetrend.const as c
 import idetrend.bayes_detrending as bt
 
 try:

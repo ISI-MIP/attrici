@@ -9,8 +9,8 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mengel@pik-potsdam.de
 #SBATCH --ntasks=1
-#SBATCH --array=0-14
-#SBATCH --time=00:05:00
+#SBATCH --array=0-4
+#SBATCH --time=00:10:00
 
 module purge
 module load anaconda/5.0.0_py3

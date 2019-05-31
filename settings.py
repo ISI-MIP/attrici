@@ -22,6 +22,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 #  handle job specifications
 ntasks = 64  # used through submit.sh
+njobarray = 15 # used through submit_array.sh
 n_jobs = 16  # number of childprocesses created by the job
 regtype = "bayes"  # regression type: 'bayes' or 'linear'
 template = "array" # array or std
