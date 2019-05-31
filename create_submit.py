@@ -19,7 +19,7 @@ def write_submit(settings, jobname):
     template = jinja_env.get_template(template_file)
     out = template.render(s=settings, jobname=jobname)
 
-    fname = os.path.join(template_file.rstrip("jinja2"))
+    fname = os.path.join(template_file.rstrip(".jinja2"))
 
     with open(fname, "w") as f:
         f.write(out)

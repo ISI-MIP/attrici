@@ -17,9 +17,8 @@ try:
     njobarray = int(os.environ['SLURM_ARRAY_TASK_COUNT'])
 except KeyError:
     submitted = False
-    # the next two are for testing. remove later.
-    # njobarray = 1
-    # task_id = 1
+    njobarray = 1
+    task_id = 0
 
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
 gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
@@ -38,6 +37,7 @@ tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
 if not os.path.exists(s.output_dir):
     os.makedirs(s.output_dir)
     os.makedirs(Path(s.output_dir) / "traces")
+    os.makedirs(Path(s.output_dir) / "theano")
 
 if ncells%njobarray:
     print("task_id",task_id)
@@ -61,30 +61,30 @@ print(s.variable, flush=True)
 bayes = bt.bayes_regression(tdf["gmt_scaled"], s.output_dir)
 
 TIME0 = datetime.now()
-if submitted:
+# if submitted:
 
-    # Run the loop of runs for this task.
-    futures = []
-    for n in np.arange(start_num,end_num+1,1, dtype=np.int):
-        i=int(n%latsize)
-        j=int(n/latsize)
-        print("This is SLURM task",task_id,"run number", n, "i,j", i,j)
+# Run the loop of runs for this task.
+futures = []
+for n in np.arange(start_num,end_num+1,1, dtype=np.int):
+    i=int(n%latsize)
+    j=int(n/latsize)
+    print("This is SLURM task",task_id,"run number", n, "i,j", i,j)
 
-        futr = bayes.run(bt.mcs_helper(nct, obs_data, gmt, i, j))
-        futures.append(futr)
+    futr = bayes.run(bt.mcs_helper(nct, obs_data, gmt, i, j))
+    futures.append(futr)
 
-else:
-    print("serial mode")
-    futures = map(
-        bayes.run,
-        (
-            bt.mcs_helper(nct, data, gmt, i, j)
-            for i in range(data.dimensions["lat"].size)
-            for j in range(data.dimensions["lon"].size)
-        ),
-    )
-    # necessary to trigger serial map() function.
-    futures = list(futures)
+# else:
+#     print("serial mode")
+#     futures = map(
+#         bayes.run,
+#         (
+#             bt.mcs_helper(nct, data, gmt, i, j)
+#             for i in range(data.dimensions["lat"].size)
+#             for j in range(data.dimensions["lon"].size)
+#         ),
+#     )
+#     # necessary to trigger serial map() function.
+#     futures = list(futures)
 
 print("Estimation completed for all cells. It took {0:.1f} minutes.".format(
             (datetime.now() - TIME0).total_seconds()/60))

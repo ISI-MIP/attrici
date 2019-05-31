@@ -2,6 +2,7 @@ import os
 
 base_compiledir = os.path.expandvars("$HOME/.theano/slot-%d" % (os.getpid() % 500))
 os.environ["THEANO_FLAGS"] = "base_compiledir=%s" % base_compiledir
+
 import theano
 import numpy as np
 import pymc3 as pm
@@ -9,6 +10,7 @@ import matplotlib.pylab as plt
 import pandas as pd
 import netCDF4 as nc
 from datetime import datetime
+from pathlib import Path
 import settings as s
 
 #  print(theano.config)
