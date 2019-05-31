@@ -103,6 +103,7 @@ class bayes_regression(object):
         # add observations to finished model
         dist, y = self.add_observations(data, x_yearly, x_trend)
 
+        return self.model
 
     def sample(
         self, i, j,
@@ -130,7 +131,7 @@ class bayes_regression(object):
             )
         TIME1 = datetime.now()
         print(
-            "Finished job {0} in {1:.0f} seconds".format(
+            "Finished job {0} in {1:.0f} seconds.".format(
                 os.getpid(), (TIME1 - TIME0).total_seconds()
             )
         )

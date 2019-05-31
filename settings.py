@@ -17,12 +17,14 @@ elif user == "bschmidt":
     log_dir = "./output"
 
 input_dir = Path(data_dir) / "input"
-# make output dir same as cwd. Helps if running more than one.
+# make output dir same as cwd. Helps if running more than one job.
 output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 #  handle job specifications
+ntasks = 64  # used through submit.sh
 n_jobs = 16  # number of childprocesses created by the job
 regtype = "bayes"  # regression type: 'bayes' or 'linear'
+template = "array" # array or std
 
 # if test=True use smaller test dataset
 test = True  # use to run on test dataset
@@ -36,7 +38,6 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 ################### For Bayesian ############
 
 # model run settings
-ntasks = 64  # used through submit.sh
 debug = True  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
 ntunes = 800  # number of draws to tune model
