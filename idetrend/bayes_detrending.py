@@ -44,14 +44,12 @@ class bayes_regression(object):
 
     def setup_model(self, data):
 
-        sig = 5
-
         # create instance of pymc model class
         self.model = pm.Model()
 
         with self.model:
-            slope = pm.Normal("slope", s.linear_mu, sig)
-            intercept = pm.Normal("intercept", s.linear_mu, sig)
+            slope = pm.Normal("slope", s.linear_mu, s.linear_sigma)
+            intercept = pm.Normal("intercept", s.linear_mu, s.linear_sigma)
             sigma = pm.HalfCauchy("sigma", s.sigma_beta, testval=1)
 
         # add seasonality models

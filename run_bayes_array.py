@@ -19,6 +19,7 @@ except KeyError:
     submitted = False
     njobarray = 1
     task_id = 0
+    s.progressbar = True
 
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
 ncg = nc.Dataset(gmt_file,"r")
@@ -57,15 +58,10 @@ end_num = int((task_id+1)*calls_per_arrayjob -1)
 # Print the task and run range
 print("This is SLURM task",task_id,"which will do runs", start_num,"to", end_num)
 
-print("Variable is:")
-print(s.variable, flush=True)
-# Create bayesian regression model instance
 bayes = bt.bayes_regression(tdf["gmt_scaled"], s.output_dir)
 
 TIME0 = datetime.now()
-# if submitted:
 
-# Run the loop of runs for this task.
 futures = []
 for n in np.arange(start_num,end_num+1,1, dtype=np.int):
     i=int(n%latsize)

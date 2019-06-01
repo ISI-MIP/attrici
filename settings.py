@@ -52,9 +52,9 @@ progressbar = False  # print progress in output (.err file for mpi)
 live_plot = False  # show live plot (does not work yet)
 
 # set model parameters
-modes = 1  # number of modes for fourier series of model
+modes = 3  # number of modes for fourier series of model
 linear_mu = 1  # mean of prior for linear model
-linear_sigma = 10  # sd of prior for linear model
+linear_sigma = 5  # sd of prior for linear model
 sigma_beta = 0.5  # beta parameter of halfcauchy sd of model
 smu = 1  # seasonal prior mean
 stmu = 0.5  # trend in season prior mean
