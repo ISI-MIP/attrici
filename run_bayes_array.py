@@ -22,8 +22,6 @@ except KeyError:
 
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
 ncg = nc.Dataset(gmt_file,"r")
-# gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
-# gmt_scaled = bt.y_norm(gmt, gmt)
 gmt = np.squeeze(ncg.variables["tas"][:])
 ncg.close()
 
@@ -34,9 +32,9 @@ nct = obs_data.variables["time"]
 latsize = obs_data.dimensions["lat"].size
 ncells = latsize*obs_data.dimensions["lon"].size
 
-# combine data to first data table
-tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0],
-                         gmt)
+# create_dataframe maps gmt on the time axis of obs_data
+# ensure that both have the same start and endpoint in time.
+tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
 
 if not os.path.exists(s.output_dir):
     os.makedirs(s.output_dir)
@@ -77,35 +75,5 @@ for n in np.arange(start_num,end_num+1,1, dtype=np.int):
     futr = bayes.run(bt.mcs_helper(nct, obs_data, gmt, i, j))
     futures.append(futr)
 
-# else:
-#     print("serial mode")
-#     futures = map(
-#         bayes.run,
-#         (
-#             bt.mcs_helper(nct, data, gmt, i, j)
-#             for i in range(data.dimensions["lat"].size)
-#             for j in range(data.dimensions["lon"].size)
-#         ),
-#     )
-#     # necessary to trigger serial map() function.
-#     futures = list(futures)
-
 print("Estimation completed for all cells. It took {0:.1f} minutes.".format(
             (datetime.now() - TIME0).total_seconds()/60))
-
-
-# # Run the loop of runs for this task.
-# for n in np.arange(start_num,end_num,1, dtype=np.int):
-#     print("This is SLURM task",task_id,"run number", n)
-#     i=int(n%latsize)
-#     j=int(n/latsize)
-
-
-
-  #Do your stuff here
-
-
-
-# i=task_id%latsize
-# j=int(task_id/latsize)
-# print(task_id, i, j)
