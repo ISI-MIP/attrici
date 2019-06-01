@@ -21,8 +21,11 @@ except KeyError:
     task_id = 0
 
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
-gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
-gmt_scaled = bt.y_norm(gmt, gmt)
+ncg = nc.Dataset(gmt_file,"r")
+# gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
+# gmt_scaled = bt.y_norm(gmt, gmt)
+gmt = np.squeeze(ncg.variables["tas"][:])
+ncg.close()
 
 # get data to detrend
 to_detrend_file = os.path.join(s.input_dir, s.source_file)
@@ -32,7 +35,8 @@ latsize = obs_data.dimensions["lat"].size
 ncells = latsize*obs_data.dimensions["lon"].size
 
 # combine data to first data table
-tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
+tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0],
+                         gmt)
 
 if not os.path.exists(s.output_dir):
     os.makedirs(s.output_dir)

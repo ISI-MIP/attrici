@@ -19,10 +19,8 @@ import settings as s
 class bayes_regression(object):
 
     def __init__(self, regressor, output_dir):
-        self.regressor = y_norm(regressor, regressor)
-        self.model = pm.Model() # FIXME: appears below as well.
-        print("Created bayesian regression model instance with regressor:")
-        print(self.regressor.head())
+
+        self.regressor = regressor
         self.output_dir = output_dir
 
     def add_linear_model(self, mu=0, sig=5):
@@ -230,21 +228,21 @@ def create_dataframe(nct, data_to_detrend, gmt):
     return tdf
 
 
-def get_gmt_on_each_day(gmt_file, days_of_year):
+# def get_gmt_on_each_day(gmt_file, days_of_year):
 
-    length_of_record = s.endyear - s.startyear + 1
+#     length_of_record = s.endyear - s.startyear + 1
 
-    ncgmt = nc.Dataset(gmt_file, "r")
+#     ncgmt = nc.Dataset(gmt_file, "r")
 
-    # interpolate from yearly to daily values
-    gmt_on_each_day = np.interp(
-        np.arange(length_of_record * days_of_year),
-        ncgmt.variables["time"][:],
-        ncgmt.variables["tas"][:],
-    )
-    ncgmt.close()
+#     # interpolate from yearly to daily values
+#     gmt_on_each_day = np.interp(
+#         np.arange(length_of_record * days_of_year),
+#         ncgmt.variables["time"][:],
+#         np.squeeze(ncgmt.variables["tas"][:]),
+#     )
+#     ncgmt.close()
 
-    return gmt_on_each_day
+#     return gmt_on_each_day
 
 
 def mcs_helper(nct, data_to_detrend, gmt, i, j):

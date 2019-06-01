@@ -63,8 +63,8 @@ stps = 20  # trend in season scale (sd)
 
 gmt_file = dataset + "_ssa_gmt.nc4"
 
-# source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
-source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
+source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
+# source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_1979_2018.nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfactual_file = variable + "_" + dataset + "_cfactual.nc4"
