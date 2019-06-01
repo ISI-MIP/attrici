@@ -4,4 +4,7 @@ notebooks/
 __pycache__/
 output/
 gswp3
+*.egg-info/
+submit.sh
+log/
 

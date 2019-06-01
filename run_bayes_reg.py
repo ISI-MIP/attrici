@@ -1,94 +1,101 @@
-print("Beginning of run_bayes_reg.py")
 import os
+import sys
 import numpy as np
+import pymc3 as pm
 import netCDF4 as nc
 from datetime import datetime
+from pathlib import Path
+from mpi4py.futures import MPIPoolExecutor
 import settings as s
 import idetrend as idtr
-import idetrend.const as c
 import idetrend.bayes_detrending as bt
-import pymc3 as pm
-from mpi4py.futures import MPIPoolExecutor
-import sys
 
-#  Data Paths (now ignored for bayes implementation)
-#  gmt_file = os.path.join(s.data_dir, s.gmt_file)
-#  to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
-#  gmt_on_each_day = idtr.utility.get_gmt_on_each_day(gmt_file, s.days_of_year)
-#  data = nc.Dataset(to_detrend_file, "r")
-#  data_to_detrend = data.variables[s.variable]  # [:]
-#  data_to_detrend = idtr.utility.check_data(data_to_detrend, to_detrend_file)
-gmt_file = os.path.join(s.data_dir, 'era5_ssa_gmt_leap.nc4')
-to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
+try:
+    submitted = os.environ["SUBMITTED"] == "1"
+except KeyError:
+    submitted = False
+
+# get gmt file
+gmt_file = os.path.join(s.input_dir, s.gmt_file)
+gmt = bt.get_gmt_on_each_day(gmt_file, s.days_of_year)
+gmt_scaled = bt.y_norm(gmt, gmt)
+# get data to detrend
+to_detrend_file = os.path.join(s.input_dir, s.source_file)
 data = nc.Dataset(to_detrend_file, "r")
-data_to_detrend = data.variables[s.variable][:, 10, :]
+# get time data
 nct = data.variables["time"]
-ncg = nc.Dataset(gmt_file, "r")
-tdf = bt.create_dataframe(nct, data_to_detrend, ncg.variables["tas"][:])
-#  print(data_to_detrend.shape)
-data.close()
-ncg.close()
+
+# combine data to first data table
+tdf = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
+
+if not os.path.exists(s.output_dir):
+    os.makedirs(s.output_dir)
+    os.makedirs(Path(s.output_dir) / "traces")
 
 if __name__ == "__main__":
 
-    TIME0 = datetime.now()
     print("Variable is:")
     print(s.variable, flush=True)
-
     # Create bayesian regression model instance
-    bayes = bt.bayes_regression(tdf["gmt_scaled"])
+    bayes = bt.bayes_regression(tdf["gmt_scaled"], s.output_dir)
 
-    #  print(bt.subset_tbf(tdf, 0))
-    with MPIPoolExecutor() as executor:
-        future = executor.map(bayes.mcs,
-                              (bt.mcs_helper(tdf, i, 1000) for i in range(data_to_detrend.shape[1])))
-    print(future.result())
-    #  results = idtr.utility.run_regression_on_dataset(
-    #      data_to_detrend, s.days_of_year, bayes, s.n_jobs
-    #  )
-    #  traces = bayes.mcs(s.ntraces, s.
+    TIME0 = datetime.now()
+    if submitted:
 
-    # And run the sanity check
-    #  bt.sanity_check(bayes.model, tdf)
+        s.ncores_per_job = 1
+        with MPIPoolExecutor() as executor:
+            futures = executor.map(
+                bayes.run,
+                (
+                    bt.mcs_helper(nct, data, gmt, i, j)
+                    for i in range(data.dimensions["lat"].size)
+                    for j in range(data.dimensions["lon"].size)
+                ),
+            )
 
-    #  model = pm.Model()
-    #
-    #  with model:
-    #      y = bt.trend_model(model, tdf["gmt_scaled"])
-    #
-    #      sigma = pm.HalfCauchy('sigma', 0.5, testval=1)
-    #      pm.Normal('obs',
-    #                   mu=y,
-    #                   sd=sigma,
-    #                   observed=tdf["y_scaled"])
-    #  regr = idtr.regression.regression(
-    #      gmt_on_each_day,
-    #      s.min_ts_len,
-    #      c.minval[s.variable],
-    #      c.maxval[s.variable],
-    #      c.transform[s.variable],
-    #  )
-    #
-    #  results = idtr.utility.run_regression_on_dataset(
-    #      data_to_detrend, s.days_of_year, regr, s.n_jobs
-    #  )
-    #
-    #  TIME1 = datetime.now()
-    #  duration = TIME1 - TIME0
-    #  print("Calculation took", duration.total_seconds(), "seconds.")
-    #
-    #  file_to_write = os.path.join(s.data_dir, s.regression_outfile)
-    #
-    #  if os.path.exists(file_to_write):
-    #      os.remove(file_to_write)
-    #
-    #  idtr.regression.write_regression_stats(
-    #      data_to_detrend.shape,
-    #      (data.variables["lat"], data.variables["lon"]),
-    #      results,
-    #      file_to_write,
-    #      s.days_of_year,
-    #  )
-    #  TIME2 = datetime.now()
-    #  duration = TIME2 - TIME1
-    #  print("Saving took", duration.total_seconds(), "seconds.")
+    else:
+        print("serial mode")
+        futures = map(
+            bayes.run,
+            (
+                bt.mcs_helper(nct, data, gmt, i, j)
+                for i in range(data.dimensions["lat"].size)
+                for j in range(data.dimensions["lon"].size)
+            ),
+        )
+
+    # next line is necessary to trigger serial map() function.
+    futures = list(futures)
+
+    print("Estimation completed for all cells. It took {0:.1f} minutes.".format(
+                (datetime.now() - TIME0).total_seconds()/60))
+
+    # if os.path.isfile(s.params_file):
+    #     os.remove(s.params_file)
+    #     print("removed old output file")
+
+    # # create output file
+    # file_to_write = os.path.join(s.output_dir, s.params_file)
+    # ds = nc.Dataset(file_to_write, "w", format="NETCDF4")
+    # coords = (range(s.ndraws * s.nchains), data.variables["lat"], data.variables["lon"])
+    # bt.create_bayes_reg(ds, futures[0], coords)
+    # print("Shaped output file.")
+
+    # var = ds.groups["variables"]
+    # sampler_stats = ds.groups["sampler_stats"]
+    # k = 0
+    # for i in range(data.dimensions["lat"].size):
+    #     for j in range(data.dimensions["lon"].size):
+    #         bt.write_bayes_reg(var, sampler_stats, futures[k], (i, j))
+    #         k += 1
+
+    # TIME1 = datetime.now()
+    # duration = TIME1 - TIME0
+    # print(
+    #     "Saving model parameter traces for lat slice " + str(i) + " took",
+    #     duration.total_seconds(),
+    #     "seconds.",
+    # )
+    # ds.close()
+
+    # data.close()

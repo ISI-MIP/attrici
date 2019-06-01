@@ -1,0 +1,17 @@
+[cuda]
+root = /p/system/packages/cuda/9.2
+
+[global]
+device = cpu
+floatX = float32
+cxx = icpc
+mode = FAST_RUN
+openmp = True
+openmp_elemwise_minsize = 10
+
+[gcc]
+cxxflags = -qopenmp -march=native -O3 -vec-report3 -fno-alias -qopt-prefetch=2 -fp-trap=none
+
+[blas]
+ldflags = -lmkl_rt
+

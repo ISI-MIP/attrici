@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#SBATCH --qos=priority
+#SBATCH --partition=priority
+#SBATCH --job-name={{jobname}}
+#SBATCH --account=isipedia
+#SBATCH --output={{s.log_dir}}/%x.out
+#SBATCH --error={{s.log_dir}}/%x.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user={{s.user}}@pik-potsdam.de
+#SBATCH --ntasks={{s.ntasks}}
+
+module purge
+module load anaconda/5.0.0_py3
+module load compiler/gnu/7.3.0
+module load intel/2019.3
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{{s.conda_path}}/lib/libfabric/libfabric.so
+export FI_PROVIDER_PATH={{s.conda_path}}/lib/libfabric/prov
+export I_MPI_FABRICS=shm:ofi # shm:dapl not applicable for libfabric
+unset I_MPI_DAPL_UD
+unset I_MPI_DAPL_UD_PROVIDER
+export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
+export SUBMITTED=1
+# export I_MPI_DEBUG=5
+
+echo "Number of processes started:"
+echo $SLURM_NPROCS
+
+srun -n $SLURM_NTASKS {{s.conda_path}}/bin/python -m mpi4py.futures run_bayes_reg.py
+
+echo "Finished run."

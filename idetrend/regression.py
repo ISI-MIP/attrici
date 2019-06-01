@@ -1,19 +1,23 @@
 import os
 import sys
 import time
+
 #  from datetime import datetime
 
 # import iris
 # import iris.coord_categorisation as icc
 import numpy as np
 import netCDF4 as nc
+
 #  import settings as s
 from scipy.stats import mstats
 from collections import namedtuple
+
 #  import idetrend.const as c
 
 regresult = namedtuple(
-    "LinregressResult", ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount")
+    "LinregressResult",
+    ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount"),
 )
 
 
@@ -67,13 +71,19 @@ class regression(object):
         # get mask of dependent variable to apply to independent
         mask = np.ma.getmask(data_of_doy)
         # compute int std error from slope_stderr and gmt_of_doy
-        int_err = res.stderr*np.sqrt(1 / data_of_doy.count() * np.sum(np.power(gmt_of_doy[~mask], 2)))
+        int_err = res.stderr * np.sqrt(
+            1 / data_of_doy.count() * np.sum(np.power(gmt_of_doy[~mask], 2))
+        )
 
         return regresult(
-            slope=res.slope, intercept=res.intercept, rvalue=res.rvalue,
-            pvalue=res.pvalue, stderr_slo=res.stderr, stderr_int=int_err,
-            vdcount=data_of_doy.count()
-            )
+            slope=res.slope,
+            intercept=res.intercept,
+            rvalue=res.rvalue,
+            pvalue=res.pvalue,
+            stderr_slo=res.stderr,
+            stderr_int=int_err,
+            vdcount=data_of_doy.count(),
+        )
 
 
 # functions
@@ -108,7 +118,7 @@ def write_regression_stats(
     tm = output_ds.createDimension("time", None)
     lat = output_ds.createDimension("lat", original_data_coords[0].shape[0])
     lon = output_ds.createDimension("lon", original_data_coords[1].shape[0])
-    #print(output_ds.dimensions)
+    # print(output_ds.dimensions)
     times = output_ds.createVariable("time", "f8", ("time",))
     longitudes = output_ds.createVariable("lon", "f4", ("lon",))
     latitudes = output_ds.createVariable("lat", "f4", ("lat",))
@@ -116,10 +126,14 @@ def write_regression_stats(
     slopes = output_ds.createVariable("slope", "f8", ("time", "lat", "lon"))
     r_values = output_ds.createVariable("r_values", "f8", ("time", "lat", "lon"))
     p_values = output_ds.createVariable("p_values", "f8", ("time", "lat", "lon"))
-    std_errors_slo = output_ds.createVariable("std_errors_slo", "f8", ("time", "lat", "lon"))
-    std_errors_int = output_ds.createVariable("std_errors_int", "f8", ("time", "lat", "lon"))
+    std_errors_slo = output_ds.createVariable(
+        "std_errors_slo", "f8", ("time", "lat", "lon")
+    )
+    std_errors_int = output_ds.createVariable(
+        "std_errors_int", "f8", ("time", "lat", "lon")
+    )
     vd_count = output_ds.createVariable("data_count", "f8", ("time", "lat", "lon"))
-    #print(intercepts)
+    # print(intercepts)
 
     output_ds.description = "Regression test script"
     output_ds.history = "Created " + time.ctime(time.time())
@@ -136,8 +150,8 @@ def write_regression_stats(
     latitudes[:] = lats
     longitudes[:] = lons
 
-    #print("latitudes: \n", latitudes[:])
-    #print("longitudes: \n", longitudes[:])
+    # print("latitudes: \n", latitudes[:])
+    # print("longitudes: \n", longitudes[:])
     ic = np.ma.masked_all([days_of_year, shape_of_input[1], shape_of_input[2]])
     s = np.ma.copy(ic)
     r = np.ma.copy(ic)

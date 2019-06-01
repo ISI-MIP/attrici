@@ -32,7 +32,6 @@ def fit_minimal(gmt_on_doy, intercept, slope, transform=None):
 
 
 class detrending(object):
-
     def __init__(
         self,
         lons,
@@ -87,8 +86,6 @@ class detrending(object):
         ncf.close()
         return data_to_detrend
 
-
-
     def get_invalid_mask(self, data, minval, maxval):
 
         """ return mask ofvalues that are outside the valid range
@@ -109,8 +106,6 @@ class detrending(object):
             mdata = np.ma.masked_outside(data, minval, maxval)
 
         return np.ma.getmaskarray(mdata)
-
-
 
     def write_detrended(self, file_to_write):
 
