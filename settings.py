@@ -30,9 +30,9 @@ template = "array" # array or std
 # if test=True use smaller test dataset
 test = True  # use to run on test dataset
 variable = "tas"  # select variable to detrend
-dataset = "era5"  # select dataset to run on
-startyear = 1979  # select startyear
-endyear = 2018  # select endyear
+dataset = "gswp3"  # select dataset to run on
+startyear = 1901  # select startyear
+endyear = 2010  # select endyear
 # have to be in filenames
 calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 
@@ -41,7 +41,7 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 # model run settings
 debug = True  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
-ntunes = 800  # number of draws to tune model
+ntunes = 1000  # number of draws to tune model
 ndraws = 1000  # number of sampling draws per chaiin
 nchains = 5  # number of chains to calculate (min 2 to check for convergence)
 # number of cores to use for one gridpoint
