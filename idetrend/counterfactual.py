@@ -9,6 +9,7 @@ import pymc3 as pm
 import pandas as pd
 import netCDF4 as nc
 import idetrend.bayes_detrending as bt
+import idetrend.utility as u
 from datetime import datetime
 from pathlib import Path
 import settings as s
@@ -30,10 +31,10 @@ class cfact(object):
             self.trace = pm.load_trace(self.trace_path)
 
     def det_post(self):
-        x_yearly, x_trend = self.xdata
+        x_yearly, x_trend = self.x_data
         self.trend_post = self.trace['k'] + self.trace['m'] * self.tdf["gmt_scaled"][:,None]
-        self.year_post= det_seasonality_posterior(trace['beta_yearly'], x_yearly)
-        self.year_trend_post= det_seasonality_posterior(trace['beta_trend'], x_trend)
+        self.year_post= det_seasonality_posterior(self.trace['beta_yearly'], x_yearly)
+        self.year_trend_post= det_seasonality_posterior(self.trace['beta_trend'], x_trend)
 
         self.post = self.trend_post + self.year_post + self.year_trend_post
 
@@ -49,11 +50,11 @@ class cfact(object):
         self.det_cfact()
         cfact = u.y_inv(self.cfact, self.tdf["y"])
 
-        return cfact.median(1)
+        return cfact.mean(1)
 
 
-    def det_seasonality_posterior(beta, x):
-        return np.dot(x, beta.T)
+def det_seasonality_posterior(beta, x):
+    return np.dot(x, beta.T)
 
 
 def cfact_helper(data_to_detrend, nct, gmt, i, j):
