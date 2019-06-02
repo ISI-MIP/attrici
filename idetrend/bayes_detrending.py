@@ -1,8 +1,4 @@
 import os
-
-base_compiledir = os.path.expandvars("$HOME/.theano/slot-%d" % (os.getpid() % 500))
-os.environ["THEANO_FLAGS"] = "base_compiledir=%s" % base_compiledir
-
 import theano
 import numpy as np
 import pymc3 as pm
@@ -58,7 +54,6 @@ class bayes_regression(object):
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
 
-        print(output_dir)
         trace = pm.load_trace(output_dir, model=self.model)
 
         try:
