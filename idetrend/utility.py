@@ -228,6 +228,9 @@ def copy_nc_container(ds, data):
     for name, variable in data.variables.items():
         x = ds.createVariable(name, variable.datatype, variable.dimensions)
 
+def y_inv(y, y_orig):
+    """rescale data y to y_original"""
+    return y_to_scale * (y_orig.max() - y_orig.min()) + y_orig.min()
 # def logit(data):
 #     from settings import variable
 
