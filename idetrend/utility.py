@@ -219,6 +219,14 @@ def check_data(data, source_path_data):
     print("Data checked for forbidden values!", flush=True)
     return data
 
+def copy_nc_container(ds, data):
+    """ Creates a new netCDF file with dimensions and variables as in data"""
+
+    for name, dimension in data.dimensions.items():
+        ds.createDimension(name, len(dimension) if not dimension.isunlimited() else None)
+
+    for name, variable in data.variables.items():
+        x = ds.createVariable(name, variable.datatype, variable.dimensions)
 
 # def logit(data):
 #     from settings import variable
