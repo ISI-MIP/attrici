@@ -20,8 +20,8 @@ input_dir = Path(data_dir) / "input"
 # make output dir same as cwd. Helps if running more than one job.
 output_dir = Path(data_dir) / "output" / Path.cwd().name
 
- # number of parallel jobs through jobarray
- # used through submit.sh, needs to be divisor of number of grid cells
+# number of parallel jobs through jobarray
+# used through submit.sh, needs to be divisor of number of grid cells
 njobarray = 15
 
 # if test=True use smaller test dataset
@@ -33,9 +33,9 @@ days_of_year = 365.2425
 # model run settings
 debug = True  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
-ntunes = 800  # number of draws to tune model
-ndraws = 1000  # number of sampling draws per chaiin
-nchains = 5  # number of chains to calculate (min 2 to check for convergence)
+tune = 800  # number of draws to tune model
+draws = 1000  # number of sampling draws per chaiin
+chains = 5  # number of chains to calculate (min 2 to check for convergence)
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.
 ncores_per_job = 2

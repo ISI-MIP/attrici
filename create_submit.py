@@ -7,6 +7,7 @@ jobname = pathlib.Path.cwd().name
 
 template_file = "submit.sh.jinja2"
 
+
 def write_submit(settings, jobname):
 
     # make jinja aware of templates
