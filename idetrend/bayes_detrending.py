@@ -105,7 +105,7 @@ class bayes_regression(object):
         # add observations to finished model
         dist, y = self.add_observations(data, x_yearly, x_trend)
 
-        return (self.model, x_yearly, x_trend)
+        return self.model, (x_yearly, x_trend)
 
     def sample(
         self, i, j,
