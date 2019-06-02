@@ -105,7 +105,7 @@ class bayes_regression(object):
         # add observations to finished model
         dist, y = self.add_observations(data, x_yearly, x_trend)
 
-        return self.model
+        return (self.model, x_yearly, x_trend)
 
     def sample(
         self, i, j,
@@ -197,10 +197,6 @@ def det_trend(k, m, delta, t, s, A):
 
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
-
-
-def y_inv(y_to_scale, y_orig):
-    return y_to_scale * (y_orig.max() - y_orig.min()) + y_orig.min()
 
 
 def create_dataframe(nct, data_to_detrend, gmt):
