@@ -1,14 +1,10 @@
 import os
 import sys
 import numpy as np
-import pymc3 as pm
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
-# from mpi4py.futures import MPIPoolExecutor
 import settings as s
-import idetrend as idtr
-import idetrend.const as c
 import idetrend.bayes_detrending as bt
 
 try:
@@ -34,7 +30,7 @@ latsize = obs_data.dimensions["lat"].size
 ncells = latsize*obs_data.dimensions["lon"].size
 
 # create_dataframe maps gmt on the time axis of obs_data
-# ensure that both have the same start and endpoint in time.
+# Ensure that both have the same start and endpoint in time.
 tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
 
 if not os.path.exists(s.output_dir):
