@@ -12,8 +12,6 @@ import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
 
-# import settings as s
-
 
 class bayes_regression(object):
     def __init__(self, regressor, cfg):
@@ -57,8 +55,20 @@ class bayes_regression(object):
 
         data, i, j = datazip
         self.setup_model(data)
-        self.sample()
-        self.save_trace(i, j)
+
+        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
+
+        print(output_dir)
+        trace = pm.load_trace(output_dir, model=self.model)
+
+        try:
+            for var in ['slope', 'intercept', 'beta_yearly', 'beta_trend', 'sigma']:
+                if var not in trace.varnames:
+                    raise IndexError("Sample data not completely saved. Rerun.")
+            print("Successfully loaded sampled data. Skip this for sampling.")
+        except IndexError:
+            self.sample()
+            self.save_trace(i, j)
 
     def setup_model(self, data):
 
