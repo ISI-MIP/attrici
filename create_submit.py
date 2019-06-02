@@ -5,9 +5,7 @@ import pathlib
 
 jobname = pathlib.Path.cwd().name
 
-templates = {"std":"submit.sh.jinja2", "array":"submit_array.sh.jinja2"}
-
-template_file = templates[settings.template]
+template_file = "submit.sh.jinja2"
 
 def write_submit(settings, jobname):
 
