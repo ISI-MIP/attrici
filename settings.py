@@ -28,7 +28,7 @@ regtype = "bayes"  # regression type: 'bayes' or 'linear'
 template = "array" # array or std
 
 # if test=True use smaller test dataset
-test = True  # use to run on test dataset
+test = False  # use to run on test dataset
 variable = "tas"  # select variable to detrend
 dataset = "gswp3"  # select dataset to run on
 startyear = 1901  # select startyear
@@ -39,7 +39,7 @@ calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 ################### For Bayesian ############
 
 # model run settings
-debug = True  # use to turn on debug settings
+debug = False  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
 ntunes = 1000  # number of draws to tune model
 ndraws = 1000  # number of sampling draws per chaiin
@@ -64,8 +64,8 @@ stps = 20  # trend in season scale (sd)
 gmt_file = dataset + "_ssa_gmt.nc4"
 
 # source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
-source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
-# source_file = variable + "_" + dataset + "_1979_2018.nc4"
+#  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
+source_file = variable + "_" + dataset + "_1901_2010.nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfactual_file = variable + "_" + dataset + "_cfactual.nc4"
 
