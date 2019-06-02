@@ -11,14 +11,32 @@ import pandas as pd
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
-import settings as s
+
+# import settings as s
 
 
 class bayes_regression(object):
-    def __init__(self, regressor, output_dir):
+    def __init__(self, regressor, cfg):
 
         self.regressor = regressor.values
-        self.output_dir = output_dir
+        self.output_dir = cfg.output_dir
+        self.init = cfg.init
+        self.draws = cfg.draws
+        self.cores = cfg.ncores_per_job
+        self.chains = cfg.chains
+        self.tune = cfg.tune
+        self.progressbar = cfg.progressbar
+        self.days_of_year = cfg.days_of_year
+
+        self.modes = cfg.modes
+        self.linear_mu = cfg.linear_mu
+        self.linear_sigma = cfg.linear_sigma
+        self.sigma_beta = cfg.sigma_beta
+        self.smu = cfg.smu
+        self.sps = cfg.sps
+        self.stmu = cfg.stmu
+        self.stps = cfg.stps
+
 
     def add_season_model(self, data, modes, smu, sps, beta_name):
         """
@@ -39,7 +57,7 @@ class bayes_regression(object):
 
         data, i, j = datazip
         self.setup_model(data)
-        self.sample(i, j)
+        self.sample()
         self.save_trace(i, j)
 
     def setup_model(self, data):
@@ -48,16 +66,15 @@ class bayes_regression(object):
         self.model = pm.Model()
 
         with self.model:
-            slope = pm.Normal("slope", s.linear_mu, s.linear_sigma)
-            intercept = pm.Normal("intercept", s.linear_mu, s.linear_sigma)
-            sigma = pm.HalfCauchy("sigma", s.sigma_beta, testval=1)
+            slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
+            intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
-        # add seasonality models
         x_yearly = self.add_season_model(
-            data, s.modes, smu=s.smu, sps=s.sps, beta_name="beta_yearly"
+            data, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
         )
         x_trend = self.add_season_model(
-            data, s.modes, smu=s.stmu, sps=s.stps, beta_name="beta_trend"
+            data, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
         )
 
         with self.model as model:
@@ -74,32 +91,21 @@ class bayes_regression(object):
 
         return self.model, x_yearly, x_trend
 
-    def sample(
-        self,
-        i,
-        j,
-        init=s.init,
-        draws=s.ndraws,
-        cores=s.ncores_per_job,
-        chains=s.nchains,
-        tune=s.ntunes,
-        progressbar=s.progressbar,
-        live_plot=s.progressbar,
-    ):
 
-        print("Working on [", i, j, "]", flush=True)
+    def sample(self):
+
         TIME0 = datetime.now()
 
         with self.model:
             self.trace = pm.sample(
-                draws=draws,
-                init=init,
-                cores=cores,
-                chains=chains,
-                tune=tune,
-                progressbar=progressbar,
-                live_plot=live_plot,
+                draws=self.draws,
+                init=self.init,
+                cores=self.cores,
+                chains=self.chains,
+                tune=self.tune,
+                progressbar=self.progressbar,
             )
+
         TIME1 = datetime.now()
         print(
             "Finished job {0} in {1:.0f} seconds.".format(
@@ -115,6 +121,7 @@ class bayes_regression(object):
         pm.backends.save_trace(self.trace, output_dir, overwrite=True)
 
 
+
 def det_dot(a, b):
     """
     The theano dot product and NUTS sampler don't work with large matrices?
@@ -125,7 +132,7 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def fourier_series(t, p=s.days_of_year, n=10):
+def fourier_series(t, p, n):
     # 2 pi n / p
     x = 2 * np.pi * np.arange(1, n + 1) / p
     # 2 pi n / p * t
@@ -173,8 +180,8 @@ def create_dataframe(nct, data_to_detrend, gmt):
     return tdf
 
 
-def mcs_helper(nct, data_to_detrend, gmt, i, j):
+def mcs_helper(nct, data_to_detrend, gmt, variable, i, j):
 
-    data = data_to_detrend.variables[s.variable][:, i, j]
+    data = data_to_detrend.variables[variable][:, i, j]
     tdf = create_dataframe(nct, data, gmt)
     return (tdf, i, j)
