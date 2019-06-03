@@ -16,7 +16,7 @@ import settings as s
 
 class cfact(object):
     def __init__(self, nct, gmt):
-        gmt_tdf = creat_gmt_frame(nct, gmt)
+        gmt_tdf = create_gmt_frame(nct, gmt)
         self.bayes = bt.bayes_regression(gmt_tdf["gmt_scaled"], s)
         self.gmt = gmt
         self.nct = nct
@@ -75,7 +75,7 @@ def cfact_helper(data_to_detrend, nct, gmt, i, j):
     data = data_to_detrend.variables[s.variable][:, i, j]
     #  tdf = bt.create_dataframe(nct, data, gmt)
     return (data, i, j)
-def creat_gmt_frame(nct, gmt):
+def create_gmt_frame(nct, gmt):
     ds = pd.to_datetime(
         nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
     )
