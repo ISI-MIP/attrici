@@ -39,7 +39,8 @@ class cfact(object):
         self.post = self.trend_post + self.year_post + self.year_trend_post
 
     def det_cfact(self):
-        self.cfact = self.trace['k'] + self.post
+        #  self.cfact = self.trace['k'] + self.post
+        self.cfact = self.tdf["y"] - self.trend_post - self.year_trend_post
 
     def run(self, datazip):
         data, i, j = datazip
