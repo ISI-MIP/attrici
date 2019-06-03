@@ -20,7 +20,7 @@ except KeyError:
     submitted = False
 
 # get gmt file
-gmt_file = os.path.join(s.data_dir, s.gmt_file)
+gmt_file = os.path.join(s.input_dir, s.gmt_file)
 gmt = nc.Dataset(gmt_file, "r")
 gmt = np.squeeze(gmt.variables["tas"][:])
 
