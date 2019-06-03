@@ -30,8 +30,8 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-inputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}_noleap.nc4
-outputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}_rechunked_noleap.nc4
+inputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
+outputfile=${datafolder}/input/${variable}_${dataset}_${startyear}_${endyear}.nc4
 echo 'Rechunk the following variable'
 echo $variable
 echo 'Inputfile:' ${inputfile}
