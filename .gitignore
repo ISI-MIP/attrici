@@ -8,4 +8,6 @@ gswp3
 submit.sh
 submit_array.sh
 log/
+backup/
+*.ipynb
 
