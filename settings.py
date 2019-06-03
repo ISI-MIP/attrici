@@ -34,7 +34,7 @@ njobarray = 15
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 variable = "tas"  # select variable to detrend
-dataset = "era5"  # select dataset to run on
+dataset = "gswp3"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.2425
 
@@ -42,7 +42,7 @@ days_of_year = 365.2425
 debug = False  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 800  # number of draws to tune model
-draws = 1000  # number of sampling draws per chaiin
+draws = 1000  # number of sampling draws per chain
 chains = 5  # number of chains to calculate (min 2 to check for convergence)
 
 # number of cores to use for one gridpoint
