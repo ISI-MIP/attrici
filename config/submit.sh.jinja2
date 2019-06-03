@@ -10,6 +10,7 @@
 #SBATCH --mail-user={{s.user}}@pik-potsdam.de
 #SBATCH --ntasks=1
 #SBATCH --array=0-{{s.njobarray-1}}
+#SBATCH --cpus-per-task=1
 #SBATCH --time=00-23:50:00
 
 module purge
@@ -29,6 +30,6 @@ mkdir -p $cdir
 export THEANO_FLAGS=base_compiledir=$cdir
 # export I_MPI_DEBUG=5
 
-srun -n $SLURM_NTASKS {{s.conda_path}}/bin/python run_bayes.py
+srun -n $SLURM_NTASKS {{s.conda_path}}/bin/python -u run_bayes.py
 
 echo "Finished run."
