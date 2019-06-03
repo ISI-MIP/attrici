@@ -17,14 +17,16 @@ import settings as s
 class cfact(object):
     def __init__(self, nct, gmt):
         gmt_tdf = creat_gmt_frame(nct, gmt)
-        self.bayes = bt.bayes_regression(gmt_tdf["gmt_scaled"], s.output_dir)
+        self.bayes = bt.bayes_regression(gmt_tdf["gmt_scaled"], s)
         self.gmt = gmt
         self.nct = nct
 
     def get_data(self, data, i, j):
-        self.trace_path = os.path.join(s.output_dir, "traces", "trace_" + str(i) + "_" + str(j))
+        self.trace_path = "/p/tmp/mengel/isimip/isi-cfact/output/isicfat_gswp3_tas_full/traces/trace_" + str(i) + "_" + str(j)
+        #  self.trace_path = os.path.join(s.output_dir, "traces", "trace_" + str(i) + "_" + str(j))
         self.tdf = bt.create_dataframe(self.nct, data, self.gmt)
         self.model, self.x_data = self.bayes.setup_model(self.tdf)
+        print(self.trace_path)
 
     def load_trace(self):
         with self.model:
@@ -32,7 +34,7 @@ class cfact(object):
 
     def det_post(self):
         x_yearly, x_trend = self.x_data
-        self.trend_post = self.trace['k'] + self.trace['m'] * self.tdf["gmt_scaled"][:,None]
+        self.trend_post = self.trace['intercept'] + self.trace['slope'] * self.tdf["gmt_scaled"][:,None]
         self.year_post= det_seasonality_posterior(self.trace['beta_yearly'], x_yearly)
         self.year_trend_post= det_seasonality_posterior(self.trace['beta_trend'], x_trend)
 
@@ -40,18 +42,29 @@ class cfact(object):
 
     def det_cfact(self):
         #  self.cfact = self.trace['k'] + self.post
-        self.cfact = self.tdf["y"] - self.trend_post - self.year_trend_post
+        self.trend_posterior = u.y_inv(self.trend_post,self.tdf['y'])
+        self.yearly_posterior = u.y_inv(self.year_post,self.tdf['y']) - self.tdf['y'].min()
+        self.yearly_trend_posterior = u.y_inv(self.year_trend_post,self.tdf['y']) - self.tdf['y'].min()
+        self.cfact = self.tdf["y"].data - self.trend_post.mean(1) - self.year_trend_post.mean(1)
 
     def run(self, datazip):
-        data, i, j = datazip
-        self.get_data(data, i, j)
-        self.load_trace()
-        self.det_post()
-        post = u.y_inv(self.post, self.tdf['y'])
-        self.det_cfact()
-        cfact = u.y_inv(self.cfact, self.tdf["y"])
+        try:
+            data, i, j = datazip
+            self.get_data(data, i, j)
+            self.load_trace()
+            self.det_post()
+            post = u.y_inv(self.post, self.tdf['y'])
+            self.det_cfact()
+            #  cfact = u.y_inv(self.cfact, self.tdf["y"])
 
-        return cfact.mean(1)
+            return self.cfact
+        except:
+            data, i, j = datazip
+            empty = np.empty((data.shape[0],))
+            empty[:] = np.nan
+            print("trace missing! Printing nans!")
+            return empty
+
 
 
 def det_seasonality_posterior(beta, x):
