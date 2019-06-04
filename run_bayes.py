@@ -1,5 +1,4 @@
 import os
-import sys
 import numpy as np
 import netCDF4 as nc
 from datetime import datetime

@@ -1,19 +1,18 @@
 import os
-import pickle
-import numpy as np
-import netCDF4 as nc
 from datetime import datetime
-import settings as s
-import idetrend as idtr
-import idetrend.const as c
+#  import idetrend.const as c
+from pathlib import Path
+
+import netCDF4 as nc
+import numpy as np
+
 import idetrend.bayes_detrending as bt
 import idetrend.counterfactual as cf
 import idetrend.utility as u
-import pymc3 as pm
-from mpi4py.futures import MPIPoolExecutor
-import sys
-import pandas as pd
-import fcntl
+import settings as s
+
+#  from mpi4py.futures import MPIPoolExecutor
+#  import fcntl
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
