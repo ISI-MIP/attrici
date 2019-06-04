@@ -227,6 +227,10 @@ def copy_nc_container(ds, data):
 
     for name, variable in data.variables.items():
         x = ds.createVariable(name, variable.datatype, variable.dimensions)
+    ds.variables["time"][:] = data.variables["time"][:]
+    ds.variables["time"].units = data.variables["time"].units
+    ds.variables["lat"][:] = data.variables["lat"][:]
+    ds.variables["lon"][:] = data.variables["lon"][:]
 
 def y_inv(y, y_orig):
     """rescale data y to y_original"""
