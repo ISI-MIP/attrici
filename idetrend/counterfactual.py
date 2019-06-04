@@ -1,7 +1,8 @@
 import os
 
-#  base_compiledir = os.path.expandvars("$HOME/.theano/slot-%d" % os.getpid())
-#  os.environ["THEANO_FLAGS"] = "base_compiledir=%s" % base_compiledir
+# FIXME: eliminate this (should be set from submit script)
+base_compiledir = os.path.expandvars("$HOME/.theano/slot-%d" % os.getpid())
+os.environ["THEANO_FLAGS"] = "base_compiledir=%s" % base_compiledir
 
 import theano
 import numpy as np
@@ -33,7 +34,7 @@ class cfact(object):
         #  self.trace_path = os.path.join(s.output_dir, "traces", "trace_" + str(i) + "_" + str(j))
         self.tdf = bt.create_dataframe(self.nct, data, self.gmt)
         self.model, self.x_data = self.bayes.setup_model(self.tdf)
-        print(self.trace_path)
+        print("This is process", os.getpid(), "working on", self.trace_path)
 
     def load_trace(self):
         with self.model:
@@ -85,7 +86,7 @@ class cfact(object):
             post = u.y_inv(self.post, self.tdf["y"])
             self.det_cfact()
             self.save_ts(data, i, j, cfact_path_ts)
-            self.plot_cfact_ts(3650, i, j)
+            self.plot_cfact_ts(i, j, 40177)
             return self.cfact
 
         except:
@@ -95,7 +96,7 @@ class cfact(object):
             self.save_ts(empty, i, j, cfact_path_ts)
             return empty
 
-    def plot_cfact_ts(self, last, i, j):
+    def plot_cfact_ts(self, i, j, last):
         import matplotlib.dates as mdates
 
         fig = plt.figure(figsize=(16, 10))
@@ -171,8 +172,9 @@ class cfact(object):
         longitudes.long_name = "longitude"
         longitudes.standard_name = "longitude"
 
-        latitudes[:] = i / 2 + 0.25
-        longitudes[:] = j / 2 + 0.25
+        # FIXME: make flexible or implement loading from source data
+        latitudes[:] = (180 - i) / 2 - 0.25
+        longitudes[:] = (j - 360) / 2 + 0.25
         times[:] = range(data.shape[0])
         data_ts[:] = data
         cfact_file_ts.close()
@@ -182,9 +184,8 @@ def det_seasonality_posterior(beta, x):
     return np.dot(x, beta.T)
 
 
-def cfact_helper(data_to_detrend, nct, gmt, i, j):
+def cfact_helper(data_to_detrend, i, j):
     data = data_to_detrend.variables[s.variable][:, i, j]
-    #  tdf = bt.create_dataframe(nct, data, gmt)
     return (data, i, j)
 
 
