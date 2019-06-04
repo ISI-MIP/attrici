@@ -13,6 +13,7 @@ import pymc3 as pm
 from mpi4py.futures import MPIPoolExecutor
 import sys
 import pandas as pd
+import fcntl
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
@@ -62,6 +63,7 @@ calls_per_arrayjob = ncells / njobarray
 # on the SLURM task and the number of runs per task.
 start_num = int(task_id * calls_per_arrayjob)
 end_num = int((task_id + 1) * calls_per_arrayjob - 1)
+print("from", start_num, "to", end_num)
 
 # Print the task and run range
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
@@ -90,18 +92,37 @@ print(
 )
 
 #  create output file
+# FIXME: Either use this path setting to write to different files
 cfact_path = os.path.join(
     s.output_dir, s.cfact_file.split(".") + "-" + str(os.getpid()) + ".nc4"
 )
-cfact_file = nc.Dataset(cfact_path, "w", format="NETCDF4")
-cfact_file.description = "beta version of counterfactual weather"
-u.copy_nc_container(cfact_file, data)
+with nc.Dataset(cfact_path, "w", format="NETCDF4") as cfact_file:
+    cfact_file.description = "beta version of counterfactual weather"
+    u.copy_nc_container(cfact_file, data)
 
-k = 0
-for i in latrange:
-    for j in lonrange:
-        cfact_file.variables[s.variable][:, i, j] = futures[k]
+    k = 0
+    for i in latrange:
+        for j in lonrange:
+            cfact_file.variables[s.variable][:, i, j] = futures[k]
         k += 1
-
-cfact_file.close()
-#  trend_file.close()
+#  FIXME: Or this one, that locks the file until the process finished writing
+#  cfact_path = os.path.join(s.output_dir, s.cfact_file)
+#  with nc.Dataset(cfact_path, "w", format="NETCDF4") as cfact_file:
+#      while True:
+#          try:
+#              fcntl.flock(cfact_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+#              cfact_file.description = "beta version of counterfactual weather"
+#              u.copy_nc_container(cfact_file, data)
+#
+#              k = 0
+#              for i in latrange:
+#                  for j in lonrange:
+#                      cfact_file.variables[s.variable][:, i, j] = futures[k]
+#                  k += 1
+#              fcntl.flock(cfact_file, fcntl.LOCK_UN)
+#              break
+#          except IOError as e:
+#              if e.errno != errno.EAGAIN:
+#                      raise
+#              else:
+#                  time.sleep(10)
