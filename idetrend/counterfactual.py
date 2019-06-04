@@ -11,6 +11,7 @@ import netCDF4 as nc
 import idetrend.bayes_detrending as bt
 import idetrend.utility as u
 from datetime import datetime
+import matplotlib.pyplot as plt
 from pathlib import Path
 import settings as s
 
@@ -38,14 +39,15 @@ class cfact(object):
         self.year_post= det_seasonality_posterior(self.trace['beta_yearly'], x_yearly)
         self.year_trend_post= det_seasonality_posterior(self.trace['beta_trend'], x_trend)
 
+        self.trend_post = u.y_inv(self.trend_post,self.tdf['y'])
+        self.year_post = u.y_inv(self.year_post,self.tdf['y']) - self.tdf['y'].min()
+        self.year_trend_post = u.y_inv(self.year_trend_post,self.tdf['y']) - self.tdf['y'].min()
+
         self.post = self.trend_post + self.year_post + self.year_trend_post
 
     def det_cfact(self):
         #  self.cfact = self.trace['k'] + self.post
-        self.trend_posterior = u.y_inv(self.trend_post,self.tdf['y'])
-        self.yearly_posterior = u.y_inv(self.year_post,self.tdf['y']) - self.tdf['y'].min()
-        self.yearly_trend_posterior = u.y_inv(self.year_trend_post,self.tdf['y']) - self.tdf['y'].min()
-        self.cfact = self.tdf["y"].data - self.trend_post.mean(1) - self.year_trend_post.mean(1)
+        self.cfact = self.tdf["y"].data - self.trend_post.mean(1) - self.year_trend_post.mean(1) + self.trend_post.mean(1)[0]
 
     def run(self, datazip):
         if not os.path.exists("/home/bschmidt/temp/gswp3/output/detrending/timeseries"):
@@ -83,6 +85,7 @@ class cfact(object):
             post = u.y_inv(self.post, self.tdf['y'])
             self.det_cfact()
             data_ts[:] = data
+            self.plot_cfact_ts(3650, i, j)
             cfact_file_ts.close()
             return self.cfact
 
@@ -93,6 +96,54 @@ class cfact(object):
             data_ts[:] = empty
             cfact_file_ts.close()
             return empty
+
+    def plot_cfact_ts(self, last, i, j):
+        import matplotlib.dates as mdates
+
+        fig = plt.figure(figsize=(16,10))
+        plt.rcParams["font.size"] = 30
+        b = 111
+        date = self.tdf['ds'].dt.to_pydatetime()
+
+        ax = plt.subplot(b)
+
+        # Shrink current axis by 20%
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width, box.height*0.9])
+        # plt.title('total, only last 5 years shown')
+        plt.plot(date[-last:], self.tdf['y'][-last:], color = "grey", label = "Observated weather")
+
+        p0, = plt.plot(date[-last:], self.post.mean(1)[-last:], lw=4,
+                 label="Estimated best guess", color="brown")
+
+        plt.plot(date[-last:], self.cfact[-last:], label="Counterfactual weather")
+
+        plt.legend(loc="upper left", bbox_to_anchor=(0., 1.3),frameon=False)
+        plt.ylabel("Regional climatic variable")
+        plt.xlabel("Time")
+
+        # Hide the right and top spines
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+
+        # Only show ticks on the left and bottom spines
+        ax.yaxis.set_ticks_position('left')
+        ax.xaxis.set_ticks_position('bottom')
+        # ax.xaxis.set_ticklabels(ax.get_xticklabels()[::2])
+        xt = ax.set_xticks(ax.get_xticks()[::2])
+        ax.yaxis.set_ticklabels([])
+
+        # fig.autofmt_xdate()
+        plt.ylim(bottom=self.cfact[-last:].min(),
+                 top=self.cfact[-last:].max()+4)
+        myFmt = mdates.DateFormatter('%m-%Y')
+        ax.xaxis.set_major_formatter(myFmt)
+        # plt.tight_layout()
+        cfact_path_fig = os.path.join(s.output_dir,
+                                     "timeseries",
+                                     s.cfact_file.split(".")[0]
+                                     + "_" + str(i) + "_" + str(j) + ".png")
+        plt.savefig(cfact_path_fig,dpi=200)
 
 
 
