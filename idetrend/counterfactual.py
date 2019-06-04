@@ -87,14 +87,15 @@ class cfact(object):
             self.det_cfact()
             self.save_ts(data, i, j, cfact_path_ts)
             self.plot_cfact_ts(i, j, 40177)
+            print("Calc succesfull")
             return self.cfact
 
         except:
-            empty = np.empty((data.shape[0],))
-            empty[:] = np.nan
+            #  empty = np.empty((data.shape[0],))
+            #  empty[:] = np.nan
             print("trace missing! Printing nans!")
-            self.save_ts(empty, i, j, cfact_path_ts)
-            return empty
+            #  self.save_ts(np.nan, i, j, cfact_path_ts)
+            return np.nan
 
     def plot_cfact_ts(self, i, j, last):
         import matplotlib.dates as mdates
@@ -153,6 +154,7 @@ class cfact(object):
             s.cfact_file.split(".")[0] + "_" + str(i) + "_" + str(j) + ".png",
         )
         plt.savefig(cfact_path_fig, dpi=200)
+        plt.close()
 
     def save_ts(self, data, i, j, path):
         cfact_file_ts = nc.Dataset(path, "w", format="NETCDF4")
