@@ -42,30 +42,30 @@ class cfact(object):
 
     def det_post(self):
         x_yearly, x_trend = self.x_data
-        self.trend_post = (
+        trend_post = (
             self.trace["intercept"]
             + self.trace["slope"] * self.tdf["gmt_scaled"][:, None]
-        )
-        self.year_post = det_seasonality_posterior(self.trace["beta_yearly"], x_yearly)
-        self.year_trend_post = det_seasonality_posterior(
+        ).mean(1)
+        year_post = det_seasonality_posterior(self.trace["beta_yearly"], x_yearly).mean(1)
+        year_trend_post = det_seasonality_posterior(
             self.trace["beta_trend"], x_trend
+        ).mean(1)
+
+        trend_post = u.y_inv(trend_post, self.tdf["y"])
+        year_post = u.y_inv(year_post, self.tdf["y"]) - self.tdf["y"].min()
+        year_trend_post = (
+            u.y_inv(year_trend_post, self.tdf["y"]) - self.tdf["y"].min()
         )
 
-        self.trend_post = u.y_inv(self.trend_post, self.tdf["y"])
-        self.year_post = u.y_inv(self.year_post, self.tdf["y"]) - self.tdf["y"].min()
-        self.year_trend_post = (
-            u.y_inv(self.year_trend_post, self.tdf["y"]) - self.tdf["y"].min()
-        )
+        post = trend_post + year_post + year_trend_post
+        return trend_post, year_trend_post, post
 
-        self.post = self.trend_post + self.year_post + self.year_trend_post
-
-    def det_cfact(self):
-        #  self.cfact = self.trace['k'] + self.post
+    def det_cfact(self, trend_post, year_trend_post):
         self.cfact = (
             self.tdf["y"].data
-            - self.trend_post.mean(1)
-            - self.year_trend_post.mean(1)
-            + self.trend_post.mean(1)[0]
+            - trend_post
+            - year_trend_post
+            + trend_post[0]
         )
 
     def run(self, datazip):
@@ -82,22 +82,24 @@ class cfact(object):
         try:
             self.get_data(data, i, j)
             self.load_trace()
-            self.det_post()
-            post = u.y_inv(self.post, self.tdf["y"])
-            self.det_cfact()
+            trend_post, year_trend_post, post = self.det_post()
+            # FIXME: I think its already done by y_inv() on different parts in det_post
+            #  post = u.y_inv(self.post, self.tdf["y"])
+            self.det_cfact(trend_post, year_trend_post)
             self.save_ts(data, i, j, cfact_path_ts)
-            self.plot_cfact_ts(i, j, 40177)
+            self.plot_cfact_ts(post, i, j, 40177)
             print("Calc succesfull")
-            return self.cfact
+            #  return self.cfact
+            return "Done"
 
         except:
-            #  empty = np.empty((data.shape[0],))
-            #  empty[:] = np.nan
+            empty = np.empty((data.shape[0],))
+            empty[:] = np.nan
             print("trace missing! Printing nans!")
-            #  self.save_ts(np.nan, i, j, cfact_path_ts)
+            self.save_ts(empty, i, j, cfact_path_ts)
             return np.nan
 
-    def plot_cfact_ts(self, i, j, last):
+    def plot_cfact_ts(self, post, i, j, last):
         import matplotlib.dates as mdates
 
         fig = plt.figure(figsize=(16, 10))
@@ -120,7 +122,7 @@ class cfact(object):
 
         p0, = plt.plot(
             date[-last:],
-            self.post.mean(1)[-last:],
+            post[-last:],
             lw=4,
             label="Estimated best guess",
             color="brown",
