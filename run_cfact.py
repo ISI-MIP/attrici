@@ -90,7 +90,9 @@ print(
 )
 
 #  create output file
-cfact_path = os.path.join(s.output_dir, s.cfact_file.split(".") + "-" + str(os.getpid()) + ".nc4")
+cfact_path = os.path.join(
+    s.output_dir, s.cfact_file.split(".") + "-" + str(os.getpid()) + ".nc4"
+)
 cfact_file = nc.Dataset(cfact_path, "w", format="NETCDF4")
 cfact_file.description = "beta version of counterfactual weather"
 u.copy_nc_container(cfact_file, data)
