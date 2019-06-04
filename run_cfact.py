@@ -57,10 +57,9 @@ if __name__ == "__main__":
             futures = executor.map(
                 cfact.run,
                 (
-                    bt.cfact_helper(data, nct, gmt, i, j)
+                    cf.cfact_helper(data, nct, gmt, i, j)
                     for i in latrange
                     for j in lonrange
-
                 ),
             )
 
