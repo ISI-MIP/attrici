@@ -50,33 +50,14 @@ class cfact(object):
         self.cfact = self.tdf["y"].data - self.trend_post.mean(1) - self.year_trend_post.mean(1) + self.trend_post.mean(1)[0]
 
     def run(self, datazip):
-        if not os.path.exists("/home/bschmidt/temp/gswp3/output/detrending/timeseries"):
-            os.makedirs("/home/bschmidt/temp/gswp3/output/detrending/timeseries")
         data, i, j = datazip
         cfact_path_ts = os.path.join(s.output_dir,
                                      "timeseries",
                                      s.cfact_file.split(".")[0]
                                      + "_" + str(i) + "_" + str(j) + ".nc4")
-        cfact_file_ts = nc.Dataset(cfact_path_ts, "w", format="NETCDF4")
-        tm = cfact_file_ts.createDimension("time", None)
-        lat = cfact_file_ts.createDimension("lat", 1)
-        lon = cfact_file_ts.createDimension("lon", 1)
 
-        times = cfact_file_ts.createVariable("time", "f8", ("time",))
-        longitudes = cfact_file_ts.createVariable("lon", "f8", ("lon",))
-        latitudes = cfact_file_ts.createVariable("lat", "f8", ("lat",))
-        data_ts = cfact_file_ts.createVariable(s.variable, "f4", ("time", "lat", "lon"))
-
-        latitudes.units = "degree_north"
-        latitudes.long_name = "latitude"
-        longitudes.standard_name = "latitude"
-        longitudes.units = "degree_east"
-        longitudes.long_name = "longitude"
-        longitudes.standard_name = "longitude"
-
-        latitudes[:] = i/2 + .25
-        longitudes[:] = j/2 + .25
-        times[:] = range(data.shape[0])
+        if not os.path.exists(cfact_path_ts):
+            os.makedirs(cfact_path_ts)
 
         try:
             self.get_data(data, i, j)
@@ -84,17 +65,15 @@ class cfact(object):
             self.det_post()
             post = u.y_inv(self.post, self.tdf['y'])
             self.det_cfact()
-            data_ts[:] = data
+            self.save_ts(data, i, j, cfact_path_ts)
             self.plot_cfact_ts(3650, i, j)
-            cfact_file_ts.close()
             return self.cfact
 
         except:
             empty = np.empty((data.shape[0],))
             empty[:] = np.nan
             print("trace missing! Printing nans!")
-            data_ts[:] = empty
-            cfact_file_ts.close()
+            self.save_ts(empty, i, j, cfact_path_ts)
             return empty
 
     def plot_cfact_ts(self, last, i, j):
@@ -144,6 +123,30 @@ class cfact(object):
                                      s.cfact_file.split(".")[0]
                                      + "_" + str(i) + "_" + str(j) + ".png")
         plt.savefig(cfact_path_fig,dpi=200)
+
+    def save_ts(self, data, i, j, path):
+        cfact_file_ts = nc.Dataset(path, "w", format="NETCDF4")
+        tm = cfact_file_ts.createDimension("time", None)
+        lat = cfact_file_ts.createDimension("lat", 1)
+        lon = cfact_file_ts.createDimension("lon", 1)
+
+        times = cfact_file_ts.createVariable("time", "f8", ("time",))
+        longitudes = cfact_file_ts.createVariable("lon", "f8", ("lon",))
+        latitudes = cfact_file_ts.createVariable("lat", "f8", ("lat",))
+        data_ts = cfact_file_ts.createVariable(s.variable, "f4", ("time", "lat", "lon"))
+
+        latitudes.units = "degree_north"
+        latitudes.long_name = "latitude"
+        longitudes.standard_name = "latitude"
+        longitudes.units = "degree_east"
+        longitudes.long_name = "longitude"
+        longitudes.standard_name = "longitude"
+
+        latitudes[:] = i/2 + .25
+        longitudes[:] = j/2 + .25
+        times[:] = range(data.shape[0])
+        data_ts[:] = data
+        cfact_file_ts.close()
 
 
 
