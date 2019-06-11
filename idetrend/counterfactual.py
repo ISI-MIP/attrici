@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pymc3 as pm
 import settings as s
-import theano
+#  import theano
 
 
 
@@ -83,11 +83,11 @@ class cfact(object):
             self.get_data(data, i, j)
             self.load_trace()
             trend_post, year_trend_post, post = self.det_post()
-            # FIXME: I think its already done by y_inv() on different parts in det_post
+            # FIXME: This is already done by y_inv() on different parts in det_post
             #  post = u.y_inv(self.post, self.tdf["y"])
             self.det_cfact(trend_post, year_trend_post)
             self.save_ts(data, i, j, cfact_path_ts)
-            self.plot_cfact_ts(post, i, j, 40177)
+            #  self.plot_cfact_ts(post, i, j, 40177)
             print("Calc succesfull")
             #  return self.cfact
             return "Done"
@@ -102,7 +102,7 @@ class cfact(object):
     def plot_cfact_ts(self, post, i, j, last):
         import matplotlib.dates as mdates
 
-        fig = plt.figure(figsize=(40, 10))
+        plt.figure(figsize=(40, 10))
         plt.rcParams["font.size"] = 30
         b = 111
         date = self.tdf["ds"].dt.to_pydatetime()
@@ -170,25 +170,26 @@ class cfact(object):
 
     def save_ts(self, data, i, j, path):
         cfact_file_ts = nc.Dataset(path, "w", format="NETCDF4")
-        tm = cfact_file_ts.createDimension("time", None)
-        lat = cfact_file_ts.createDimension("lat", 1)
-        lon = cfact_file_ts.createDimension("lon", 1)
+        cfact_file_ts.createDimension("time", None)
+        cfact_file_ts.createDimension("lat", 1)
+        cfact_file_ts.createDimension("lon", 1)
 
         times = cfact_file_ts.createVariable("time", "f8", ("time",))
         longitudes = cfact_file_ts.createVariable("lon", "f8", ("lon",))
         latitudes = cfact_file_ts.createVariable("lat", "f8", ("lat",))
-        data_ts = cfact_file_ts.createVariable(s.variable, "f4", ("time", "lat", "lon"))
+        data_ts = cfact_file_ts.createVariable(s.variable, "f4", ("time", "lat", "lon"), chunksizes=(data.shape[0], 1,1 ))
 
+        times.units = "days since 1900-01-01 00:00:00"
         latitudes.units = "degree_north"
         latitudes.long_name = "latitude"
-        longitudes.standard_name = "latitude"
+        latitudes.standard_name = "latitude"
         longitudes.units = "degree_east"
         longitudes.long_name = "longitude"
         longitudes.standard_name = "longitude"
 
         # FIXME: make flexible or implement loading from source data
-        latitudes[:] = (180 - i) / 2 - 0.25
-        longitudes[:] = (j - 360) / 2 + 0.25
+        latitudes[:] = (180 - i)/2 -.25
+        longitudes[:] = (j -360)/2 + .25
         times[:] = range(data.shape[0])
         data_ts[:] = data
         cfact_file_ts.close()
