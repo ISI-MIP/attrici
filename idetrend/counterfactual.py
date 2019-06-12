@@ -19,16 +19,12 @@ import settings as s
 
 class cfact(object):
     def __init__(self, tdf, cfg):
+        """ tdf should contain at least "gmt" and "time vectors" (scaled and unscaled) "y" data should then be passed to the .run() method"""
+        self.cfg = cfg
         self.bayes = bt.bayes_regression(tdf["gmt_scaled"], s)
         self.tdf = tdf
         self.gmt = tdf["gmt_scaled"]
         self.trace_path = s.output_dir / "traces"
-        #  self.trace_path = (
-        #      "/p/tmp/mengel/isimip/isi-cfact/output/isicfat_gswp3_tas_full/traces/trace_"
-        #      + str(i)
-        #      + "_"
-        #      + str(j)
-        #  )
 
     def get_data(self, data, i, j):
         #  self.trace_path = os.path.join(s.output_dir, "traces", "trace_" + str(i) + "_" + str(j))
@@ -73,10 +69,11 @@ class cfact(object):
     def run(self, datazip):
         data, i, j = datazip
         cfact_path_ts = os.path.join(
-            s.output_dir,
+            self.cfg.output_dir,
             "timeseries",
-            s.cfact_file.split(".")[0] + "_" + str(i) + "_" + str(j) + ".nc4",
+            self.cfg.cfact_file.split(".")[0] + "_" + str(i) + "_" + str(j) + ".nc4",
         )
+        print(cfact_path_ts)
 
         #  if not os.path.exists(cfact_path_ts):
         #      os.makedirs(cfact_path)
@@ -179,7 +176,7 @@ class cfact(object):
         times = cfact_file_ts.createVariable("time", "f8", ("time",))
         longitudes = cfact_file_ts.createVariable("lon", "f8", ("lon",))
         latitudes = cfact_file_ts.createVariable("lat", "f8", ("lat",))
-        data_ts = cfact_file_ts.createVariable(s.variable, "f4", ("time", "lat", "lon"), chunksizes=(data.shape[0], 1,1 ))
+        data_ts = cfact_file_ts.createVariable(self.cfg.variable, "f4", ("time", "lat", "lon"), chunksizes=(data.shape[0], 1,1 ))
 
         times.units = "days since 1900-01-01 00:00:00"
         latitudes.units = "degree_north"
@@ -192,8 +189,8 @@ class cfact(object):
         # FIXME: make flexible or implement loading from source data
         latitudes[:] = (180 - i)/2 -.25
         longitudes[:] = (j -360)/2 + .25
-        times[:] = range(data.shape[0])
-        data_ts[:] = np.array(data)
+        times[:] = range(self.cfact.shape[0])
+        data_ts[:] = np.array(self.cfact)
         cfact_file_ts.close()
 
 
