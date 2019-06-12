@@ -72,7 +72,8 @@ print(s.variable, flush=True)
 
 TIME0 = datetime.now()
 
-cfact = cf.cfact(nct, gmt)
+gmt_tdf = bt.create_gmt_frame(nct, gmt)
+cfact = cf.cfact(gmt_tdf)
 
 futures = []
 for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
@@ -92,18 +93,18 @@ print(
 
 #  create output file
 # FIXME: Either use this path setting to write to different files
-cfact_path = os.path.join(
-    s.output_dir, s.cfact_file.split(".") + "-" + str(os.getpid()) + ".nc4"
-)
-with nc.Dataset(cfact_path, "w", format="NETCDF4") as cfact_file:
-    cfact_file.description = "beta version of counterfactual weather"
-    u.copy_nc_container(cfact_file, data)
-
-    k = 0
-    for i in latrange:
-        for j in lonrange:
-            cfact_file.variables[s.variable][:, i, j] = futures[k]
-        k += 1
+#  cfact_path = os.path.join(
+#      s.output_dir, s.cfact_file.split(".") + "-" + str(os.getpid()) + ".nc4"
+#  )
+#  with nc.Dataset(cfact_path, "w", format="NETCDF4") as cfact_file:
+#      cfact_file.description = "beta version of counterfactual weather"
+#      u.copy_nc_container(cfact_file, data)
+#
+#      k = 0
+#      for i in latrange:
+#          for j in lonrange:
+#              cfact_file.variables[s.variable][:, i, j] = futures[k]
+#          k += 1
 #  FIXME: Or this one, that locks the file until the process finished writing
 #  cfact_path = os.path.join(s.output_dir, s.cfact_file)
 #  with nc.Dataset(cfact_path, "w", format="NETCDF4") as cfact_file:
