@@ -1,9 +1,4 @@
 import os
-
-# FIXME: eliminate this (should be set from submit script)
-base_compiledir = os.path.expandvars("$HOME/.theano/slot-%d" % os.getpid())
-os.environ["THEANO_FLAGS"] = "base_compiledir=%s" % base_compiledir
-
 import netCDF4 as nc
 import numpy as np
 
@@ -98,74 +93,74 @@ class cfact(object):
         #      self.save_ts(empty, i, j, cfact_path_ts)
         #      return np.nan
 
-    def plot_cfact_ts(self, post, i, j, last):
-        import matplotlib.dates as mdates
 
-        plt.figure(figsize=(40, 10))
-        plt.rcParams["font.size"] = 30
-        b = 111
-        date = self.tdf["ds"].dt.to_pydatetime()
 
-        ax = plt.subplot(b)
 
-        # Shrink current axis by 20%
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width, box.height * 0.9])
-        # plt.title('total, only last 5 years shown')
-        p0, = plt.plot(
-            date[-last:],
-            post[-last:],
-            alpha=.7,
-            lw=6,
-            label="Estimated best guess",
-            color="brown",
-        )
 
-        plt.plot(
-            date[-last:],
-            self.tdf["y"][-last:],
-            #  "-.",
-            alpha=.9,
-            lw=1,
-            color="grey",
-            label="Observated weather",
-        )
 
-        plt.plot(date[-last:], self.cfact[-last:],
-                 #  "-.",
-                 #  alpha=.9,
-                 lw=.5,
-                 label="Counterfactual weather")
 
-        plt.legend(loc="upper left", bbox_to_anchor=(0.0, 1.3), frameon=False)
-        plt.ylabel("Regional climatic variable")
-        plt.xlabel("Time")
 
-        # Hide the right and top spines
-        ax.spines["right"].set_visible(False)
-        ax.spines["top"].set_visible(False)
 
-        # Only show ticks on the left and bottom spines
-        ax.yaxis.set_ticks_position("left")
-        ax.xaxis.set_ticks_position("bottom")
-        # ax.xaxis.set_ticklabels(ax.get_xticklabels()[::2])
-        xt = ax.set_xticks(ax.get_xticks()[::1])
-        ax.yaxis.set_ticklabels([])
-        plt.grid()
-        ax.autoscale(enable=True, axis='x', tight=True)
 
-        # fig.autofmt_xdate()
-        plt.ylim(bottom=self.cfact[-last:].min() - .5, top=self.cfact[-last:].max() + 2)
-        myFmt = mdates.DateFormatter("%m-%Y")
-        ax.xaxis.set_major_formatter(myFmt)
-        # plt.tight_layout()
-        cfact_path_fig = os.path.join(
-            s.output_dir,
-            "timeseries",
-            s.cfact_file.split(".")[0] + "_" + str(i) + "_" + str(j) + ".png",
-        )
-        plt.savefig(cfact_path_fig, dpi=400)
-        plt.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def save_ts(self, data, i, j, path):
         cfact_file_ts = nc.Dataset(path, "w", format="NETCDF4")
