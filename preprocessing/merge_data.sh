@@ -9,14 +9,14 @@ variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 \
 echo 'Merging data for variable' $variable
 dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 \
     | sed "s/'//g" | sed 's/"//g')"
-startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 \
-    | sed "s/'//g" | sed 's/"//g')"
-endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 \
-    | sed "s/'//g" | sed 's/"//g')"
+# startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 \
+#     | sed "s/'//g" | sed 's/"//g')"
+# endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 \
+#     | sed "s/'//g" | sed 's/"//g')"
 # datafolder selections relies on the folder being wrapped in double quotation marks
 datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | \
     sed "s/'//g" | sed 's/"//g')"
-outputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
+outputfile=${datafolder}${variable}_${dataset}_gregorian.nc4
 echo 'Outputfile:' $outputfile
 echo 'Inputfiles:'
 echo ${datafolder}${variable}_${dataset}_????_????.nc* 

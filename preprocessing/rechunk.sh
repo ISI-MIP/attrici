@@ -27,11 +27,11 @@ variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | 
 datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | sed "s/'//g" | sed 's/"//g')"
 
 dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
-startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
-endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+# startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+# endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-inputfile=${datafolder}${variable}_${dataset}_${startyear}_${endyear}.nc4
-outputfile=${datafolder}/input/${variable}_${dataset}_${startyear}_${endyear}.nc4
+inputfile=${datafolder}${variable}_${dataset}_gregorian.nc4
+outputfile=${datafolder}/input/${variable}_${dataset}_gregorian_rechunked.nc4
 echo 'Rechunk the following variable'
 echo $variable
 echo 'Inputfile:' ${inputfile}
