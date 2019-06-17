@@ -10,4 +10,4 @@ submit_array.sh
 log/
 backup/
 *.ipynb
-
+submit_cfact.sh
