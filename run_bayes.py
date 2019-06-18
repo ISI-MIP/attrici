@@ -18,6 +18,8 @@ except KeyError:
     task_id = 0
     s.progressbar = True
 
+dh.create_output_dirs(s.output_dir)
+
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
 ncg = nc.Dataset(gmt_file, "r")
 gmt = np.squeeze(ncg.variables["tas"][:])
@@ -34,11 +36,6 @@ ncells = latsize * obs_data.dimensions["lon"].size
 # Ensure that both have the same start and endpoint in time.
 tdf = dh.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
 
-if not os.path.exists(s.output_dir):
-    os.makedirs(s.output_dir)
-    os.makedirs(Path(s.output_dir) / "traces")
-    os.makedirs(Path(s.output_dir) / "theano")
-    os.makedirs(Path(s.output_dir) / "timeseries")
 
 if ncells % njobarray:
     print("task_id", task_id)
@@ -69,8 +66,7 @@ for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
     df = dh.create_dataframe(nct, data, gmt)
 
     df_with_cfact = bayes.run(df, i, j)
-    df_with_cfact.to_csv(s.output_dir / "timeseries" / ("ts_"+str(i)+"_"+str(j)+".csv"))
-
+    dh.save_to_csv(df_with_cfact, s, i, j)
 
 print(
     "Estimation completed for all cells. It took {0:.1f} minutes.".format(

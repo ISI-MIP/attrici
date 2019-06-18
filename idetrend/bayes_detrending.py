@@ -92,9 +92,7 @@ class bayes_regression(object):
             self.sample()
             self.save_trace(i, j)
 
-        trend_post, year_trend_post, posterior = self.estimate_timeseries()
-
-        self.estimate_counterfactual(trend_post, year_trend_post)
+        self.estimate_timeseries()
 
         return self.df
 
@@ -153,15 +151,14 @@ class bayes_regression(object):
         year_post = y_inv(year_post, self.df["y"]) - self.df["y"].min()
         year_trend_post = y_inv(year_trend_post, self.df["y"]) - self.df["y"].min()
 
-        return trend_post, year_trend_post, post
-
-    def estimate_counterfactual(self, trend_post, year_trend_post):
-
+        # the counterfactual timeseries, our main result
         self.df["cfact"] = self.df["y"].data - (
             trend_post + year_trend_post - trend_post[0]
         ).mean(axis=1)
 
-        return self.df
+        self.df["trend_posterior"] = trend_post.mean(axis=1)
+        self.df["year_posterior"] = year_post.mean(axis=1)
+        self.df["year_trend_posterior"] = year_trend_post.mean(axis=1)
 
     def save_trace(self, i, j):
 
