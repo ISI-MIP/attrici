@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pymc3 as pm
 import settings as s
-#  import theano
 
+#  import theano
 
 
 class cfact(object):
@@ -39,27 +39,22 @@ class cfact(object):
             self.trace["intercept"]
             + self.trace["slope"] * self.tdf["gmt_scaled"][:, None]
         ).mean(1)
-        year_post = det_seasonality_posterior(self.trace["beta_yearly"], x_yearly).mean(1)
+        year_post = det_seasonality_posterior(self.trace["beta_yearly"], x_yearly).mean(
+            1
+        )
         year_trend_post = det_seasonality_posterior(
             self.trace["beta_trend"], x_trend
         ).mean(1)
 
         trend_post = u.y_inv(trend_post, self.tdf["y"])
         year_post = u.y_inv(year_post, self.tdf["y"]) - self.tdf["y"].min()
-        year_trend_post = (
-            u.y_inv(year_trend_post, self.tdf["y"]) - self.tdf["y"].min()
-        )
+        year_trend_post = u.y_inv(year_trend_post, self.tdf["y"]) - self.tdf["y"].min()
 
         post = trend_post + year_post + year_trend_post
         return trend_post, year_trend_post, post
 
     def det_cfact(self, trend_post, year_trend_post):
-        self.cfact = (
-            self.tdf["y"].data
-            - trend_post
-            - year_trend_post
-            + trend_post[0]
-        )
+        self.cfact = self.tdf["y"].data - trend_post - year_trend_post + trend_post[0]
 
     def run(self, datazip):
         data, i, j = datazip
@@ -93,75 +88,6 @@ class cfact(object):
         #      self.save_ts(empty, i, j, cfact_path_ts)
         #      return np.nan
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     def save_ts(self, data, i, j, path):
         cfact_file_ts = nc.Dataset(path, "w", format="NETCDF4")
         cfact_file_ts.createDimension("time", None)
@@ -171,7 +97,12 @@ class cfact(object):
         times = cfact_file_ts.createVariable("time", "f8", ("time",))
         longitudes = cfact_file_ts.createVariable("lon", "f8", ("lon",))
         latitudes = cfact_file_ts.createVariable("lat", "f8", ("lat",))
-        data_ts = cfact_file_ts.createVariable(self.cfg.variable, "f4", ("time", "lat", "lon"), chunksizes=(data.shape[0], 1,1 ))
+        data_ts = cfact_file_ts.createVariable(
+            self.cfg.variable,
+            "f4",
+            ("time", "lat", "lon"),
+            chunksizes=(data.shape[0], 1, 1),
+        )
 
         times.units = "days since 1900-01-01 00:00:00"
         latitudes.units = "degree_north"
@@ -182,8 +113,8 @@ class cfact(object):
         longitudes.standard_name = "longitude"
 
         # FIXME: make flexible or implement loading from source data
-        latitudes[:] = (180 - i)/2 -.25
-        longitudes[:] = (j -360)/2 + .25
+        latitudes[:] = (180 - i) / 2 - 0.25
+        longitudes[:] = (j - 360) / 2 + 0.25
         times[:] = range(self.cfact.shape[0])
         data_ts[:] = np.array(self.cfact)
         cfact_file_ts.close()
@@ -196,4 +127,3 @@ def det_seasonality_posterior(beta, x):
 def cfact_helper(data_to_detrend, i, j):
     data = data_to_detrend.variables[s.variable][:, i, j]
     return (data, i, j)
-
