@@ -36,5 +36,5 @@ echo 'Rechunk the following variable'
 echo $variable
 echo 'Inputfile:' ${inputfile}
 echo 'Outputfile:' ${outputfile}
-nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/720 ${inputfile} ${outputfile}
+nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/1 ${inputfile} ${outputfile}
 echo 'rechunked' $variable 'for faster access to full timeseries'

@@ -1,6 +1,7 @@
 import os
+import sys
+sys.path.append("..")
 from datetime import datetime
-#  import idetrend.const as c
 from pathlib import Path
 
 import netCDF4 as nc
@@ -8,11 +9,8 @@ import numpy as np
 
 import idetrend.bayes_detrending as bt
 import idetrend.counterfactual as cf
-import idetrend.utility as u
 import settings as s
 
-#  from mpi4py.futures import MPIPoolExecutor
-#  import fcntl
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
@@ -30,7 +28,7 @@ with nc.Dataset(gmt_file, "r") as gmt_obj:
     gmt = np.squeeze(gmt_obj.variables["tas"][:])
 
 # get data to detrend
-source_file = os.path.join(s.data_dir, s.source_file)
+source_file = os.path.join(s.input_dir, s.source_file)
 data = nc.Dataset(source_file, "r")
 
 latsize = data.dimensions["lat"].size
@@ -47,7 +45,9 @@ tdf = bt.create_dataframe(nct, data.variables[s.variable][:, 0, 0], gmt)
 
 if not os.path.exists(s.output_dir):
     os.makedirs(s.output_dir)
+if not os.path.exists(Path(s.output_dir) / "cfact"):
     os.makedirs(Path(s.output_dir) / "cfact")
+if not os.path.exists(Path(s.output_dir) / "timeseries"):
     os.makedirs(Path(s.output_dir) / "timeseries")
 
 if ncells % njobarray:
@@ -72,8 +72,7 @@ print(s.variable, flush=True)
 
 TIME0 = datetime.now()
 
-gmt_tdf = bt.create_gmt_frame(nct, gmt)
-cfact = cf.cfact(gmt_tdf)
+cfact = cf.cfact(gmt_tdf, s)
 
 futures = []
 for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):

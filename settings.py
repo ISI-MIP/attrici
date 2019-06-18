@@ -22,7 +22,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 # number of parallel jobs through jobarray
 # used through submit.sh, needs to be divisor of number of grid cells
-njobarray = 15
+njobarray = 64
 
 # if test=True use smaller test dataset
 # test = False  # use to run on test dataset
@@ -66,7 +66,7 @@ gmt_file = dataset + "_ssa_gmt.nc4"
 
 # source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
-source_file = variable + "_" + dataset + "_1901_2010.nc4"
+source_file = variable + "_" + dataset + "_iowa.nc4"
 #  source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
 # source_file = variable + "_" + dataset + "_every100th.nc4"
 # source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
@@ -78,5 +78,6 @@ source_file = variable + "_" + dataset + "_1901_2010.nc4"
 # source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_1979_2018.nc4"
 
-params_file = variable + "_" + dataset + "_parameters.nc4"
-cfact_file = variable + "_" + dataset + "_cfactual.nc4"
+params_file = variable + "_" + dataset + "_iowa_parameters.nc4"
+cfact_file = variable + "_" + dataset + "_iowa_cfactual.nc4"
+trend_file =  variable + "_" + dataset + "_iowa_trend.nc4"
