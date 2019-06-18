@@ -22,7 +22,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 # number of parallel jobs through jobarray
 # used through submit.sh, needs to be divisor of number of grid cells
-njobarray = 15
+njobarray = 64
 
 # if test=True use smaller test dataset
 # test = False  # use to run on test dataset
@@ -32,18 +32,17 @@ njobarray = 15
 # calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 
 ################### For Bayesian ############
+# length of the gregorian year, as used in GSWP3 and ERA5 data.
 variable = "tas"  # select variable to detrend
-dataset = "era5"  # select dataset to run on
+dataset = "gswp3"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.2425
-
 
 # model run settings
 debug = False  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
-
 tune = 800  # number of draws to tune model
-draws = 1000  # number of sampling draws per chaiin
+draws = 1000  # number of sampling draws per chain
 chains = 5  # number of chains to calculate (min 2 to check for convergence)
 
 # number of cores to use for one gridpoint
@@ -67,12 +66,18 @@ gmt_file = dataset + "_ssa_gmt.nc4"
 
 # source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
+source_file = variable + "_" + dataset + "_iowa.nc4"
+#  source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
+# source_file = variable + "_" + dataset + "_every100th.nc4"
+# source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
+# source_file = variable + "_" + dataset + "_1979_2018.nc4"
 # source_file = variable + "_" + dataset + "_1901_2010.nc4"
 
-source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
+#  source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
 # source_file = variable + "_" + dataset + "_every100th.nc4"
 # source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_1979_2018.nc4"
 
-params_file = variable + "_" + dataset + "_parameters.nc4"
-cfact_file = variable + "_" + dataset + "_cfactual.nc4"
+params_file = variable + "_" + dataset + "_iowa_parameters.nc4"
+cfact_file = variable + "_" + dataset + "_iowa_cfactual.nc4"
+trend_file =  variable + "_" + dataset + "_iowa_trend.nc4"
