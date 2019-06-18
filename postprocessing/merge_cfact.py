@@ -36,9 +36,9 @@ def form_global_nc(ds, time, lat, lon):
     # FIXME: make flexible or implement loading from source data
     latitudes[:] = lat
     longitudes[:] = lon
-    times[:] = np.arange(time.shape[0])
+    times[:] = time
 
-data_list = glob.glob(Path(s.output_dir) / "timeseries" / s.variable)
+data_list = glob.glob(str(s.output_dir) + "/timeseries/" + s.variable + "*.nc4")
 
 lat_indices = []
 for string in data_list:
@@ -49,12 +49,12 @@ lon_indices = []
 for string in data_list:
     j = string.split("_")[-1].split(".")[0]
     lon_indices.append(j)
-
+print(lon_indices)
 
 obs = nc.Dataset(Path(s.input_dir) / s.source_file, "r")
-time = obs.variables["time"]
-lat = obs.variables["lat"]
-lon = obs.variables["lon"]
+time = obs.variables["time"][:]
+lat = obs.variables["lat"][:]
+lon = obs.variables["lon"][:]
 cfact = nc.Dataset(Path(s.output_dir) / "cfact" / s.cfact_file, "w", format="NETCDF4")
 trend = nc.Dataset(Path(s.output_dir) / "cfact" / s.trend_file, "w", format="NETCDF4")
 form_global_nc(cfact, time, lat, lon)
@@ -64,11 +64,12 @@ for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(j)
     print(path)
     with nc.Dataset(path, "r") as nc_ts:
-        obs_ts = obs.variables["tas"][:, i, j]
-        ts = nc_ts.variables["tas"][:].data
-        cfact.variables["tas"][:, i, j] = ts
-        trend.variables["tas"][:, i, j] = obs_ts - ts
+        obs_ts = obs.variables[s.variable][:, i, j]
+        ts = nc_ts.variables[s.variable][:].data
+        cfact.variables[s.variable][:, i, j] = ts
+        trend.variables[s.variable][:, i, j] = obs_ts - ts
         print(i, j)
+print("hello")
 obs.close()
 cfact.close()
 trend.close()
