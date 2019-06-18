@@ -10,7 +10,6 @@ from pathlib import Path
 
 
 class bayes_regression(object):
-
     def __init__(self, regressor, cfg):
 
         self.regressor = regressor.values
@@ -31,48 +30,6 @@ class bayes_regression(object):
         self.sps = cfg.sps
         self.stmu = cfg.stmu
         self.stps = cfg.stps
-
-
-    def add_season_model(self, df, modes, smu, sps, beta_name):
-        """
-        Creates a model of periodic data in time by using
-        a fourier series with specified number of modes.
-        :param data:
-        """
-
-        # rescale the period, as t is also scaled
-        p = 365.25 / (df["ds"].max() - df["ds"].min()).days
-        x = fourier_series(df["t"], p, modes)
-
-        with self.model:
-            beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
-        return x  # , beta
-
-    def run(self, datazip):
-
-        df, i, j = datazip
-        self.setup_model(df)
-
-        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
-
-        print("Search for trace in", output_dir)
-        self.trace = pm.load_trace(output_dir, model=self.model)
-
-        try:
-            for var in ['slope', 'intercept', 'beta_yearly', 'beta_trend', 'sigma']:
-                if var not in self.trace.varnames:
-                    raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data. Skip this for sampling.")
-        except IndexError:
-            self.sample()
-            self.save_trace(i, j)
-
-        trend_post, year_trend_post, posterior = self.estimate_timeseries()
-
-        self.estimate_counterfactual(trend_post, year_trend_post)
-
-        return self.df
-
 
     def setup_model(self, df):
 
@@ -108,6 +65,30 @@ class bayes_regression(object):
         self.df = df
         return self.model, (x_yearly, x_trend)
 
+    def run(self, datazip):
+
+        df, i, j = datazip
+        self.setup_model(df)
+
+        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
+
+        print("Search for trace in", output_dir)
+        self.trace = pm.load_trace(output_dir, model=self.model)
+
+        try:
+            for var in ["slope", "intercept", "beta_yearly", "beta_trend", "sigma"]:
+                if var not in self.trace.varnames:
+                    raise IndexError("Sample data not completely saved. Rerun.")
+            print("Successfully loaded sampled data. Skip this for sampling.")
+        except IndexError:
+            self.sample()
+            self.save_trace(i, j)
+
+        trend_post, year_trend_post, posterior = self.estimate_timeseries()
+
+        self.estimate_counterfactual(trend_post, year_trend_post)
+
+        return self.df
 
     def sample(self):
 
@@ -132,12 +113,25 @@ class bayes_regression(object):
 
         return self.trace
 
+    def add_season_model(self, df, modes, smu, sps, beta_name):
+        """
+        Creates a model of periodic data in time by using
+        a fourier series with specified number of modes.
+        :param data:
+        """
+
+        # rescale the period, as t is also scaled
+        p = 365.25 / (df["ds"].max() - df["ds"].min()).days
+        x = fourier_series(df["t"], p, modes)
+
+        with self.model:
+            beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
+        return x  # , beta
 
     def estimate_timeseries(self):
 
         trend_post = (
-            self.trace["intercept"]
-            + self.trace["slope"] * self.regressor[:, None]
+            self.trace["intercept"] + self.trace["slope"] * self.regressor[:, None]
         )
 
         year_post = det_seasonality_posterior(self.trace["beta_yearly"], self.x_yearly)
@@ -153,11 +147,11 @@ class bayes_regression(object):
 
         return trend_post, year_trend_post, post
 
-
     def estimate_counterfactual(self, trend_post, year_trend_post):
 
         self.df["cfact"] = self.df["y"].data - (
-            trend_post + year_trend_post - trend_post[0]).mean(axis=1)
+            trend_post + year_trend_post - trend_post[0]
+        ).mean(axis=1)
 
         return self.df
 
@@ -165,7 +159,6 @@ class bayes_regression(object):
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
         pm.backends.save_trace(self.trace, output_dir, overwrite=True)
-
 
 
 def det_dot(a, b):
@@ -198,9 +191,11 @@ def det_trend(k, m, delta, t, s, A):
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
 
+
 def y_inv(y, y_orig):
     """rescale data y to y_original"""
     return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+
 
 def create_dataframe(nct, data_to_detrend, gmt):
 
