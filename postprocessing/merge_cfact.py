@@ -2,23 +2,28 @@
 
 # coding: utf-8
 
+import glob
+import itertools as it
 import os
 import sys
-import glob
-import numpy as np
-import netCDF4 as nc
-import itertools as it
+from pathlib import Path
+sys.path.append("..")
 
-def form_nc(ds):
+import settings as s
+import netCDF4 as nc
+import numpy as np
+
+
+def form_global_nc(ds, time, lat, lon):
     ds.createDimension("time", None)
-    ds.createDimension("lat", 360)
-    ds.createDimension("lon", 720)
+    ds.createDimension("lat", lat.shape[0])
+    ds.createDimension("lon", lon.shape[0])
 
     times = ds.createVariable("time", "f8", ("time",))
     longitudes = ds.createVariable("lon", "f8", ("lon",))
     latitudes = ds.createVariable("lat", "f8", ("lat",))
     data = ds.createVariable("tas", "f4", ("time", "lat", "lon"),
-                             chunksizes=(40177, 1, 1),
+                             chunksizes=(time.shape[0], 1, 1),
                              fill_value = np.nan)
     times.units = "days since 1900-01-01 00:00:00"
     latitudes.units = "degree_north"
@@ -29,11 +34,11 @@ def form_nc(ds):
     longitudes.standard_name = "longitude"
     data.missing_value = np.nan
     # FIXME: make flexible or implement loading from source data
-    latitudes[:] = np.arange(89.75, -89.76, -.5)
-    longitudes[:] = np.arange(-179.75, 179.76, .5)
-    times[:] = np.arange(40177)
+    latitudes[:] = lat
+    longitudes[:] = lon
+    times[:] = np.arange(time.shape[0])
 
-data_list = glob.glob("/home/bschmidt/temp/gswp3/output/detrending/timeseries/tas_gswp3_cfactual_*_*.nc4")
+data_list = glob.glob(Path(s.output_dir) / "timeseries" / s.variable)
 
 lat_indices = []
 for string in data_list:
@@ -46,11 +51,14 @@ for string in data_list:
     lon_indices.append(j)
 
 
-obs = nc.Dataset("/home/bschmidt/temp/gswp3/input/tas_gswp3_1901_2010.nc4", "r")
-cfact = nc.Dataset("/home/bschmidt/temp/gswp3/output/detrending/tas_gswp3_cfactual.nc4", "w", format="NETCDF4")
-trend = nc.Dataset("/home/bschmidt/temp/gswp3/output/detrending/tas_gswp3_trend.nc4", "w", format="NETCDF4")
-form_nc(cfact)
-form_nc(trend)
+obs = nc.Dataset(Path(s.input_dir) / s.source_file, "r")
+time = obs.variables["time"]
+lat = obs.variables["lat"]
+lon = obs.variables["lon"]
+cfact = nc.Dataset(Path(s.output_dir) / "cfact" / s.cfact_file, "w", format="NETCDF4")
+trend = nc.Dataset(Path(s.output_dir) / "cfact" / s.trend_file, "w", format="NETCDF4")
+form_global_nc(cfact, time, lat, lon)
+form_global_nc(trend, time, lat, lon)
 for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(i)
     print(j)
