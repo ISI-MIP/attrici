@@ -72,7 +72,7 @@ print(s.variable, flush=True)
 
 TIME0 = datetime.now()
 
-cfact = cf.cfact(gmt_tdf, s)
+cfact = cf.cfact(tdf, s)
 
 futures = []
 for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
