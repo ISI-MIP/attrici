@@ -12,7 +12,8 @@ import settings as s
 class cfact(object):
 
     def __init__(self, tdf, cfg):
-        """ tdf should contain at least "gmt" and "time vectors" (scaled and unscaled) "y" data should then be passed to the .run() method"""
+        """ tdf should contain at least "gmt" and "time vectors"
+        (scaled and unscaled) "y" data should then be passed to the .run() method"""
         self.cfg = cfg
         # FIXME: initialization of class within class is quite complicated.
         Let us try to move this out.

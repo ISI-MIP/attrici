@@ -10,6 +10,7 @@ from pathlib import Path
 
 
 class bayes_regression(object):
+
     def __init__(self, regressor, cfg):
 
         self.regressor = regressor.values
@@ -32,16 +33,16 @@ class bayes_regression(object):
         self.stps = cfg.stps
 
 
-    def add_season_model(self, data, modes, smu, sps, beta_name):
+    def add_season_model(self, df, modes, smu, sps, beta_name):
         """
-        Creates a model of dominant in the data by using
-        a fourier series wiht specified number of modes.
+        Creates a model of periodic data in time by using
+        a fourier series with specified number of modes.
         :param data:
         """
 
         # rescale the period, as t is also scaled
-        p = 365.25 / (data["ds"].max() - data["ds"].min()).days
-        x = fourier_series(data["t"], p, modes)
+        p = 365.25 / (df["ds"].max() - df["ds"].min()).days
+        x = fourier_series(df["t"], p, modes)
 
         with self.model:
             beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
@@ -49,23 +50,31 @@ class bayes_regression(object):
 
     def run(self, datazip):
 
-        data, i, j = datazip
-        self.setup_model(data)
+        df, i, j = datazip
+        self.setup_model(df)
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
 
-        trace = pm.load_trace(output_dir, model=self.model)
+        print("Search for trace in", output_dir)
+        self.trace = pm.load_trace(output_dir, model=self.model)
 
         try:
             for var in ['slope', 'intercept', 'beta_yearly', 'beta_trend', 'sigma']:
-                if var not in trace.varnames:
+                if var not in self.trace.varnames:
                     raise IndexError("Sample data not completely saved. Rerun.")
             print("Successfully loaded sampled data. Skip this for sampling.")
         except IndexError:
             self.sample()
             self.save_trace(i, j)
 
-    def setup_model(self, data):
+        trend_post, year_trend_post, posterior = self.estimate_timeseries()
+
+        self.estimate_counterfactual(trend_post, year_trend_post)
+
+        return self.df
+
+
+    def setup_model(self, df):
 
         # create instance of pymc model class
         self.model = pm.Model()
@@ -76,10 +85,10 @@ class bayes_regression(object):
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
         x_yearly = self.add_season_model(
-            data, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
+            df, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
         )
         x_trend = self.add_season_model(
-            data, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
+            df, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
         )
 
         with self.model as model:
@@ -91,9 +100,12 @@ class bayes_regression(object):
                 + (self.regressor * det_dot(x_trend, model["beta_trend"]))
             )
             out = pm.Normal(
-                "obs", mu=estimated, sd=model["sigma"], observed=data["y_scaled"]
+                "obs", mu=estimated, sd=model["sigma"], observed=df["y_scaled"]
             )
 
+        self.x_yearly = x_yearly
+        self.x_trend = x_trend
+        self.df = df
         return self.model, (x_yearly, x_trend)
 
 
@@ -120,6 +132,35 @@ class bayes_regression(object):
 
         return self.trace
 
+
+    def estimate_timeseries(self):
+
+        trend_post = (
+            self.trace["intercept"]
+            + self.trace["slope"] * self.regressor[:, None]
+        )
+
+        year_post = det_seasonality_posterior(self.trace["beta_yearly"], self.x_yearly)
+        year_trend_post = det_seasonality_posterior(
+            self.trace["beta_trend"], self.x_trend
+        )
+
+        post = y_inv(trend_post + year_post + year_trend_post, self.df["y"])
+
+        trend_post = y_inv(trend_post, self.df["y"])
+        year_post = y_inv(year_post, self.df["y"]) - self.df["y"].min()
+        year_trend_post = y_inv(year_trend_post, self.df["y"]) - self.df["y"].min()
+
+        return trend_post, year_trend_post, post
+
+
+    def estimate_counterfactual(self, trend_post, year_trend_post):
+
+        self.df["cfact"] = self.df["y"].data - (
+            trend_post + year_trend_post - trend_post[0]).mean(axis=1)
+
+        return self.df
+
     def save_trace(self, i, j):
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
@@ -135,6 +176,10 @@ def det_dot(a, b):
     :param b: (theano vector)
     """
     return (a * b[None, :]).sum(axis=-1)
+
+
+def det_seasonality_posterior(beta, x):
+    return np.dot(x, beta.T)
 
 
 def fourier_series(t, p, n):
@@ -153,6 +198,9 @@ def det_trend(k, m, delta, t, s, A):
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
 
+def y_inv(y, y_orig):
+    """rescale data y to y_original"""
+    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
 def create_dataframe(nct, data_to_detrend, gmt):
 
@@ -184,5 +232,5 @@ def create_dataframe(nct, data_to_detrend, gmt):
 def mcs_helper(nct, data_to_detrend, gmt, variable, i, j):
 
     data = data_to_detrend.variables[variable][:, i, j]
-    tdf = create_dataframe(nct, data, gmt)
-    return (tdf, i, j)
+    df = create_dataframe(nct, data, gmt)
+    return (df, i, j)
