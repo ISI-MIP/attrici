@@ -4,29 +4,30 @@ import numpy as np
 
 import idetrend.bayes_detrending as bt
 import idetrend.utility as u
-import matplotlib.pyplot as plt
 import pandas as pd
 import pymc3 as pm
 import settings as s
 
-#  import theano
-
 
 class cfact(object):
+
     def __init__(self, tdf, cfg):
         """ tdf should contain at least "gmt" and "time vectors" (scaled and unscaled) "y" data should then be passed to the .run() method"""
         self.cfg = cfg
+        # FIXME: initialization of class within class is quite complicated.
+        Let us try to move this out.
         self.bayes = bt.bayes_regression(tdf["gmt_scaled"], s)
         self.tdf = tdf
         self.gmt = tdf["gmt_scaled"]
         self.trace_path = s.output_dir / "traces"
 
     def get_data(self, data, i, j):
-        #  self.trace_path = os.path.join(s.output_dir, "traces", "trace_" + str(i) + "_" + str(j))
+
         self.tdf["y_scaled"] = bt.y_norm(data, data)
         self.tdf["y"] = data
         self.model, self.x_data = self.bayes.setup_model(self.tdf)
         print("This is process", os.getpid(), "working on", self.trace_path)
+
 
     def load_trace(self, i, j):
         #  with self.bayes.model:
@@ -53,10 +54,13 @@ class cfact(object):
         post = trend_post + year_post + year_trend_post
         return trend_post, year_trend_post, post
 
+
     def det_cfact(self, trend_post, year_trend_post):
         self.cfact = self.tdf["y"].data - trend_post - year_trend_post + trend_post[0]
 
+
     def run(self, datazip):
+
         data, i, j = datazip
         cfact_path_ts = os.path.join(
             self.cfg.output_dir,
@@ -65,10 +69,6 @@ class cfact(object):
         )
         print(cfact_path_ts)
 
-        #  if not os.path.exists(cfact_path_ts):
-        #      os.makedirs(cfact_path)
-
-        #  try:
         self.get_data(data, i, j)
         self.load_trace(i, j)
         trend_post, year_trend_post, post = self.det_post()
@@ -76,17 +76,11 @@ class cfact(object):
         #  post = u.y_inv(self.post, self.tdf["y"])
         self.det_cfact(trend_post, year_trend_post)
         self.save_ts(data, i, j, cfact_path_ts)
-        #  self.plot_cfact_ts(post, i, j, 40177)
+
         print("Calc succesfull")
         #  return self.cfact
         return "Done"
 
-        #  except:
-        #      empty = np.empty((data.shape[0],))
-        #      empty[:] = np.nan
-        #      print("trace missing! Printing nans!")
-        #      self.save_ts(empty, i, j, cfact_path_ts)
-        #      return np.nan
 
     def save_ts(self, data, i, j, path):
         cfact_file_ts = nc.Dataset(path, "w", format="NETCDF4")
