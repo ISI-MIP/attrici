@@ -9,6 +9,15 @@ from datetime import datetime
 from pathlib import Path
 
 
+def y_norm(y_to_scale, y_orig):
+    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+
+
+def y_inv(y, y_orig):
+    """rescale data y to y_original"""
+    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+
+
 class bayes_regression(object):
     def __init__(self, regressor, cfg):
 
@@ -65,9 +74,8 @@ class bayes_regression(object):
         self.df = df
         return self.model, (x_yearly, x_trend)
 
-    def run(self, datazip):
+    def run(self, df, i, j):
 
-        df, i, j = datazip
         self.setup_model(df)
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
@@ -187,45 +195,3 @@ def fourier_series(t, p, n):
 def det_trend(k, m, delta, t, s, A):
     return (k + np.dot(A, delta)) * t + (m + np.dot(A, (-s * delta)))
 
-
-def y_norm(y_to_scale, y_orig):
-    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
-
-
-def y_inv(y, y_orig):
-    """rescale data y to y_original"""
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
-
-
-def create_dataframe(nct, data_to_detrend, gmt):
-
-    # proper dates plus additional time axis that is
-    # from 0 to 1 for better sampling performance
-
-    ds = pd.to_datetime(
-        nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
-    )
-    t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
-    gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = y_norm(gmt_on_data_cal, gmt_on_data_cal)
-    y_scaled = y_norm(data_to_detrend, data_to_detrend)
-
-    tdf = pd.DataFrame(
-        {
-            "ds": ds,
-            "t": t_scaled,
-            "y": data_to_detrend,
-            "y_scaled": y_scaled,
-            "gmt": gmt_on_data_cal,
-            "gmt_scaled": gmt_scaled,
-        }
-    )
-
-    return tdf
-
-
-def mcs_helper(nct, data_to_detrend, gmt, variable, i, j):
-
-    data = data_to_detrend.variables[variable][:, i, j]
-    df = create_dataframe(nct, data, gmt)
-    return (df, i, j)
