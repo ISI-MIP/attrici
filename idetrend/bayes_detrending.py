@@ -138,27 +138,28 @@ class bayes_regression(object):
             beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
         return x  # , beta
 
-    @profile
     def estimate_timeseries(self):
+
+        """ this is a memory-saving version of estimate timeseries.
+        caculations are done several times as a trade off for having less
+        memory consumtions. """
 
         # to stay within memory bounds: only take last 1000 samples
         subtrace = self.trace[-1000:]
 
-        gmt_driven_trend = subtrace["slope"] * self.regressor[:, None]
-        self.df["trend"] = rescale(gmt_driven_trend.mean(axis=1), self.df["y"])
-
-        # yearly_cycle = det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
-        gmt_driven_trend += self.regressor[:,np.newaxis]*det_seasonality_posterior(
-            subtrace["beta_trend"], self.x_trend
-        )
+        self.df["trend"] = rescale((subtrace["slope"] * self.regressor[:, None]
+            ).mean(axis=1), self.df["y"])
 
         # our posteriors, they do not contain short term variability
-        self.df["estimated_scaled"] = (subtrace["intercept"] + gmt_driven_trend +
+        self.df["estimated_scaled"] = (subtrace["intercept"] + self.regressor[:,None]*(subtrace["slope"] +
+            det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)) +
                 det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
                 ).mean(axis=1)
         self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
 
-        gmt_driven_trend = gmt_driven_trend.mean(axis=1)
+        gmt_driven_trend = (self.regressor[:,None]*(subtrace["slope"] +
+            det_seasonality_posterior(subtrace["beta_trend"], self.x_trend
+        ))).mean(axis=1)
 
         # the counterfactual timeseries, our main result
         self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
