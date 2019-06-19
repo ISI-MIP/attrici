@@ -80,6 +80,7 @@ class bayes_regression(object):
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
 
+        # TODO: isolate loading trace function
         print("Search for trace in", output_dir)
         self.trace = pm.load_trace(output_dir, model=self.model)
 
@@ -134,31 +135,37 @@ class bayes_regression(object):
             beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
         return x  # , beta
 
+    @profile
     def estimate_timeseries(self):
 
-        trend_post = (
-            self.trace["intercept"] + self.trace["slope"] * self.regressor[:, None]
+        # to stay within memory bounds: only take last 1000 samples
+        print("here")
+        subtrace = self.trace[-1000:]
+
+        trend = (
+            subtrace["intercept"] + subtrace["slope"] * self.regressor[:, None]
         )
 
-        year_post = det_seasonality_posterior(self.trace["beta_yearly"], self.x_yearly)
-        year_trend_post = det_seasonality_posterior(
-            self.trace["beta_trend"], self.x_trend
+        yearly_cycle = det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
+        yearly_cycle_trend = self.regressor[:,np.newaxis]*det_seasonality_posterior(
+            subtrace["beta_trend"], self.x_trend
         )
 
-        post = y_inv(trend_post + year_post + year_trend_post, self.df["y"])
+        post = y_inv(trend + yearly_cycle + yearly_cycle_trend, self.df["y"])
 
-        trend_post = y_inv(trend_post, self.df["y"])
-        year_post = y_inv(year_post, self.df["y"]) - self.df["y"].min()
-        year_trend_post = y_inv(year_trend_post, self.df["y"]) - self.df["y"].min()
+        trend = y_inv(trend, self.df["y"])
+        yearly_cycle = y_inv(yearly_cycle, self.df["y"]) - self.df["y"].min()
+        yearly_cycle_trend = y_inv(yearly_cycle_trend, self.df["y"]) - self.df["y"].min()
 
         # the counterfactual timeseries, our main result
         self.df["cfact"] = self.df["y"].data - (
-            trend_post + year_trend_post - trend_post[0]
+            trend + yearly_cycle_trend - trend[0]
         ).mean(axis=1)
 
-        self.df["trend_posterior"] = trend_post.mean(axis=1)
-        self.df["year_posterior"] = year_post.mean(axis=1)
-        self.df["year_trend_posterior"] = year_trend_post.mean(axis=1)
+        self.df["trend"] = trend.mean(axis=1)
+        self.df["yearly_cycle"] = yearly_cycle.mean(axis=1)
+        self.df["yearly_cycle_trend"] = yearly_cycle_trend.mean(axis=1)
+        print("here as well")
 
     def save_trace(self, i, j):
 
