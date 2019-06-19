@@ -17,6 +17,9 @@ def y_inv(y, y_orig):
     """rescale data y to y_original"""
     return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
+def rescale(y, y_orig):
+    """rescale data y to y_original"""
+    return y * (y_orig.max() - y_orig.min())
 
 class bayes_regression(object):
     def __init__(self, regressor, cfg):
@@ -139,33 +142,29 @@ class bayes_regression(object):
     def estimate_timeseries(self):
 
         # to stay within memory bounds: only take last 1000 samples
-        print("here")
         subtrace = self.trace[-1000:]
 
-        trend = (
-            subtrace["intercept"] + subtrace["slope"] * self.regressor[:, None]
-        )
+        gmt_driven_trend = subtrace["slope"] * self.regressor[:, None]
+        self.df["trend"] = rescale(gmt_driven_trend.mean(axis=1), self.df["y"])
 
-        yearly_cycle = det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
-        yearly_cycle_trend = self.regressor[:,np.newaxis]*det_seasonality_posterior(
+        # yearly_cycle = det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
+        gmt_driven_trend += self.regressor[:,np.newaxis]*det_seasonality_posterior(
             subtrace["beta_trend"], self.x_trend
         )
 
-        post = y_inv(trend + yearly_cycle + yearly_cycle_trend, self.df["y"])
+        # our posteriors, they do not contain short term variability
+        self.df["estimated_scaled"] = (subtrace["intercept"] + gmt_driven_trend +
+                det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
+                ).mean(axis=1)
+        self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
 
-        trend = y_inv(trend, self.df["y"])
-        yearly_cycle = y_inv(yearly_cycle, self.df["y"]) - self.df["y"].min()
-        yearly_cycle_trend = y_inv(yearly_cycle_trend, self.df["y"]) - self.df["y"].min()
+        gmt_driven_trend = gmt_driven_trend.mean(axis=1)
 
         # the counterfactual timeseries, our main result
-        self.df["cfact"] = self.df["y"].data - (
-            trend + yearly_cycle_trend - trend[0]
-        ).mean(axis=1)
+        self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
+        self.df["cfact"] = self.df["y"].data - rescale(gmt_driven_trend, self.df["y"])
 
-        self.df["trend"] = trend.mean(axis=1)
-        self.df["yearly_cycle"] = yearly_cycle.mean(axis=1)
-        self.df["yearly_cycle_trend"] = yearly_cycle_trend.mean(axis=1)
-        print("here as well")
+        self.df["gmt_driven_trend"] = rescale(gmt_driven_trend, self.df["y"])
 
     def save_trace(self, i, j):
 
