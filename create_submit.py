@@ -32,4 +32,3 @@ def write_submit(settings, jobname, template_file):
 if __name__ == "__main__":
 
     write_submit(settings, jobname, template_file)
-    write_submit(settings, jobname, template_file_cfact)
