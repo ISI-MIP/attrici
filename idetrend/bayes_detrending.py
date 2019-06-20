@@ -7,6 +7,7 @@ import pandas as pd
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
+import idetrend.datahandler as dh
 
 
 def y_norm(y_to_scale, y_orig):
@@ -79,15 +80,15 @@ class bayes_regression(object):
         self.df = df
         return self.model, (x_yearly, x_trend)
 
-    def run(self, df, i, j):
+    def run(self, df, lat, lon):
 
         self.setup_model(df)
 
-        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
+        outdir_for_cell = dh.make_cell_output_dir(self.output_dir, "traces", lat, lon)
 
         # TODO: isolate loading trace function
-        print("Search for trace in", output_dir)
-        self.trace = pm.load_trace(output_dir, model=self.model)
+        print("Search for trace in\n", outdir_for_cell)
+        self.trace = pm.load_trace(outdir_for_cell, model=self.model)
 
         try:
             for var in ["slope", "intercept", "beta_yearly", "beta_trend", "sigma"]:
@@ -96,7 +97,7 @@ class bayes_regression(object):
             print("Successfully loaded sampled data. Skip this for sampling.")
         except IndexError:
             self.sample()
-            self.save_trace(i, j)
+            pm.backends.save_trace(self.trace, outdir_for_cell, overwrite=True)
 
         self.estimate_timeseries()
 
@@ -178,11 +179,6 @@ class bayes_regression(object):
         self.df["cfact"] = self.df["y"].data - rescale(gmt_driven_trend, self.df["y"])
 
         self.df["gmt_driven_trend"] = rescale(gmt_driven_trend, self.df["y"])
-
-    def save_trace(self, i, j):
-
-        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
-        pm.backends.save_trace(self.trace, output_dir, overwrite=True)
 
 
 def det_dot(a, b):
