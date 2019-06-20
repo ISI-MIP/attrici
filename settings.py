@@ -35,9 +35,9 @@ days_of_year = 365.2425
 # model run settings
 debug = False  # use to turn on debug settings
 init = "jitter+adapt_diag"  # init method for nuts sampler
-tune = 800  # number of draws to tune model
-draws = 1000  # number of sampling draws per chain
-chains = 5  # number of chains to calculate (min 2 to check for convergence)
+tune = 1000  # number of draws to tune model
+draws = 2000  # number of sampling draws per chain
+chains = 2  # number of chains to calculate (min 2 to check for convergence)
 
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.

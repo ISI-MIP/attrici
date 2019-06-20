@@ -50,6 +50,7 @@ class bayes_regression(object):
 
         # create instance of pymc model class
         self.model = pm.Model()
+        self.df = df.copy()
 
         with self.model:
             slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
@@ -57,10 +58,10 @@ class bayes_regression(object):
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
         x_yearly = self.add_season_model(
-            df, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
+            self.df, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
         )
         x_trend = self.add_season_model(
-            df, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
+            self.df, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
         )
 
         with self.model as model:
@@ -72,12 +73,11 @@ class bayes_regression(object):
                 + (self.regressor * det_dot(x_trend, model["beta_trend"]))
             )
             out = pm.Normal(
-                "obs", mu=estimated, sd=model["sigma"], observed=df["y_scaled"]
+                "obs", mu=estimated, sd=model["sigma"], observed=self.df["y_scaled"]
             )
 
         self.x_yearly = x_yearly
         self.x_trend = x_trend
-        self.df = df
         return self.model, (x_yearly, x_trend)
 
     def run(self, df, lat, lon):
