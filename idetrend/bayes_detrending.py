@@ -9,6 +9,18 @@ from datetime import datetime
 from pathlib import Path
 
 
+def y_norm(y_to_scale, y_orig):
+    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+
+
+def y_inv(y, y_orig):
+    """rescale data y to y_original"""
+    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+
+def rescale(y, y_orig):
+    """rescale data y to y_original"""
+    return y * (y_orig.max() - y_orig.min())
+
 class bayes_regression(object):
     def __init__(self, regressor, cfg):
 
@@ -31,41 +43,7 @@ class bayes_regression(object):
         self.stmu = cfg.stmu
         self.stps = cfg.stps
 
-
-    def add_season_model(self, data, modes, smu, sps, beta_name):
-        """
-        Creates a model of dominant in the data by using
-        a fourier series wiht specified number of modes.
-        :param data:
-        """
-
-        # rescale the period, as t is also scaled
-        p = 365.25 / (data["ds"].max() - data["ds"].min()).days
-        x = fourier_series(data["t"], p, modes)
-
-        with self.model:
-            beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
-        return x  # , beta
-
-    def run(self, datazip):
-
-        data, i, j = datazip
-        self.setup_model(data)
-
-        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
-
-        trace = pm.load_trace(output_dir, model=self.model)
-
-        try:
-            for var in ['slope', 'intercept', 'beta_yearly', 'beta_trend', 'sigma']:
-                if var not in trace.varnames:
-                    raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data. Skip this for sampling.")
-        except IndexError:
-            self.sample()
-            self.save_trace(i, j)
-
-    def setup_model(self, data):
+    def setup_model(self, df):
 
         # create instance of pymc model class
         self.model = pm.Model()
@@ -76,10 +54,10 @@ class bayes_regression(object):
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
         x_yearly = self.add_season_model(
-            data, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
+            df, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
         )
         x_trend = self.add_season_model(
-            data, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
+            df, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
         )
 
         with self.model as model:
@@ -91,11 +69,36 @@ class bayes_regression(object):
                 + (self.regressor * det_dot(x_trend, model["beta_trend"]))
             )
             out = pm.Normal(
-                "obs", mu=estimated, sd=model["sigma"], observed=data["y_scaled"]
+                "obs", mu=estimated, sd=model["sigma"], observed=df["y_scaled"]
             )
 
+        self.x_yearly = x_yearly
+        self.x_trend = x_trend
+        self.df = df
         return self.model, (x_yearly, x_trend)
 
+    def run(self, df, i, j):
+
+        self.setup_model(df)
+
+        output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
+
+        # TODO: isolate loading trace function
+        print("Search for trace in", output_dir)
+        self.trace = pm.load_trace(output_dir, model=self.model)
+
+        try:
+            for var in ["slope", "intercept", "beta_yearly", "beta_trend", "sigma"]:
+                if var not in self.trace.varnames:
+                    raise IndexError("Sample data not completely saved. Rerun.")
+            print("Successfully loaded sampled data. Skip this for sampling.")
+        except IndexError:
+            self.sample()
+            self.save_trace(i, j)
+
+        self.estimate_timeseries()
+
+        return self.df
 
     def sample(self):
 
@@ -120,11 +123,54 @@ class bayes_regression(object):
 
         return self.trace
 
+    def add_season_model(self, df, modes, smu, sps, beta_name):
+        """
+        Creates a model of periodic data in time by using
+        a fourier series with specified number of modes.
+        :param data:
+        """
+
+        # rescale the period, as t is also scaled
+        p = 365.25 / (df["ds"].max() - df["ds"].min()).days
+        x = fourier_series(df["t"], p, modes)
+
+        with self.model:
+            beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
+        return x  # , beta
+
+    def estimate_timeseries(self):
+
+        """ this is a memory-saving version of estimate timeseries.
+        caculations are done several times as a trade off for having less
+        memory consumtions. """
+
+        # to stay within memory bounds: only take last 1000 samples
+        subtrace = self.trace[-1000:]
+
+        self.df["trend"] = rescale((subtrace["slope"] * self.regressor[:, None]
+            ).mean(axis=1), self.df["y"])
+
+        # our posteriors, they do not contain short term variability
+        self.df["estimated_scaled"] = (subtrace["intercept"] + self.regressor[:,None]*(subtrace["slope"] +
+            det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)) +
+                det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
+                ).mean(axis=1)
+        self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
+
+        gmt_driven_trend = (self.regressor[:,None]*(subtrace["slope"] +
+            det_seasonality_posterior(subtrace["beta_trend"], self.x_trend
+        ))).mean(axis=1)
+
+        # the counterfactual timeseries, our main result
+        self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
+        self.df["cfact"] = self.df["y"].data - rescale(gmt_driven_trend, self.df["y"])
+
+        self.df["gmt_driven_trend"] = rescale(gmt_driven_trend, self.df["y"])
+
     def save_trace(self, i, j):
 
         output_dir = self.output_dir / "traces" / ("trace_" + str(i) + "_" + str(j))
         pm.backends.save_trace(self.trace, output_dir, overwrite=True)
-
 
 
 def det_dot(a, b):
@@ -135,6 +181,11 @@ def det_dot(a, b):
     :param b: (theano vector)
     """
     return (a * b[None, :]).sum(axis=-1)
+
+
+def det_seasonality_posterior(beta, x):
+    # FIXME: can this be replaced through det_dot?
+    return np.dot(x, beta.T)
 
 
 def fourier_series(t, p, n):
@@ -149,40 +200,3 @@ def fourier_series(t, p, n):
 def det_trend(k, m, delta, t, s, A):
     return (k + np.dot(A, delta)) * t + (m + np.dot(A, (-s * delta)))
 
-
-def y_norm(y_to_scale, y_orig):
-    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
-
-
-def create_dataframe(nct, data_to_detrend, gmt):
-
-    # proper dates plus additional time axis that is
-    # from 0 to 1 for better sampling performance
-
-    ds = pd.to_datetime(
-        nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
-    )
-    t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
-    gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = y_norm(gmt_on_data_cal, gmt_on_data_cal)
-    y_scaled = y_norm(data_to_detrend, data_to_detrend)
-
-    tdf = pd.DataFrame(
-        {
-            "ds": ds,
-            "t": t_scaled,
-            "y": data_to_detrend,
-            "y_scaled": y_scaled,
-            "gmt": gmt_on_data_cal,
-            "gmt_scaled": gmt_scaled,
-        }
-    )
-
-    return tdf
-
-
-def mcs_helper(nct, data_to_detrend, gmt, variable, i, j):
-
-    data = data_to_detrend.variables[variable][:, i, j]
-    tdf = create_dataframe(nct, data, gmt)
-    return (tdf, i, j)

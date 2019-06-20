@@ -8,6 +8,7 @@ user = getpass.getuser()
 if user == "mengel":
     conda_path = "/home/mengel/anaconda3/envs/pymc3/"
     data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
+    data_dir = "/p/projects/tumble/mengel/isimip/20190612_Isicfact_TestData/"
     # data_dir = "/p/tmp/mengel/isimip/isi-cfact"
     log_dir = "./log"
 
@@ -23,13 +24,6 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # number of parallel jobs through jobarray
 # used through submit.sh, needs to be divisor of number of grid cells
 njobarray = 64
-
-# if test=True use smaller test dataset
-# test = False  # use to run on test dataset
-# startyear = 1901  # select startyear
-# endyear = 2010  # select endyear
-# have to be in filenames
-# calendar = "gregorian"  # 'gregorian' or 'noleap' implemented
 
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
@@ -64,20 +58,9 @@ stps = 20  # trend in season scale (sd)
 
 gmt_file = dataset + "_ssa_gmt.nc4"
 
-# source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
-source_file = variable + "_" + dataset + "_iowa.nc4"
-#  source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
-# source_file = variable + "_" + dataset + "_every100th.nc4"
-# source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
-# source_file = variable + "_" + dataset + "_1979_2018.nc4"
-# source_file = variable + "_" + dataset + "_1901_2010.nc4"
-
-#  source_file = variable + "_" + dataset + "_gregorian_75deg.nc4"
-# source_file = variable + "_" + dataset + "_every100th.nc4"
-# source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
-# source_file = variable + "_" + dataset + "_1979_2018.nc4"
-
-params_file = variable + "_" + dataset + "_iowa_parameters.nc4"
-cfact_file = variable + "_" + dataset + "_iowa_cfactual.nc4"
-trend_file =  variable + "_" + dataset + "_iowa_trend.nc4"
+# source_file = variable + "_" + dataset + "_iowa.nc4"
+source_file = variable + "_" + dataset + "_1901_2010_30deg.nc4"
+params_file = variable + "_" + dataset + "_parameters.nc4"
+cfact_file = variable + "_" + dataset + "_cfactual.nc4"
+trend_file =  variable + "_" + dataset + "_trend.nc4"

@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 import settings as s
 import idetrend.bayes_detrending as bt
+import idetrend.datahandler as dh
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
@@ -16,6 +17,8 @@ except KeyError:
     njobarray = 1
     task_id = 0
     s.progressbar = True
+
+dh.create_output_dirs(s.output_dir)
 
 gmt_file = os.path.join(s.input_dir, s.gmt_file)
 ncg = nc.Dataset(gmt_file, "r")
@@ -31,12 +34,8 @@ ncells = latsize * obs_data.dimensions["lon"].size
 
 # create_dataframe maps gmt on the time axis of obs_data
 # Ensure that both have the same start and endpoint in time.
-tdf = bt.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
+tdf = dh.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
 
-if not os.path.exists(s.output_dir):
-    os.makedirs(s.output_dir)
-    os.makedirs(Path(s.output_dir) / "traces")
-    os.makedirs(Path(s.output_dir) / "theano")
 
 if ncells % njobarray:
     print("task_id", task_id)
@@ -58,16 +57,16 @@ bayes = bt.bayes_regression(tdf["gmt_scaled"], s)
 
 TIME0 = datetime.now()
 
-futures = []
-
 for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
     i = int(n % latsize)
     j = int(n / latsize)
     print("This is SLURM task", task_id, "run number", n, "i,j", i, j)
 
-    data_ij = bt.mcs_helper(nct, obs_data, gmt, s.variable, i, j)
-    futr = bayes.run(data_ij)
-    futures.append(futr)
+    data = obs_data.variables[s.variable][:, i, j]
+    df = dh.create_dataframe(nct, data, gmt)
+
+    df_with_cfact = bayes.run(df, i, j)
+    dh.save_to_csv(df_with_cfact, s, i, j)
 
 print(
     "Estimation completed for all cells. It took {0:.1f} minutes.".format(
