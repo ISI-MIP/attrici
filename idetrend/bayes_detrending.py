@@ -184,6 +184,7 @@ def det_dot(a, b):
 
 
 def det_seasonality_posterior(beta, x):
+    # FIXME: can this be replaced through det_dot?
     return np.dot(x, beta.T)
 
 
