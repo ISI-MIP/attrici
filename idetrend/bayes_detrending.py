@@ -17,9 +17,11 @@ def y_inv(y, y_orig):
     """rescale data y to y_original"""
     return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
+
 def rescale(y, y_orig):
     """rescale data y to y_original"""
     return y * (y_orig.max() - y_orig.min())
+
 
 class bayes_regression(object):
     def __init__(self, regressor, cfg):
@@ -147,19 +149,29 @@ class bayes_regression(object):
         # to stay within memory bounds: only take last 1000 samples
         subtrace = self.trace[-1000:]
 
-        self.df["trend"] = rescale((subtrace["slope"] * self.regressor[:, None]
-            ).mean(axis=1), self.df["y"])
+        self.df["trend"] = rescale(
+            (subtrace["slope"] * self.regressor[:, None]).mean(axis=1), self.df["y"]
+        )
 
         # our posteriors, they do not contain short term variability
-        self.df["estimated_scaled"] = (subtrace["intercept"] + self.regressor[:,None]*(subtrace["slope"] +
-            det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)) +
-                det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
-                ).mean(axis=1)
+        self.df["estimated_scaled"] = (
+            subtrace["intercept"]
+            + self.regressor[:, None]
+            * (
+                subtrace["slope"]
+                + det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)
+            )
+            + det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
+        ).mean(axis=1)
         self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
 
-        gmt_driven_trend = (self.regressor[:,None]*(subtrace["slope"] +
-            det_seasonality_posterior(subtrace["beta_trend"], self.x_trend
-        ))).mean(axis=1)
+        gmt_driven_trend = (
+            self.regressor[:, None]
+            * (
+                subtrace["slope"]
+                + det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)
+            )
+        ).mean(axis=1)
 
         # the counterfactual timeseries, our main result
         self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
@@ -199,4 +211,3 @@ def fourier_series(t, p, n):
 
 def det_trend(k, m, delta, t, s, A):
     return (k + np.dot(A, delta)) * t + (m + np.dot(A, (-s * delta)))
-

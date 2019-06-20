@@ -4,9 +4,7 @@ import settings
 import pathlib
 
 jobname = pathlib.Path.cwd().name
-
 template_file = "submit.sh.jinja2"
-template_file_cfact = "submit_cfact.sh.jinja2"
 
 
 def write_submit(settings, jobname, template_file):
@@ -32,4 +30,3 @@ def write_submit(settings, jobname, template_file):
 if __name__ == "__main__":
 
     write_submit(settings, jobname, template_file)
-    write_submit(settings, jobname, template_file_cfact)

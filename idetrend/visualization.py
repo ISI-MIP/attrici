@@ -662,6 +662,7 @@ def plot_2d_doy(data, doy, title):
 
     plt.show()
 
+
 def plot_cfact_ts(data, i, j, last):
 
     import matplotlib.dates as mdates
@@ -681,7 +682,7 @@ def plot_cfact_ts(data, i, j, last):
     p0, = plt.plot(
         date[-last:],
         post[last:],
-        alpha=.7,
+        alpha=0.7,
         lw=6,
         label="Estimated best guess",
         color="brown",
@@ -691,17 +692,20 @@ def plot_cfact_ts(data, i, j, last):
         date[-last:],
         data["y"][-last:],
         #  "-.",
-        alpha=.9,
+        alpha=0.9,
         lw=1,
         color="grey",
         label="Observated weather",
     )
 
-    plt.plot(date[-last:], data["cfact"][-last:],
-             #  "-.",
-             #  alpha=.9,
-             lw=.5,
-             label="Counterfactual weather")
+    plt.plot(
+        date[-last:],
+        data["cfact"][-last:],
+        #  "-.",
+        #  alpha=.9,
+        lw=0.5,
+        label="Counterfactual weather",
+    )
 
     plt.legend(loc="upper left", bbox_to_anchor=(0.0, 1.3), frameon=False)
     plt.ylabel("Regional climatic variable")
@@ -718,10 +722,12 @@ def plot_cfact_ts(data, i, j, last):
     ax.set_xticks(ax.get_xticks()[::1])
     ax.yaxis.set_ticklabels([])
     plt.grid()
-    ax.autoscale(enable=True, axis='x', tight=True)
+    ax.autoscale(enable=True, axis="x", tight=True)
 
     # fig.autofmt_xdate()
-    plt.ylim(bottom=data["cfact"][-last:].min() - .5, top=data["cfact"][-last:].max() + 2)
+    plt.ylim(
+        bottom=data["cfact"][-last:].min() - 0.5, top=data["cfact"][-last:].max() + 2
+    )
     myFmt = mdates.DateFormatter("%m-%Y")
     ax.xaxis.set_major_formatter(myFmt)
     # plt.tight_layout()
@@ -732,4 +738,3 @@ def plot_cfact_ts(data, i, j, last):
     )
     plt.savefig(cfact_path_fig, dpi=400)
     plt.close()
-

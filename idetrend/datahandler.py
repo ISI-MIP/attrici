@@ -2,12 +2,13 @@ import numpy as np
 import pandas as pd
 import pathlib
 
+
 def create_output_dirs(output_dir):
 
     """ params: output_dir: a pathlib object """
 
     for d in ["traces", "theano", "timeseries"]:
-        (output_dir/d).mkdir(parents=True, exist_ok=True)
+        (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
 def y_norm(y_to_scale, y_orig):
@@ -66,4 +67,3 @@ def save_to_csv(df_with_cfact, settings, i, j):
 
     df_with_cfact.to_csv(fname)
     print("Timeseries file saved to", fname)
-
