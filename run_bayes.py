@@ -12,6 +12,7 @@ try:
     task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
     njobarray = int(os.environ["SLURM_ARRAY_TASK_COUNT"])
     s.ncores_per_job = 1
+    s.progressbar = False
 except KeyError:
     submitted = False
     njobarray = 1
