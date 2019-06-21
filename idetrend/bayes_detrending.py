@@ -50,38 +50,31 @@ class bayes_regression(object):
     def setup_model(self, df):
 
         # create instance of pymc model class
-        self.model = pm.Model()
         df_subset = df.loc[::self.subset].copy()
         regressor = df_subset["gmt_scaled"].values
+        x_fourier = rescale_fourier(df_subset, self.modes)
+        self.model = pm.Model()
 
         with self.model:
             slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
             intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
-        x_yearly = self.add_season_model(
-            df_subset, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
-        )
-        x_trend = self.add_season_model(
-            df_subset, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
-        )
-
-        with self.model as model:
+            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
+            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
 
             estimated = (
-                model["intercept"]
-                + model["slope"] * regressor
-                + det_dot(x_yearly, model["beta_yearly"])
-                + (regressor * det_dot(x_trend, model["beta_trend"]))
+                intercept
+                + slope * regressor
+                + det_dot(x_fourier, beta_yearly)
+                + (regressor * det_dot(x_fourier, beta_trend))
             )
             out = pm.Normal(
-                "obs", mu=estimated, sd=model["sigma"], observed=df_subset["y_scaled"]
+                "obs", mu=estimated, sd=sigma, observed=df_subset["y_scaled"]
             )
 
-        self.x_yearly = x_yearly
-        self.x_trend = x_trend
         self.df = df
-        return self.model, (x_yearly, x_trend)
+        return self.model, x_fourier
 
     def run(self, df, lat, lon):
 
@@ -129,20 +122,12 @@ class bayes_regression(object):
 
         return self.trace
 
-    def add_season_model(self, df, modes, smu, sps, beta_name):
-        """
-        Creates a model of periodic data in time by using
-        a fourier series with specified number of modes.
-        :param data:
-        """
+    # def add_season_model(self, modes, smu, sps, beta_name):
+    #     """
 
-        # rescale the period, as t is also scaled
-        p = 365.25 / (df["ds"].max() - df["ds"].min()).days
-        x = fourier_series(df["t"], p, modes)
-
-        with self.model:
-            beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
-        return x  # , beta
+    #     """
+    #     with self.model:
+    #         beta = pm.Normal(beta_name, mu=smu, sd=sps, shape=2 * modes)
 
     def estimate_timeseries(self):
 
@@ -153,6 +138,7 @@ class bayes_regression(object):
         # to stay within memory bounds: only take last 1000 samples
         regressor = self.df["gmt_scaled"].values
         subtrace = self.trace[-1000:]
+        x_fourier = rescale_fourier(self.df, self.modes)
 
         self.df["trend"] = rescale(
             (subtrace["slope"] * regressor[:, None]).mean(axis=1), self.df["y"]
@@ -164,9 +150,9 @@ class bayes_regression(object):
             + regressor[:, None]
             * (
                 subtrace["slope"]
-                + det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)
+                + det_seasonality_posterior(subtrace["beta_trend"], x_fourier)
             )
-            + det_seasonality_posterior(subtrace["beta_yearly"], self.x_yearly)
+            + det_seasonality_posterior(subtrace["beta_yearly"], x_fourier)
         ).mean(axis=1)
         self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
 
@@ -174,7 +160,7 @@ class bayes_regression(object):
             regressor[:, None]
             * (
                 subtrace["slope"]
-                + det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)
+                + det_seasonality_posterior(subtrace["beta_trend"], x_fourier)
             )
         ).mean(axis=1)
 
@@ -208,6 +194,14 @@ def fourier_series(t, p, n):
     x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
     return x
 
+def rescale_fourier(df, modes):
+
+    # TODO: understand what this function does and rename.
+
+    # rescale the period, as t is also scaled
+    p = 365.25 / (df["ds"].max() - df["ds"].min()).days
+    x = fourier_series(df["t"], p, modes)
+    return x
 
 def det_trend(k, m, delta, t, s, A):
     return (k + np.dot(A, delta)) * t + (m + np.dot(A, (-s * delta)))
