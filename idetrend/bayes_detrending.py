@@ -25,15 +25,16 @@ def rescale(y, y_orig):
 
 
 class bayes_regression(object):
-    def __init__(self, regressor, cfg):
+    def __init__(self, cfg):
 
-        self.regressor = regressor.values
         self.output_dir = cfg.output_dir
         self.init = cfg.init
         self.draws = cfg.draws
         self.cores = cfg.ncores_per_job
         self.chains = cfg.chains
         self.tune = cfg.tune
+        self.subset = cfg.subset
+
         self.progressbar = cfg.progressbar
         self.days_of_year = cfg.days_of_year
 
@@ -50,7 +51,8 @@ class bayes_regression(object):
 
         # create instance of pymc model class
         self.model = pm.Model()
-        self.df = df.copy()
+        df_subset = df.loc[::self.subset].copy()
+        regressor = df_subset["gmt_scaled"].values
 
         with self.model:
             slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
@@ -58,26 +60,27 @@ class bayes_regression(object):
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
         x_yearly = self.add_season_model(
-            self.df, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
+            df_subset, self.modes, smu=self.smu, sps=self.sps, beta_name="beta_yearly"
         )
         x_trend = self.add_season_model(
-            self.df, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
+            df_subset, self.modes, smu=self.stmu, sps=self.stps, beta_name="beta_trend"
         )
 
         with self.model as model:
 
             estimated = (
                 model["intercept"]
-                + model["slope"] * self.regressor
+                + model["slope"] * regressor
                 + det_dot(x_yearly, model["beta_yearly"])
-                + (self.regressor * det_dot(x_trend, model["beta_trend"]))
+                + (regressor * det_dot(x_trend, model["beta_trend"]))
             )
             out = pm.Normal(
-                "obs", mu=estimated, sd=model["sigma"], observed=self.df["y_scaled"]
+                "obs", mu=estimated, sd=model["sigma"], observed=df_subset["y_scaled"]
             )
 
         self.x_yearly = x_yearly
         self.x_trend = x_trend
+        self.df = df
         return self.model, (x_yearly, x_trend)
 
     def run(self, df, lat, lon):
@@ -148,16 +151,17 @@ class bayes_regression(object):
         memory consumtions. """
 
         # to stay within memory bounds: only take last 1000 samples
+        regressor = self.df["gmt_scaled"].values
         subtrace = self.trace[-1000:]
 
         self.df["trend"] = rescale(
-            (subtrace["slope"] * self.regressor[:, None]).mean(axis=1), self.df["y"]
+            (subtrace["slope"] * regressor[:, None]).mean(axis=1), self.df["y"]
         )
 
         # our posteriors, they do not contain short term variability
         self.df["estimated_scaled"] = (
             subtrace["intercept"]
-            + self.regressor[:, None]
+            + regressor[:, None]
             * (
                 subtrace["slope"]
                 + det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)
@@ -167,7 +171,7 @@ class bayes_regression(object):
         self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
 
         gmt_driven_trend = (
-            self.regressor[:, None]
+            regressor[:, None]
             * (
                 subtrace["slope"]
                 + det_seasonality_posterior(subtrace["beta_trend"], self.x_trend)

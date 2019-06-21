@@ -38,12 +38,13 @@ init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
+subset = 5 # only use every subset datapoint for bayes estimation for speedup
 
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.
 ncores_per_job = 2
 # automatically set to 1 for mpi (last line)
-progressbar = False  # print progress in output (.err file for mpi)
+progressbar = True  # print progress in output (.err file for mpi)
 live_plot = False  # show live plot (does not work yet)
 
 # parameters for fourier modes and priors

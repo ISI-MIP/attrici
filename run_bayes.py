@@ -33,11 +33,6 @@ lats = obs_data.variables["lat"][:]
 lons = obs_data.variables["lon"][:]
 ncells = len(lats) * len(lons)
 
-# create_dataframe maps gmt on the time axis of obs_data
-# Ensure that both have the same start and endpoint in time.
-tdf = dh.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
-
-
 if ncells % njobarray:
     print("task_id", task_id)
     print("njobarray", njobarray)
@@ -54,7 +49,7 @@ end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 # Print the task and run range
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
-bayes = bt.bayes_regression(tdf["gmt_scaled"], s)
+bayes = bt.bayes_regression(s)
 
 TIME0 = datetime.now()
 
