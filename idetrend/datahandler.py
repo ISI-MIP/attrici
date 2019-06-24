@@ -6,7 +6,7 @@ def create_output_dirs(output_dir):
 
     """ params: output_dir: a pathlib object """
 
-    for d in ["traces", "theano", "timeseries"]:
+    for d in ["traces", "timeseries"]:
         (output_dir/d).mkdir(parents=True, exist_ok=True)
 
 
