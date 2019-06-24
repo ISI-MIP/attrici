@@ -2,13 +2,27 @@ import numpy as np
 import pandas as pd
 import pathlib
 
+
 def create_output_dirs(output_dir):
 
     """ params: output_dir: a pathlib object """
 
     for d in ["traces", "timeseries"]:
-        (output_dir/d).mkdir(parents=True, exist_ok=True)
+        (output_dir / d).mkdir(parents=True, exist_ok=True)
 
+
+def make_cell_output_dir(output_dir, sub_dir, lat, lon):
+
+    """ params: output_dir: a pathlib object """
+
+    lat_sub_dir = output_dir / sub_dir / ("lat_" + str(lat))
+    lat_sub_dir.mkdir(exist_ok=True)
+
+    if sub_dir == "traces":
+        #
+        return lat_sub_dir / ("cell_lat" + str(lat) + "_lon" + str(lon))
+    else:
+        return lat_sub_dir
 
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
@@ -46,24 +60,21 @@ def create_dataframe(nct, data_to_detrend, gmt):
     return tdf
 
 
-def save_to_csv(df_with_cfact, settings, i, j):
+def save_to_csv(df_with_cfact, settings, lat, lon):
 
-    fname = (
-        settings.output_dir
-        / "timeseries"
-        / (
-            "ts_"
-            + settings.variable
-            + "_"
-            + settings.dataset
-            + "_"
-            + str(i)
-            + "_"
-            + str(j)
-            + ".csv"
-        )
+    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon)
+
+    fname = outdir_for_cell / (
+        "ts_"
+        + settings.variable
+        + "_"
+        + settings.dataset
+        + "_lat"
+        + str(lat)
+        + "_lon"
+        + str(lon)
+        + ".csv"
     )
 
     df_with_cfact.to_csv(fname)
     print("Timeseries file saved to", fname)
-

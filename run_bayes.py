@@ -29,13 +29,9 @@ ncg.close()
 to_detrend_file = os.path.join(s.input_dir, s.source_file)
 obs_data = nc.Dataset(to_detrend_file, "r")
 nct = obs_data.variables["time"]
-latsize = obs_data.dimensions["lat"].size
-ncells = latsize * obs_data.dimensions["lon"].size
-
-# create_dataframe maps gmt on the time axis of obs_data
-# Ensure that both have the same start and endpoint in time.
-tdf = dh.create_dataframe(nct, obs_data.variables[s.variable][:, 0, 0], gmt)
-
+lats = obs_data.variables["lat"][:]
+lons = obs_data.variables["lon"][:]
+ncells = len(lats) * len(lons)
 
 if ncells % njobarray:
     print("task_id", task_id)
@@ -53,20 +49,23 @@ end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 # Print the task and run range
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
-bayes = bt.bayes_regression(tdf["gmt_scaled"], s)
+bayes = bt.bayes_regression(s)
 
 TIME0 = datetime.now()
 
 for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
-    i = int(n % latsize)
-    j = int(n / latsize)
-    print("This is SLURM task", task_id, "run number", n, "i,j", i, j)
+    i = int(n % len(lats))
+    j = int(n / len(lats))
+    lat, lon = lats[i], lons[j]
+    print("This is SLURM task", task_id, "run number", n, "lat,lon", lat, lon)
 
     data = obs_data.variables[s.variable][:, i, j]
     df = dh.create_dataframe(nct, data, gmt)
 
-    df_with_cfact = bayes.run(df, i, j)
-    dh.save_to_csv(df_with_cfact, s, i, j)
+    df_with_cfact = bayes.run(df, lat, lon)
+    dh.save_to_csv(df_with_cfact, s, lat, lon)
+
+obs_data.close()
 
 print(
     "Estimation completed for all cells. It took {0:.1f} minutes.".format(
