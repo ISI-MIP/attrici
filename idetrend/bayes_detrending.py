@@ -86,6 +86,10 @@ class bayes_regression(object):
         print("Search for trace in\n", outdir_for_cell)
         self.trace = pm.load_trace(outdir_for_cell, model=self.model)
 
+
+        # As load_trace does not throw an error when no saved data exists, we here
+        # test this manually. FIXME: Could be improved, as we check for existence
+        # of names only, but not that the data is not corrupted.
         try:
             for var in ["slope", "intercept", "beta_yearly", "beta_trend", "sigma"]:
                 if var not in self.trace.varnames:
