@@ -8,12 +8,13 @@
 #SBATCH --error=../output/rechunk.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
-
-# # block one node completely to get all its memory.
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
+#SBATCH --mem=60000
 #SBATCH --exclusive
 #
+module load intel/2018.1
+module load nco/4.7.8
 if [ -e settings.py ]; then
     settings_file=settings.py 
 else 
@@ -26,15 +27,16 @@ variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | 
 # datafolder selections relies on the folder being wrapped in double quotation marks
 datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | sed "s/'//g" | sed 's/"//g')"
 
-dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+# dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-inputfile=${datafolder}${variable}_${dataset}_gregorian.nc4
-outputfile=${datafolder}/input/${variable}_${dataset}_gregorian_rechunked.nc4
-echo 'Rechunk the following variable'
-echo $variable
+inputfile=${datafolder}${variable}_${dataset}.nc4
+outputfile=${datafolder}/input/${variable}_${dataset}.nc4
+# echo 'Rechunk the following variable'
+# echo $variable
 echo 'Inputfile:' ${inputfile}
 echo 'Outputfile:' ${outputfile}
-nccopy -u -k 'nc4' -m 32G -c time/4018,lat/1,lon/1 ${inputfile} ${outputfile}
-echo 'rechunked' $variable 'for faster access to full timeseries'
+# nccopy -u -k 'nc4' -m 64G -c time/4018,lat/1,lon/1 ${inputfile} ${outputfile}
+nccopy -w -k 'nc4' -c time/4018,lat/1,lon/720 ${inputfile} ${outputfile} 
+# echo 'rechunked' $variable 'for faster access to full timeseries'
