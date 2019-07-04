@@ -32,7 +32,7 @@ For estimating parameter distributions (above step 1) and smaller datasets
 
 For larger datasets, produce a `submit.sh` file via
 
-`python create_submit.sh`
+`python create_submit.py`
 
 Then submit to the slurm scheduler
 
