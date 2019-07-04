@@ -4,14 +4,13 @@
 
 import glob
 import itertools as it
-import os
-import sys
 from pathlib import Path
 
-import settings as s
 import netCDF4 as nc
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+import settings as s
 
 
 def form_global_nc(ds, time, lat, lon):
@@ -44,8 +43,7 @@ def form_global_nc(ds, time, lat, lon):
     times[:] = time
 
 
-#  data_gen = Path(s.output_dir / "timeseries").glob("**/*.csv")
-data_gen = Path("/p/tmp/mengel/isimip/isi-cfact/output/isicf004_gswp3_tas_2p5deg/timeseries").glob("**/*.csv")
+data_gen = Path(s.output_dir / "timeseries").glob("**/*.csv")
 data_list = []
 lat = []
 lon = []
@@ -57,8 +55,8 @@ for i in data_gen:
     lon_float = float(str(i).split("lon")[-1].split(".csv")[0])
     lat.append(lat_float)
     lon.append(lon_float)
-    lat_indices.append(int(180 - 2*lat_float - .5)/s.subset)
-    lon_indices.append(int(2*lon_float - .5 + 360)/s.subset)
+    lat_indices.append(int(180 - 2 * lat_float - 0.5) / s.subset)
+    lon_indices.append(int(2 * lon_float - 0.5 + 360) / s.subset)
 
 
 obs = nc.Dataset(Path(s.input_dir) / s.source_file, "r")
@@ -70,35 +68,24 @@ headers = headers.drop(["ds", "gmt", "gmt_scaled"])
 
 outs = []
 for head in headers:
-    outs.append(nc.Dataset(Path(s.output_dir)
-                           / "cfact"
-                           / (head + "_" + s.cfact_file.split("_", 1)[1]),
-                           "w",
-                           format="NETCDF4"))
+    outs.append(
+        nc.Dataset(
+            Path(s.output_dir) / "cfact" / (head + "_" + s.cfact_file.split("_", 1)[1]),
+            "w",
+            format="NETCDF4",
+        )
+    )
 for out in outs:
     form_global_nc(out, time, lat, lon)
-#  trend = nc.Dataset(Path(s.output_dir) / "cfact" / s.trend_file, "w", format="NETCDF4")
-#  estimate = nc.Dataset(Path(s.output_dir) / "cfact" / s.est_file, "w", format="NETCDF4")
-#  form_global_nc(cfact, time, lat, lon)
-#  form_global_nc(trend, time, lat, lon)
-#  form_global_nc(estimate, time, lat, lon)
 
 for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(path)
     print(i, j)
-    df = pd.read_csv(path, index_col=0, engine='c')
+    df = pd.read_csv(path, index_col=0, engine="c")
     obs_ts = np.array(obs.variables[s.variable][:, i, j])
     for (out, head) in it.zip_longest(outs, headers):
         ts = np.array(df[head])
         out.variables[s.variable][:, i, j] = ts
-    #  ts = np.array(pd.read_csv(path)["cfact"])
-    #  cfact.variables[s.variable][:, i, j] = ts
-    #  trend.variables[s.variable][:, i, j] = obs_ts - ts
-    #  estimate.variables[s.variable][:, i, j] = np.array(pd.read_csv(path)["estimated"])
 
 for out in outs:
     out.close()
-#  obs.close()
-#  cfact.close()
-#  trend.close()
-#  estimate.close()
