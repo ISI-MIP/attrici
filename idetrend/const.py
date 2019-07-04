@@ -1,5 +1,51 @@
 import numpy as np
 
+def standard(y_to_scale, y_orig):
+    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+
+def precip(y_to_scale, y_orig):
+    """scale and transform data with lower boundary y to y_original"""
+    y = np.exp(y)
+    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+
+def logit(y_to_scale, y_orig):
+    """scale and transform data with lower boundary y to y_original"""
+    y = 2.0 * np.ma.arctanh(2.0 * data / (maxval - minval) - 1.0)
+    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+
+def expit(data):
+    """ scaled inverse logit for input data of values in [0, 100]
+    as for rhs. minval and maxval differ by purpose from these
+    in dictionaries below."""
+    minval = 0
+    maxval = 100
+    return minval + (maxval - minval) * 0.5 * (1.0 + np.ma.tanh(0.5 * data))
+
+transform_dict = {
+    "tasmin": standard,
+    "tas": standard,
+    "tasmax": standard,
+    "pr": precip,
+    "rhs": ,
+    "ps": None,
+    "rsds": None,
+    "rlds": None,
+    "wind": [np.ma.log, np.ma.exp],
+}
+
+def rescale(y, y_orig):
+    """rescale "standard" data y to y_original"""
+    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+
+def re_standard(y, y_orig):
+    """standard" data y to y_original"""
+    return y * (y_orig.max() - y_orig.min())
+
+def re_precip(y, y_orig):
+    """rescale and transform data with lower boundary y to y_original"""
+    y[y<=0.000001157407] = 0   # amounts to .1 mm per day if unit is mm per sec
+    y = np.log(y)
+    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
 def logit(data):
     """ scaled logit for input data of values in [0, 100]
@@ -9,14 +55,19 @@ def logit(data):
     maxval = 100
     return 2.0 * np.ma.arctanh(2.0 * (data - minval) / (maxval - minval) - 1.0)
 
+#  set of inverse transform functions
+retransform_dict = {
+    "tasmin": re_standard,
+    "tas": re_standard,
+    "tasmax": re_standard,
+    "pr": re_precip,
+    "rhs": [logit, expit],
+    "ps": None,
+    "rsds": None,
+    "rlds": None,
+    "wind": [np.ma.log, np.ma.exp],
+}
 
-def expit(data):
-    """ scaled inverse logit for input data of values in [0, 100]
-    as for rhs. minval and maxval differ by purpose from these
-    in dictionaries below."""
-    minval = 0
-    maxval = 100
-    return minval + (maxval - minval) * 0.5 * (1.0 + np.ma.tanh(0.5 * data))
 
 
 # transformations come in tuples

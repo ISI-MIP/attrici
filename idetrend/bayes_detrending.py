@@ -8,6 +8,8 @@ import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
 import idetrend.datahandler as dh
+import idetrend.const as c
+import settings as s
 
 
 def y_norm(y_to_scale, y_orig):
@@ -144,7 +146,7 @@ class bayes_regression(object):
         subtrace = self.trace[-1000:]
         x_fourier = rescale_fourier(self.df, self.modes)
 
-        self.df["trend"] = rescale(
+        self.df["trend"] = c.rescale(
             (subtrace["slope"] * regressor[:, None]).mean(axis=1), self.df["y"]
         )
 
@@ -158,7 +160,7 @@ class bayes_regression(object):
             )
             + det_seasonality_posterior(subtrace["beta_yearly"], x_fourier)
         ).mean(axis=1)
-        self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
+        self.df["estimated"] = c.transform_dict[s.variable](self.df["estimated_scaled"], self.df["y"])
 
         gmt_driven_trend = (
             regressor[:, None]
@@ -170,9 +172,9 @@ class bayes_regression(object):
 
         # the counterfactual timeseries, our main result
         self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
-        self.df["cfact"] = self.df["y"].data - rescale(gmt_driven_trend, self.df["y"])
+        self.df["cfact"] = self.df["y"].data - c.rescale(gmt_driven_trend, self.df["y"])
 
-        self.df["gmt_driven_trend"] = rescale(gmt_driven_trend, self.df["y"])
+        self.df["gmt_driven_trend"] = c.rescale(gmt_driven_trend, self.df["y"])
 
 
 def det_dot(a, b):
