@@ -33,5 +33,5 @@ echo "\n-----\n"
 
 # srun yes | bash merge_data.sh
 # srun python rechunk.py
-srun python create_test_data.py
+srun python subset.py
 # python3 calc_gmt_by_ssa.py
