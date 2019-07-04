@@ -1,8 +1,8 @@
 #!/bin/bash
 
 #SBATCH --qos=priority
-##SBATCH --partition=priority
-#SBATCH --job-name=rechunk
+#SBATCH --partition=priority
+#SBATCH --job-name=complete_pre
 #SBATCH --account=isipedia
 #SBATCH --output=../output/%x.out
 #SBATCH --error=../output/%x.err
@@ -12,16 +12,26 @@
 # # block one node completely to get all its memory.
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
+#SBATCH --mem=60000
 #SBATCH --exclusive
 
-# Run complete preprocessing routine
-if [ "$USER" == "bschmidt" ]; then
-    echo 'User is' $USER
-    source /home/bschmidt/.programs/anaconda3/bin/activate detrending
-fi
+module purge
+module load anaconda/5.0.0_py3
+module load intel/2019.4
+module load netcdf-c/4.6.1/intel/parallel
+module load nco/4.7.8
 
-srun yes | bash merge_data.sh
-# srun bash remove_leap_days.sh
-srun bash rechunk.sh
-srun python3 create_test_data.py
+# Run complete preprocessing routine
+echo "-----\n"
+if [ "$USER" == "bschmidt" ]; then
+    echo "\nUser is\n" $USER
+    source activate mpi_py3
+fi
+echo "\nPython interpreter used is:"
+which python
+echo "\n-----\n"
+
+# srun yes | bash merge_data.sh
+# srun python rechunk.py
+srun python create_test_data.py
 # python3 calc_gmt_by_ssa.py
