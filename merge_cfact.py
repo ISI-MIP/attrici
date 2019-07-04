@@ -23,7 +23,7 @@ def form_global_nc(ds, time, lat, lon):
     longitudes = ds.createVariable("lon", "f8", ("lon",))
     latitudes = ds.createVariable("lat", "f8", ("lat",))
     data = ds.createVariable(
-        "tas",
+        s.variable,
         "f4",
         ("time", "lat", "lon"),
         chunksizes=(time.shape[0], 1, 1),
