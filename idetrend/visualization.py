@@ -9,6 +9,7 @@ from scipy import stats
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 
 #  import os
@@ -21,6 +22,7 @@ regresult = namedtuple(
     "LinregressResult",
     ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount"),
 )
+sns.set_palette(sns.color_palette("Paired"))
 
 # fixed numbers for now.
 days_of_year = 365
@@ -801,8 +803,10 @@ def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
 
 
 def plot_ts_ends(
-    data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24)
+    data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24),
+    minmax=False,
 ):
+    """ minmax should be either False or a list of tuples of form (min_data, max_data) for each ts to plot"""
 
     lon_index = int((2 * lon + 360 - 0.5) / s.subset)
     lat_index = int((180 - 2 * lat - 0.5) / s.subset)
@@ -813,45 +817,111 @@ def plot_ts_ends(
     ax[0].plot(
         time[start : years * 365 : steps],
         data[0][start : years * 365 : steps, lat_index, lon_index],
-        "b",
         label="to detrend",
     )
+    if minmax is not False:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[0][0][start : years * 365 : steps, lat_index, lon_index],
+            label="to detrend min",
+        )
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[0][1][start : years * 365 : steps, lat_index, lon_index],
+            label="to detrend max",
+        )
     ax[0].title.set_text("lon: " + str(lon) + " lat: " + str(lat))
     ax[0].plot(
         time[start : years * 365 : steps],
         data[1][start : years * 365 : steps, lat_index, lon_index],
-        "g",
+        "-.",
         label="detrended",
     )
+    if minmax is not False:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[1][0][start : years * 365 : steps, lat_index, lon_index],
+            "-.",
+            label="detrended min",
+        )
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[1][1][start : years * 365 : steps, lat_index, lon_index],
+            "-.",
+            label="detrended max",
+        )
     ax[0].plot(
         time[start : years * 365 : steps],
         data[2][start : years * 365 : steps, lat_index, lon_index],
         "k",
         linewidth=5,
-        label="estimate",
     )
+    if minmax is not False:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[2][0][start : years * 365 : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[2][1][start : years * 365 : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
 
     # ax[1].plot(time["ds"][-years*365:stop], tdf["gmt"][-years*365:stop], "r")
     ax[1].plot(
         time[-years * 365 : stop : steps],
         data[0][-years * 365 : stop : steps, lat_index, lon_index],
-        "b",
         label="to detrend",
     )
+    if minmax is not False:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[0][0][-years * 365 : stop : steps, lat_index, lon_index],
+        )
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[0][1][-years * 365 : stop : steps, lat_index, lon_index],
+        )
     ax[1].title.set_text("lon: " + str(lon) + " lat: " + str(lat))
     ax[1].plot(
         time[-years * 365 : stop : steps],
         data[1][-years * 365 : stop : steps, lat_index, lon_index],
-        "g",
+        "-.",
         label="detrended",
     )
+    if minmax is not False:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[1][0][-years * 365 : stop : steps, lat_index, lon_index],
+            "-.",
+        )
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[1][1][-years * 365 : stop : steps, lat_index, lon_index],
+            "-.",
+        )
     ax[1].plot(
         time[-years * 365 : stop : steps],
         data[2][-years * 365 : stop : steps, lat_index, lon_index],
         "k",
         linewidth=5,
-        label="estimate",
     )
+    if minmax is not False:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[2][0][-years * 365 : stop : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[2][1][-years * 365 : stop : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
 
     for axis in ax.ravel():
         axis.grid()
@@ -868,54 +938,19 @@ def plot_ts_region(
     stop=40176,
     steps=1,
     figsize=(24, 24),
-    alpha=0.2,
 ):
 
     lon_index = int((2 * lon + 360 - 0.5) / s.subset)
     lat_index = int((180 - 2 * lat - 0.5) / s.subset)
 
     plt.figure(figsize=figsize)
-    plt.subplot(311)
-    # plt.plot(tdf["ds"][start:stop], tdf["gmt"][start:stop], "r")
-    for i in range(lat_index - 3, lat_index + 3):
-        for j in range(lon_index - 3, lon_index + 3):
-            plt.plot(
-                time[start:stop:steps],
-                data[0][start:stop:steps, i, j],
-                "b",
-                alpha=alpha,
-            )
-
     plt.plot(
-        time[start:stop:steps], data[0][start:stop:steps, lat_index, lon_index], "k"
+        time[start:stop:steps],
+        data[0][start:stop:steps, lat_index, lon_index],
     )
-    plt.grid()
-    plt.subplot(312)
-    # plt.plot(tdf["ds"][start:stop], tdf["gmt"][start:stop], "r")
-    for i in range(lat_index - 3, lat_index + 3):
-        for j in range(lon_index - 3, lon_index + 3):
-            plt.plot(
-                time[start:stop:steps],
-                data[1][start:stop:steps, i, j],
-                "g",
-                alpha=alpha,
-            )
-
     plt.plot(
-        time[start:stop:steps], data[1][start:stop:steps, lat_index, lon_index], "k"
+        time[start:stop:steps],
+        data[1][start:stop:steps, lat_index, lon_index],
     )
-    plt.grid()
-    plt.subplot(313)
-    for i in range(lat_index - 3, lat_index + 3):
-        for j in range(lon_index - 3, lon_index + 3):
-            plt.plot(
-                time[start:stop:steps],
-                data[2][start:stop:steps, i, j],
-                "r",
-                alpha=alpha,
-            )
 
-    plt.plot(
-        time[start:stop:steps], data[2][start:stop:steps, lat_index, lon_index], "k"
-    )
     plt.grid()
