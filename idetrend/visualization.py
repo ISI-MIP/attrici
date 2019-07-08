@@ -739,15 +739,18 @@ def plot_cfact_ts(data, i, j, last):
     plt.savefig(cfact_path_fig, dpi=400)
     plt.close()
 
+
 ###################### Visualization functions from (01.07.19) (for bayes data) ###########
 ###################### update old ones #####################
 import sys
 import numpy as np
+
 sys.path.append("..")
 import settings as s
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import cartopy.crs as ccrs
+
 
 def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
 
@@ -767,15 +770,14 @@ def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
     ax1.title.set_text(titles[0])
     plt.colorbar(to_det, shrink=0.8)
 
-
     ax2 = plt.subplot(312, projection=ccrs.PlateCarree(central_longitude=0))
     det = ax2.pcolormesh(lon, lat, data[1], cmap="coolwarm", vmax=vmax, vmin=-vmax)
     ax2.title.set_text(titles[1])
     plt.colorbar(det, shrink=0.8)
 
-    #min = np.min((np.percentile(data_var, 1),
+    # min = np.min((np.percentile(data_var, 1),
     #               np.percentile(data_var, 1)))
-    #vmax = np.max((np.percentile(data_var, 99),
+    # vmax = np.max((np.percentile(data_var, 99),
     #               np.percentile(data_var, 99)))
 
     ax3 = plt.subplot(313, projection=ccrs.PlateCarree(central_longitude=0))
@@ -794,67 +796,126 @@ def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
         ax.set_yticks(major_y_ticks, crs=ccrs.PlateCarree())
         ax.set_xticks(minor_x_ticks, minor=True)
         ax.set_yticks(minor_y_ticks, minor=True)
-        ax.grid(which='major')
-        ax.grid(which='minor', alpha =.5)
+        ax.grid(which="major")
+        ax.grid(which="minor", alpha=0.5)
 
 
-def plot_ts_ends(data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24)):
+def plot_ts_ends(
+    data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24)
+):
 
-    lon_index = int((2*lon + 360 - .5)/s.subset)
-    lat_index = int((180 - 2*lat - .5)/s.subset)
+    lon_index = int((2 * lon + 360 - 0.5) / s.subset)
+    lat_index = int((180 - 2 * lat - 0.5) / s.subset)
 
-    f, ax = plt.subplots(2, 1, sharey='row',figsize=figsize)
+    f, ax = plt.subplots(2, 1, sharey="row", figsize=figsize)
 
-    #ax[0].plot(time["ds"][start:years*365], tdf["gmt"][start:years*365], "r")
-    ax[0].plot(time[start:years*365:steps], data[0][start:years*365:steps, lat_index, lon_index],
-			"b", label= "to detrend")
+    # ax[0].plot(time["ds"][start:years*365], tdf["gmt"][start:years*365], "r")
+    ax[0].plot(
+        time[start : years * 365 : steps],
+        data[0][start : years * 365 : steps, lat_index, lon_index],
+        "b",
+        label="to detrend",
+    )
     ax[0].title.set_text("lon: " + str(lon) + " lat: " + str(lat))
-    ax[0].plot(time[start:years*365:steps], data[1][start:years*365:steps, lat_index, lon_index],
-			"g", label= "detrended")
-    ax[0].plot(time[start:years*365:steps], data[2][start:years*365:steps, lat_index, lon_index],
-			"k", linewidth=5, label= "estimate")
+    ax[0].plot(
+        time[start : years * 365 : steps],
+        data[1][start : years * 365 : steps, lat_index, lon_index],
+        "g",
+        label="detrended",
+    )
+    ax[0].plot(
+        time[start : years * 365 : steps],
+        data[2][start : years * 365 : steps, lat_index, lon_index],
+        "k",
+        linewidth=5,
+        label="estimate",
+    )
 
-    #ax[1].plot(time["ds"][-years*365:stop], tdf["gmt"][-years*365:stop], "r")
-    ax[1].plot(time[-years*365:stop:steps], data[0][-years*365:stop:steps, lat_index, lon_index],
-			"b", label= "to detrend")
+    # ax[1].plot(time["ds"][-years*365:stop], tdf["gmt"][-years*365:stop], "r")
+    ax[1].plot(
+        time[-years * 365 : stop : steps],
+        data[0][-years * 365 : stop : steps, lat_index, lon_index],
+        "b",
+        label="to detrend",
+    )
     ax[1].title.set_text("lon: " + str(lon) + " lat: " + str(lat))
-    ax[1].plot(time[-years*365:stop:steps], data[1][-years*365:stop:steps, lat_index, lon_index],
-               "g", label= "detrended")
-    ax[1].plot(time[-years*365:stop:steps], data[2][-years*365:stop:steps, lat_index, lon_index],
-			"k", linewidth=5, label= "estimate")
+    ax[1].plot(
+        time[-years * 365 : stop : steps],
+        data[1][-years * 365 : stop : steps, lat_index, lon_index],
+        "g",
+        label="detrended",
+    )
+    ax[1].plot(
+        time[-years * 365 : stop : steps],
+        data[2][-years * 365 : stop : steps, lat_index, lon_index],
+        "k",
+        linewidth=5,
+        label="estimate",
+    )
 
     for axis in ax.ravel():
         axis.grid()
         axis.legend()
 
 
-def plot_ts_region(data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24), alpha = .2):
+def plot_ts_region(
+    data,
+    time,
+    lat,
+    lon,
+    years,
+    start=0,
+    stop=40176,
+    steps=1,
+    figsize=(24, 24),
+    alpha=0.2,
+):
 
-    lon_index = int((2*lon + 360 - .5)/s.subset)
-    lat_index = int((180 - 2*lat - .5)/s.subset)
+    lon_index = int((2 * lon + 360 - 0.5) / s.subset)
+    lat_index = int((180 - 2 * lat - 0.5) / s.subset)
 
     plt.figure(figsize=figsize)
     plt.subplot(311)
-    #plt.plot(tdf["ds"][start:stop], tdf["gmt"][start:stop], "r")
-    for i in range(lat_index-3, lat_index+3):
-        for j in range(lon_index-3, lon_index+3):
-            plt.plot(time[start:stop:steps], data[0][start:stop:steps, i, j], "b", alpha=alpha)
+    # plt.plot(tdf["ds"][start:stop], tdf["gmt"][start:stop], "r")
+    for i in range(lat_index - 3, lat_index + 3):
+        for j in range(lon_index - 3, lon_index + 3):
+            plt.plot(
+                time[start:stop:steps],
+                data[0][start:stop:steps, i, j],
+                "b",
+                alpha=alpha,
+            )
 
-    plt.plot(time[start:stop:steps], data[0][start:stop:steps, lat_index, lon_index], "k")
+    plt.plot(
+        time[start:stop:steps], data[0][start:stop:steps, lat_index, lon_index], "k"
+    )
     plt.grid()
     plt.subplot(312)
-    #plt.plot(tdf["ds"][start:stop], tdf["gmt"][start:stop], "r")
-    for i in range(lat_index-3, lat_index+3):
-        for j in range(lon_index-3, lon_index+3):
-            plt.plot(time[start:stop:steps], data[1][start:stop:steps, i, j], "g", alpha=alpha)
+    # plt.plot(tdf["ds"][start:stop], tdf["gmt"][start:stop], "r")
+    for i in range(lat_index - 3, lat_index + 3):
+        for j in range(lon_index - 3, lon_index + 3):
+            plt.plot(
+                time[start:stop:steps],
+                data[1][start:stop:steps, i, j],
+                "g",
+                alpha=alpha,
+            )
 
-    plt.plot(time[start:stop:steps], data[1][start:stop:steps, lat_index, lon_index], "k")
+    plt.plot(
+        time[start:stop:steps], data[1][start:stop:steps, lat_index, lon_index], "k"
+    )
     plt.grid()
     plt.subplot(313)
-    for i in range(lat_index-3, lat_index+3):
-        for j in range(lon_index-3, lon_index+3):
-            plt.plot(time[start:stop:steps], data[2][start:stop:steps, i, j], "r", alpha=alpha)
+    for i in range(lat_index - 3, lat_index + 3):
+        for j in range(lon_index - 3, lon_index + 3):
+            plt.plot(
+                time[start:stop:steps],
+                data[2][start:stop:steps, i, j],
+                "r",
+                alpha=alpha,
+            )
 
-    plt.plot(time[start:stop:steps], data[2][start:stop:steps, lat_index, lon_index], "k")
+    plt.plot(
+        time[start:stop:steps], data[2][start:stop:steps, lat_index, lon_index], "k"
+    )
     plt.grid()
-
