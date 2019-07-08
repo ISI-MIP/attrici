@@ -13,7 +13,7 @@ import pandas as pd
 import settings as s
 
 
-def form_global_nc(ds, time, lat, lon):
+def form_global_nc(ds, time, lat, lon, vnames):
 
     ds.createDimension("time", None)
     ds.createDimension("lat", lat.shape[0])
@@ -22,13 +22,14 @@ def form_global_nc(ds, time, lat, lon):
     times = ds.createVariable("time", "f8", ("time",))
     longitudes = ds.createVariable("lon", "f8", ("lon",))
     latitudes = ds.createVariable("lat", "f8", ("lat",))
-    data = ds.createVariable(
-        s.variable,
-        "f4",
-        ("time", "lat", "lon"),
-        chunksizes=(time.shape[0], 1, 1),
-        fill_value=np.nan,
-    )
+    for var in vnames:
+        data = ds.createVariable(
+            var,
+            "f4",
+            ("time", "lat", "lon"),
+            chunksizes=(time.shape[0], 1, 1),
+            fill_value=np.nan,
+        )
     times.units = "days since 1900-01-01 00:00:00"
     latitudes.units = "degree_north"
     latitudes.long_name = "latitude"
@@ -64,29 +65,24 @@ time = obs.variables["time"][:]
 lat = obs.variables["lat"][:]
 lon = obs.variables["lon"][:]
 headers = pd.read_csv(data_list[0], index_col=0, nrows=1).keys()
-headers = headers.drop(["t", "ds", "gmt", "gmt_scaled"])
+headers = headers.drop(["y", "y_scaled", "t", "ds", "gmt", "gmt_scaled"])
 
-outs = []
-for head in headers:
-    outs.append(
-        nc.Dataset(
-            Path(s.output_dir) / "cfact" / (head + "_" + s.cfact_file.split("_", 1)[1]),
-            "w",
-            format="NETCDF4",
-        )
-    )
-for out in outs:
-    form_global_nc(out, time, lat, lon)
+out = nc.Dataset(Path(s.output_dir)
+                 / "cfact"
+                 / s.cfact_file,
+                 "w",
+                 format="NETCDF4",
+                 )
+form_global_nc(out, time, lat, lon, headers)
 
 for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(path)
     print(i, j)
     df = pd.read_csv(path, index_col=0, engine="c")
-    obs_ts = obs.variables[s.variable][:, i, j]
-    for (out, head) in it.zip_longest(outs, headers):
+    # obs_ts = obs.variables[s.variable][:, i, j]
+    # print(np.sum(np.isnan(obs_ts)))
+    for head in headers:
         ts = df[head]
-        out.variables[s.variable][:, i, j] = ts
-        out.variables[head][:, i, j] = ts
+        out.variables[head][:, i, j] = np.array(ts)
 
-for out in outs:
-    out.close()
+out.close()
