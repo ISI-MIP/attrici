@@ -41,20 +41,20 @@ def re_standard(y, y_orig):
 
 def re_precip(y, y_orig):
     """rescale and transform data with lower boundary y to y_original"""
-    y = np.exp(y)
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+    y = y * (y_orig.max() - y_orig.min()) + y_orig.min()
+    return np.exp(y)
 
 def re_rhs(y, y_orig):
     """ scaled inverse logit for input data of values in [0, 100]
     as for rhs. minval and maxval differ by purpose from these
     in dictionaries below."""
-    y = 100 * 0.5 * (1.0 + np.ma.tanh(0.5 * y))
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+    y = y * (y_orig.max() - y_orig.min()) + y_orig.min()
+    return 100 * 0.5 * (1.0 + np.ma.tanh(0.5 * y))
 
 def re_wind(y, y_orig):
     """rescale and transform data with lower boundary y to y_original"""
-    y = np.exp(y)
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
+    y = y * (y_orig.max() - y_orig.min()) + y_orig.min()
+    return np.exp(y)
 
 #  set of inverse transform functions
 retransform_dict = {
