@@ -64,7 +64,7 @@ time = obs.variables["time"][:]
 lat = obs.variables["lat"][:]
 lon = obs.variables["lon"][:]
 headers = pd.read_csv(data_list[0], index_col=0, nrows=1).keys()
-headers = headers.drop(["ds", "gmt", "gmt_scaled"])
+headers = headers.drop(["t", "ds", "gmt", "gmt_scaled"])
 
 outs = []
 for head in headers:
@@ -82,10 +82,11 @@ for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(path)
     print(i, j)
     df = pd.read_csv(path, index_col=0, engine="c")
-    obs_ts = np.array(obs.variables[s.variable][:, i, j])
+    obs_ts = obs.variables[s.variable][:, i, j]
     for (out, head) in it.zip_longest(outs, headers):
-        ts = np.array(df[head])
+        ts = df[head]
         out.variables[s.variable][:, i, j] = ts
+        out.variables[head][:, i, j] = ts
 
 for out in outs:
     out.close()
