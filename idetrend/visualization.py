@@ -811,7 +811,7 @@ def plot_ts_ends(
     lon_index = int((2 * lon + 360 - 0.5) / s.subset)
     lat_index = int((180 - 2 * lat - 0.5) / s.subset)
 
-    f, ax = plt.subplots(2, 1, sharey="row", figsize=figsize)
+    f, ax = plt.subplots(3, 1, sharey="row", figsize=figsize)
 
     # ax[0].plot(time["ds"][start:years*365], tdf["gmt"][start:years*365], "r")
     ax[0].plot(
@@ -923,6 +923,21 @@ def plot_ts_ends(
             linewidth=5,
         )
 
+    if minmax is not False:
+        ax[2].title.set_text("comparison of detrended data")
+        ax[2].plot(
+            time[-years * 365 : stop : steps],
+            data[2][-years * 365 : stop : steps, lat_index, lon_index]
+            - minmax[1][0][-years * 365 : stop : steps, lat_index, lon_index],
+        label = "detrended - min"
+        )
+        ax[2].plot(
+            time[-years * 365 : stop : steps],
+            minmax[1][1][-years * 365 : stop : steps, lat_index, lon_index]
+            - data[2][-years * 365 : stop : steps, lat_index, lon_index],
+        label = "max - detrended"
+        )
+
     for axis in ax.ravel():
         axis.grid()
         axis.legend()
@@ -937,7 +952,7 @@ def plot_ts_region(
     start=0,
     stop=40176,
     steps=1,
-    figsize=(24, 24),
+    figsize=(24, 10),
 ):
 
     lon_index = int((2 * lon + 360 - 0.5) / s.subset)
@@ -947,6 +962,8 @@ def plot_ts_region(
     plt.plot(
         time[start:stop:steps],
         data[0][start:stop:steps, lat_index, lon_index],
+        "k",
+        linewidth=5,
     )
     plt.plot(
         time[start:stop:steps],
