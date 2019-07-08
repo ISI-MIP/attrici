@@ -160,7 +160,7 @@ class bayes_regression(object):
             )
             + det_seasonality_posterior(subtrace["beta_yearly"], x_fourier)
         ).mean(axis=1)
-        self.df["estimated"] = c.transform_dict[s.variable](self.df["estimated_scaled"], self.df["y"])
+        self.df["estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], self.df["y"])
 
         gmt_driven_trend = (
             regressor[:, None]
@@ -172,9 +172,9 @@ class bayes_regression(object):
 
         # the counterfactual timeseries, our main result
         self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
-        self.df["cfact"] = self.df["y"].data - c.rescale(gmt_driven_trend, self.df["y"])
-
         self.df["gmt_driven_trend"] = c.rescale(gmt_driven_trend, self.df["y"])
+        self.df["cfact"] = self.df["y"].data - self.df["gmt_driven_trend"]
+
 
 
 def det_dot(a, b):
