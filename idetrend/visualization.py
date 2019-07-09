@@ -753,12 +753,12 @@ import matplotlib as mpl
 
 def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
 
-    vmin = np.min((np.percentile(data[0], 1), np.percentile(data[0], 1)))
-    vmax = np.max((np.percentile(data[0], 99), np.percentile(data[0], 99)))
-    vmin2 = np.min((np.percentile(data[1], 1), np.percentile(data[1], 1)))
-    vmax2 = np.max((np.percentile(data[1], 99), np.percentile(data[1], 99)))
-    vmax = np.max((vmax, vmax2))
-    vmin = np.min((vmin, vmin2))
+    vmin = np.nanmin((np.nanpercentile(data[0], 1), np.nanpercentile(data[0], 1)))
+    vmax = np.nanmax((np.nanpercentile(data[0], 99), np.nanpercentile(data[0], 99)))
+    vmin2 = np.nanmin((np.nanpercentile(data[1], 1), np.nanpercentile(data[1], 1)))
+    vmax2 = np.nanmax((np.nanpercentile(data[1], 99), np.nanpercentile(data[1], 99)))
+    vmax = np.nanmax((vmax, vmax2))
+    vmin = np.nanmin((vmin, vmin2))
 
     mpl.colors.DivergingNorm(vmin=vmin, vcenter=0, vmax=vmax)
 
