@@ -748,10 +748,7 @@ import sys
 import numpy as np
 
 sys.path.append("..")
-import settings as s
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-import cartopy.crs as ccrs
 
 
 def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
@@ -763,16 +760,16 @@ def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
     vmax = np.max((vmax, vmax2))
     vmin = np.min((vmin, vmin2))
 
-    divnorm = mpl.colors.DivergingNorm(vmin=vmin, vcenter=0, vmax=vmax)
+    mpl.colors.DivergingNorm(vmin=vmin, vcenter=0, vmax=vmax)
 
     plt.figure(figsize=figsize)
-    ax1 = plt.subplot(311, projection=ccrs.PlateCarree(central_longitude=0))
+    ax1 = plt.subplot(211, projection=ccrs.PlateCarree(central_longitude=0))
     to_det = ax1.pcolormesh(lon, lat, data[0], cmap="coolwarm", vmax=vmax, vmin=-vmax)
     #  to_det = ax1.pcolormesh(lon, lat, data[0], cmap="coolwarm", norm=divnorm)
     ax1.title.set_text(titles[0])
     plt.colorbar(to_det, shrink=0.8)
 
-    ax2 = plt.subplot(312, projection=ccrs.PlateCarree(central_longitude=0))
+    ax2 = plt.subplot(212, projection=ccrs.PlateCarree(central_longitude=0))
     det = ax2.pcolormesh(lon, lat, data[1], cmap="coolwarm", vmax=vmax, vmin=-vmax)
     ax2.title.set_text(titles[1])
     plt.colorbar(det, shrink=0.8)
@@ -782,16 +779,16 @@ def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
     # vmax = np.max((np.percentile(data_var, 99),
     #               np.percentile(data_var, 99)))
 
-    ax3 = plt.subplot(313, projection=ccrs.PlateCarree(central_longitude=0))
-    p = ax3.pcolormesh(lon, lat, data[2], cmap="coolwarm")
-    ax3.title.set_text(titles[2])
-    plt.colorbar(p, shrink=0.8)
+    #  ax3 = plt.subplot(313, projection=ccrs.PlateCarree(central_longitude=0))
+    #  p = ax3.pcolormesh(lon, lat, data[2], cmap="coolwarm")
+    #  ax3.title.set_text(titles[2])
+    #  plt.colorbar(p, shrink=0.8)
 
     major_x_ticks = np.arange(lon[0], lon[-1], 20)
     minor_x_ticks = np.arange(lon[0], lon[-1], 2)
     major_y_ticks = np.arange(lat[0], lat[-1], -20)
     minor_y_ticks = np.arange(lat[0], lat[-1], -2)
-    for ax in [ax1, ax2, ax3]:
+    for ax in [ax1, ax2]:
         ax.set_ybound(major_y_ticks[0], major_y_ticks[-1])
         ax.coastlines()
         ax.set_xticks(major_x_ticks, crs=ccrs.PlateCarree())
