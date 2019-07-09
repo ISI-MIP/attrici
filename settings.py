@@ -61,7 +61,7 @@ gmt_file = dataset + "_ssa_gmt.nc4"
 
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_iowa.nc4"
-source_file = variable + "_" + dataset + "_1901_2010_30deg.nc4"
+source_file = variable + "_" + dataset + "_2p5deg.nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"
