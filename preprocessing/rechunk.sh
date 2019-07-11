@@ -29,17 +29,17 @@ variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | 
 # datafolder selections relies on the folder being wrapped in double quotation marks
 datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | sed "s/'//g" | sed 's/"//g')"
 
-# dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-inputfile=${datafolder}${variable}_${dataset}.nc4
-outputfile=${datafolder}/input/${variable}_${dataset}.nc4
+inputfile=${datafolder}/input/${variable}_${dataset}.nc4
+outputfile=${datafolder}/input/${variable}_${dataset}_re.nc4
 # echo 'Rechunk the following variable'
 # echo $variable
 echo 'Inputfile:' ${inputfile}
 echo 'Outputfile:' ${outputfile}
-nccopy -w -k 'nc4' -c time/40177,lat/1,lon/720 ${inputfile} temp.nc4
+nccopy -w -k 'nc4' -c time/4018,lat/1,lon/720 ${inputfile} temp.nc4
 nccopy -w -k 'nc4' -c time/40177,lat/1,lon/1 temp.nc4 ${outputfile}
 rm temp.nc4
 # nccopy -w -k 'nc4' -c time/4018,lat/1,lon/1 ${inputfile} ${outputfile}
