@@ -7,6 +7,7 @@ if "../" not in sys.path:
     sys.path.append("../")
 import settings as s
 
+os.chdir("/p/tmp/bschmidt/")
 sub=5
 
 def form_global_nc(ds, time, lat, lon):
@@ -14,8 +15,6 @@ def form_global_nc(ds, time, lat, lon):
     ds.createDimension("time", None)
     ds.createDimension("lat", lat.shape[0])
     ds.createDimension("lon", lon.shape[0])
-    print(lat.shape[0])
-    print(lon.shape[0])
 
     times = ds.createVariable("time", "f8", ("time",))
     longitudes = ds.createVariable("lon", "f8", ("lon",))
@@ -47,7 +46,7 @@ file_to_read = os.path.join(
     s.variable
     + '_'
     + s.dataset
-    + '.nc4')
+    + '_re.nc4')
 print('Inputfile: ' + file_to_read)
 read = nc.Dataset(file_to_read, "r")
 time = read.variables["time"][:]
@@ -67,7 +66,8 @@ form_global_nc(write, time, lat, lon)
 
 # actual reading and writing
 data = read.variables[s.variable][:, ::sub, ::sub].data
+print("Read data")
 write.variables[s.variable][:] = data
-
+write.close()
 end_time = datetime.now()
 print('Job took ' + str((end_time - start_time).total_seconds()) + 'seconds.')
