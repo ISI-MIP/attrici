@@ -39,8 +39,8 @@ outputfile=${datafolder}/input/${variable}_${dataset}_re.nc4
 # echo $variable
 echo 'Inputfile:' ${inputfile}
 echo 'Outputfile:' ${outputfile}
-nccopy -w -k 'nc4' -c time/4018,lat/1,lon/720 ${inputfile} temp.nc4
-nccopy -w -k 'nc4' -c time/40177,lat/1,lon/1 temp.nc4 ${outputfile}
-rm temp.nc4
+nccopy -w -k 'nc4' -c time/4018,lat/1,lon/720 ${inputfile} temp_${variable}.nc4
+nccopy -w -k 'nc4' -c time/40177,lat/1,lon/1 temp_${variable}.nc4 ${outputfile}
+rm temp_${variable}.nc4
 # nccopy -w -k 'nc4' -c time/4018,lat/1,lon/1 ${inputfile} ${outputfile}
 # echo 'rechunked' $variable 'for faster access to full timeseries'
