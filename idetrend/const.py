@@ -1,17 +1,20 @@
 import numpy as np
 
-def standard(y_to_scale, y_orig):
+def scale(y_to_scale, y_orig):
+    y_orig = y_orig[~np.isinf(y_orig)]
     return (y_to_scale - np.nanmin(y_orig)) / (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 def precip(y_to_scale, y_orig):
     """scale and transform data with lower boundary y to y_original"""
     y_to_scale[y_to_scale<=0.000001157407] = 0   # amounts to .1 mm per day if unit is mm per sec
-    return np.log(y_to_scale)
+    y_to_scale = np.log(y_to_scale)
+    return scale(y_to_scale, y_orig)
 
+#FIXME: double check
 def rhs(y_to_scale, y_orig):
     """scale and transform data with lower boundary y to y_original"""
     y_to_scale = 2.0 * np.ma.arctanh(2.0 * y_to_scale / (100 - 0) - 1.0)
-    return (y_to_scale - np.nanmin(y_orig)) / (np.nanmax(y_orig) - np.nanmin(y_orig))
+    return scale(y_to_scale, y_orig)
 
 def wind(y_to_scale, y_orig):
     """scale and transform wind data with lower boundary y to y_original"""
@@ -19,39 +22,46 @@ def wind(y_to_scale, y_orig):
     return (y_to_scale - np.nanmin(y_orig)) / (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 transform_dict = {
-    "tasmin": None,
-    "tas": standard,
-    "tasmax": standard,
+    "tasmin": scale,
+    "tas": scale,
+    "tasmax": scale,
     "pr": precip,
     "rhs": rhs,
-    "ps": standard,
-    "rsds": standard,
-    "rlds": standard,
+    "ps": None,
+    "rsds": None,
+    "rlds": None,
     "wind": wind,
 }
 
 def rescale(y, y_orig):
     """rescale "standard" data y to y_original"""
+    y_orig = y_orig[~np.isinf(y_orig)]
     return y * (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 def re_standard(y, y_orig):
     """standard" data y to y_original"""
-    return y * (np.nanmax(y_orig) - np.nanmin(y_orig)) + np.nanmin(y_orig)
+    y_orig = y_orig[~np.isinf(y_orig)]
+    return rescale(y, y_orig) + np.nanmin(y_orig)
 
 def re_precip(y, y_orig):
     """rescale and transform data with lower boundary y to y_original"""
-    y = y * (np.nanmax(y_orig) - np.nanmin(y_orig)) + np.nanmin(y_orig)
+    y_orig = y_orig[~np.isinf(y_orig)]
+    y = rescale(y, y_orig) + np.nanmin(y_orig)
     return np.exp(y)
 
+#FIXME: double check
 def re_rhs(y, y_orig):
     """ scaled inverse logit for input data of values in [0, 100]
     as for rhs. minval and maxval differ by purpose from these
     in dictionaries below."""
-    y = y * (np.nanmax(y_orig) - np.nanmin(y_orig)) + np.nanmin(y_orig)
+    y_orig = y_orig[~np.isinf(y_orig)]
+    y = rescale(y, y_orig) + np.nanmin(y_orig)
     return 100 * 0.5 * (1.0 + np.ma.tanh(0.5 * y))
 
+#FIXME: code doubling!
 def re_wind(y, y_orig):
     """rescale and transform data with lower boundary y to y_original"""
+    y_orig = y_orig[~np.isinf(y_orig)]
     y = y * (np.nanmax(y_orig) - np.nanmin(y_orig)) + np.nanmin(y_orig)
     return np.exp(y)
 
