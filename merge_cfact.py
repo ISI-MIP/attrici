@@ -13,7 +13,7 @@ import pandas as pd
 import settings as s
 
 
-def form_global_nc(ds, time, lat, lon, vnames):
+def form_global_nc(ds, time, lat, lon, vnames, torigin):
 
     ds.createDimension("time", None)
     ds.createDimension("lat", lat.shape[0])
@@ -30,14 +30,13 @@ def form_global_nc(ds, time, lat, lon, vnames):
             chunksizes=(time.shape[0], 1, 1),
             fill_value=np.nan,
         )
-    times.units = "days since 1900-01-01 00:00:00"
+    times.units = torigin
     latitudes.units = "degree_north"
     latitudes.long_name = "latitude"
     latitudes.standard_name = "latitude"
     longitudes.units = "degree_east"
     longitudes.long_name = "longitude"
     longitudes.standard_name = "longitude"
-    data.missing_value = np.nan
     # FIXME: make flexible or implement loading from source data
     latitudes[:] = lat
     longitudes[:] = lon
@@ -73,7 +72,7 @@ out = nc.Dataset(Path(s.output_dir)
                  "w",
                  format="NETCDF4",
                  )
-form_global_nc(out, time, lat, lon, headers)
+form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
 
 for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(path)
