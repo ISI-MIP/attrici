@@ -38,8 +38,8 @@ class bayes_regression(object):
     def setup_model(self, df):
 
         # create instance of pymc model class
-        y_mask = ~np.isinf(df_subset["y_scaled"])
         df_subset = df.loc[::self.subset].copy()
+        y_mask = ~np.isinf(df_subset["y_scaled"])
         regressor = df_subset["gmt_scaled"][y_mask].values
         x_fourier = rescale_fourier(df_subset[y_mask], self.modes)
         observed = df_subset["y_scaled"][y_mask]
