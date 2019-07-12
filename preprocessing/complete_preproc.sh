@@ -8,7 +8,7 @@
 #SBATCH --error=../output/%x.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
-#SBATCH --time=00-23:50:00
+#SBATCH --time=00-23:59:59
 
 # # block one node completely to get all its memory.
 #SBATCH --nodes=1
@@ -33,7 +33,7 @@ echo "\nPython interpreter used is:"
 which python
 echo "\n-----\n"
 
-srun yes | bash merge_data.sh
+# srun yes | bash merge_data.sh
 srun bash rechunk.sh
 # srun /home/bschmidt/.conda/envs/mpi_py3/bin/python rechunk.py
 # srun bash ncks_subset.sh
