@@ -12,20 +12,6 @@ import idetrend.const as c
 import settings as s
 
 
-def y_norm(y_to_scale, y_orig):
-    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
-
-
-def y_inv(y, y_orig):
-    """rescale data y to y_original"""
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
-
-
-def rescale(y, y_orig):
-    """rescale data y to y_original"""
-    return y * (y_orig.max() - y_orig.min())
-
-
 class bayes_regression(object):
     def __init__(self, cfg):
 
@@ -52,14 +38,17 @@ class bayes_regression(object):
     def setup_model(self, df):
 
         # create instance of pymc model class
+        y_mask = ~np.isinf(df_subset["y_scaled"])
         df_subset = df.loc[::self.subset].copy()
-        regressor = df_subset["gmt_scaled"].values
-        x_fourier = rescale_fourier(df_subset, self.modes)
+        regressor = df_subset["gmt_scaled"][y_mask].values
+        x_fourier = rescale_fourier(df_subset[y_mask], self.modes)
+        observed = df_subset["y_scaled"][y_mask]
         self.model = pm.Model()
 
         with self.model:
             slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
             intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            #  intercept = pm.Normal("intercept", pm.mean(observed) - slope/2, self.linear_sigma)
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
             beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
@@ -71,8 +60,9 @@ class bayes_regression(object):
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
+            #  e = pm.Exponential("e", lam=2)
             out = pm.Normal(
-                "obs", mu=estimated, sd=sigma, observed=df_subset["y_scaled"]
+                "obs", mu=estimated, sd=sigma, observed=observed,
             )
 
         self.df = df
@@ -142,16 +132,21 @@ class bayes_regression(object):
         memory consumtions. """
 
         # to stay within memory bounds: only take last 1000 samples
-        regressor = self.df["gmt_scaled"].values
+        y_mask = ~np.isinf(self.df["y"])
+        y_orig = self.df["y"][y_mask]
+        regressor = self.df["gmt_scaled"][y_mask].values
         subtrace = self.trace[-1000:]
-        x_fourier = rescale_fourier(self.df, self.modes)
+        x_fourier = rescale_fourier(self.df[y_mask], self.modes)
+        y = self.df["y_scaled"][y_mask]
 
-        self.df["trend"] = c.rescale(
-            (subtrace["slope"] * regressor[:, None]).mean(axis=1), self.df["y"]
+        self.df["trend"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df.at[y_mask, "trend"] = c.rescale(
+            (subtrace["slope"] * regressor[:, None]).mean(axis=1), y_orig
         )
 
         # our posteriors, they do not contain short term variability
-        self.df["estimated_scaled"] = (
+        self.df["estimated_scaled"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df.at[y_mask, "estimated_scaled"] = (
             subtrace["intercept"]
             + regressor[:, None]
             * (
@@ -160,7 +155,9 @@ class bayes_regression(object):
             )
             + det_seasonality_posterior(subtrace["beta_yearly"], x_fourier)
         ).mean(axis=1)
-        self.df["estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], self.df["y"])
+        self.df["estimated"] = np.zeros_like(self.df["y_scaled"].values)
+        #  self.df.at[y_mask, "estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y)
+        self.df.at[y_mask, "estimated"] = c.rescale(self.df["estimated_scaled"], y_orig)
 
         gmt_driven_trend = (
             regressor[:, None]
@@ -171,9 +168,18 @@ class bayes_regression(object):
         ).mean(axis=1)
 
         # the counterfactual timeseries, our main result
-        self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
-        self.df["gmt_driven_trend"] = c.rescale(gmt_driven_trend, self.df["y"])
-        self.df["cfact"] = self.df["y"].data - self.df["gmt_driven_trend"]
+        # create objects of correct length to assign values to
+        self.df["cfact_scaled"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["gmt_driven_trend"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["cfact"] = np.zeros_like(self.df["y_scaled"].values)
+
+        # insert values at masked timesteps
+        self.df.at[y_mask, "cfact_scaled"] = y.values - gmt_driven_trend
+        self.df.at[y_mask, "gmt_driven_trend"] = gmt_driven_trend
+        self.df.at[y_mask, "cfact"] = c.rescale(self.df["cfact_scaled"], y_orig)
+        #  self.df.at[y_mask, "gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
+        #  self.df.at[y_mask, "cfact"] = y.values - self.df["gmt_driven_trend"][y_mask]
+        #  self.df.at[y_mask, "cfact"] = c.retransform_dict[s.variable](self.df["cfact_scaled"], y_orig)
 
 
 
