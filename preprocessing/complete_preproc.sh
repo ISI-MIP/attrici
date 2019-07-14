@@ -19,7 +19,7 @@
 
 module purge
 module load anaconda/5.0.0_py3
-module load intel/2019.4
+module load intel/2018.1
 module load netcdf-c/4.6.1/intel/parallel
 module load nco/4.7.8
 
@@ -33,9 +33,7 @@ echo "\nPython interpreter used is:"
 which python
 echo "\n-----\n"
 
-# srun yes | bash merge_data.sh
+srun yes | bash merge_data.sh
 srun bash rechunk.sh
-# srun /home/bschmidt/.conda/envs/mpi_py3/bin/python rechunk.py
-# srun bash ncks_subset.sh
-srun python subset.py
+srun bash ncks_subset.sh
 # python3 calc_gmt_by_ssa.py

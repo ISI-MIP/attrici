@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --qos=priority
-#SBATCH --partition=ram_gpu
+#SBATCH --partition=rechunk
 #SBATCH --job-name=rechunk
 #SBATCH --account=isipedia
 #SBATCH --output=../output/%x.out
@@ -10,12 +10,13 @@
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-##SBATCH --mem=60000
+#SBATCH --mem=60000
 #SBATCH --exclusive
 
-module load intel/2019.4
-module load netcdf-c/4.6.1/intel/parallel
+module load intel/2018.1
+module load netcdf-c/4.6.1/intel/serial
 module load nco/4.7.8
+# module load cdo/1.9.6/gnu-threadsafe
 
 if [ -e settings.py ]; then
     settings_file=settings.py 
@@ -41,6 +42,6 @@ echo 'Inputfile:' ${inputfile}
 echo 'Outputfile:' ${outputfile}
 # nccopy -w -k 'nc4' -c time/4018,lat/1,lon/720 ${inputfile} temp_${variable}.nc4
 # nccopy -w -k 'nc4' -c time/40177,lat/1,lon/1 temp_${variable}.nc4 ${outputfile}
-nccopy -w -k 'nc4' -c time/40177,lat/1,lon/1 ${inputfile} ${outputfile}
-# rm temp_${variable}.nc4
+# nccopy -r -m 16G -k 'nc4' -d 0 -u -c time/42369,lat/1,lon/1 ${inputfile} ${outputfile}
+ncks -4 -O -L 0 --cnk_csh=45000000000 --cnk_plc=g3d --cnk_dmn=time,42369 --cnk_dmn=lat,1 --cnk_dmn=lon,1 ${inputfile} ${outputfile}
 echo 'rechunked' $variable 'for faster access to full timeseries'
