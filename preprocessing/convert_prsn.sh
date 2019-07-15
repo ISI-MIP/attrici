@@ -1,0 +1,54 @@
+#!/bin/bash
+
+#SBATCH --qos=priority
+#SBATCH --partition=priority
+#SBATCH --job-name=rechunk
+#SBATCH --account=isipedia
+#SBATCH --output=../output/%x.out
+#SBATCH --error=../output/%x.err
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=bschmidt@pik-potsdam.de
+#SBATCH --time=00-23:59:59
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+##SBATCH --cpus-per-task=16
+#SBATCH --mem=60000
+#SBATCH --exclusive
+
+module purge
+module load intel/2018.1
+module load netcdf-c/4.6.1/intel/serial
+module load cdo/1.9.6/gnu-threadsafe
+
+
+if [ -e settings.py ]; then
+    settings_file=settings.py 
+else 
+    settings_file=../settings.py
+fi 
+
+# Get information from settings file
+# sed gets rid of string markers (',")
+variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+# datafolder selections relies on the folder being wrapped in double quotation marks
+datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | sed "s/'//g" | sed 's/"//g')"
+
+dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+# startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+# endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
+
+pr=${datafolder}/input/pr_${dataset}_sub.nc4
+prsn=${datafolder}/input/prsn_${dataset}_sub.nc4
+prsn_rel=${datafolder}/input/prsn_rel_${dataset}_sub.nc4
+
+echo "Creating tasrange and tasskew"
+echo 'Inputfiles:' ${pr} ${prsn} 
+echo 'Outputfile:' ${prsn_rel} 
+
+cdo -O chname,prsn,prsn_rel -div ${prsn} ${pr} ${prsn_rel}
+
+if [ $? == 0 ]; then
+    echo "Finished without error"
+else
+    echo "Ups. Something went wrong"
+fi
