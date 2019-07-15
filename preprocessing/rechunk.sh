@@ -1,18 +1,21 @@
 #!/bin/bash
 
 #SBATCH --qos=priority
-#SBATCH --partition=rechunk
+#SBATCH --partition=priority
 #SBATCH --job-name=rechunk
 #SBATCH --account=isipedia
 #SBATCH --output=../output/%x.out
 #SBATCH --error=../output/%x.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
+#SBATCH --time=00-23:59:59
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
+##SBATCH --cpus-per-task=16
 #SBATCH --mem=60000
 #SBATCH --exclusive
 
+module purge
 module load intel/2018.1
 module load netcdf-c/4.6.1/intel/serial
 module load nco/4.7.8
@@ -37,7 +40,7 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 inputfile=${datafolder}/input/${variable}_${dataset}.nc4
 outputfile=${datafolder}/input/${variable}_${dataset}_re.nc4
 # echo 'Rechunk the following variable'
-# echo $variable
+echo $variable
 echo 'Inputfile:' ${inputfile}
 echo 'Outputfile:' ${outputfile}
 # nccopy -w -k 'nc4' -c time/4018,lat/1,lon/720 ${inputfile} temp_${variable}.nc4
