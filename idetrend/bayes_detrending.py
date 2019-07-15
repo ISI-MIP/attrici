@@ -1,15 +1,15 @@
 import os
-import theano
+#  import theano
 import numpy as np
 import pymc3 as pm
-import matplotlib.pylab as plt
-import pandas as pd
-import netCDF4 as nc
+#  import matplotlib.pylab as plt
+#  import pandas as pd
+#  import netCDF4 as nc
 from datetime import datetime
-from pathlib import Path
+#  from pathlib import Path
 import idetrend.datahandler as dh
 import idetrend.const as c
-import settings as s
+#  import settings as s
 
 
 class bayes_regression(object):

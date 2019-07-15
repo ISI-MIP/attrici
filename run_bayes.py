@@ -4,6 +4,8 @@ import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
 import settings as s
+import sys
+sys.path.append("..")
 import idetrend.bayes_detrending as bt
 import idetrend.datahandler as dh
 

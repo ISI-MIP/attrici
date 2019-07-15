@@ -27,8 +27,8 @@ njobarray = 64
 
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
-variable = "pr"  # select variable to detrend
-dataset = "gswp3"  # select dataset to run on
+variable = "prsn"  # select variable to detrend
+dataset = "watch+wfdei"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25
 
