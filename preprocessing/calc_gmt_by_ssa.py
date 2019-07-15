@@ -17,8 +17,8 @@ grouping = 1
 # specify paths
 # script for standard output
 out_script = '../output/gmt.out'
-source_path = s.data_dir + 'tas_' + s.dataset + '_test.nc4'
-dest_path = s.data_dir + s.dataset + '_ssa_gmt.nc4'
+source_path = s.data_dir + "/input/tas_" + s.dataset + '_sub_gmt.nc4'
+dest_path = s.data_dir + "/input/" + s.dataset + '_ssa_gmt.nc4'
 print('Source path:')
 print(source_path)
 print('Destination path:')
@@ -31,7 +31,8 @@ with open(out_script, 'w') as out:
 print('Job started at: ' + str(STIME))
 
 # load data and add auxiliary variable "doy"
-data = iris.load_cube(source_path)
+data = iris.load_cube(source_path, )
+torigin = str(data.coord('time').units)
 icc.add_day_of_year(data, 'time')
 
 #  Let iris figure out cell boundaries and calculate
@@ -57,7 +58,7 @@ times = output_ds.createVariable("time", "f8", ("time",))
 tas = output_ds.createVariable('tas', "f8", ("time"))
 
 output_ds.description = "GMT created from daily values by SSA (10 day step)"
-times.units = "days since" + str(s.startyear) + "-01-01 00:00:00.0"
+times.units = torigin
 times.calendar = "365_day"
 
 times[:] = range(0, 10*len(X_ssa[0, 0]), 10)
