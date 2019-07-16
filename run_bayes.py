@@ -65,8 +65,10 @@ for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
     data = obs_data.variables[s.variable][:, i, j]
     df = dh.create_dataframe(nct, data, gmt)
 
-    df_with_cfact = bayes.run(df, lat, lon)
-    dh.save_to_csv(df_with_cfact, s, lat, lon)
+    # only run detrending, if at least FIXME: [enter amount and decide what to do when less are available] data points are available in timeseries
+    if df["y"].size - np.sum(df["y"].isna()) > 0:
+        df_with_cfact = bayes.run(df, lat, lon)
+        dh.save_to_csv(df_with_cfact, s, lat, lon)
 
 obs_data.close()
 
