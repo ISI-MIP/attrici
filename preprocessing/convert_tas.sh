@@ -37,12 +37,12 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 # startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-tas=${datafolder}/input/tas_${dataset}_sub.nc4
-tasmax=${datafolder}/input/tasmax_${dataset}_sub.nc4
-tasmin=${datafolder}/input/tasmin_${dataset}_sub.nc4
-tasrange=${datafolder}/input/tasrange_${dataset}_sub.nc4
-tasskew=${datafolder}/input/tasskew_${dataset}_sub.nc4
-tasskewtemp=${datafolder}/input/tasskew_${dataset}_sub.nc4temp
+tas=${datafolder}/input/tas_${dataset}.nc4
+tasmax=${datafolder}/input/tasmax_${dataset}.nc4
+tasmin=${datafolder}/input/tasmin_${dataset}.nc4
+tasrange=${datafolder}/input/tasrange_${dataset}.nc4
+tasskew=${datafolder}/input/tasskew_${dataset}.nc4
+tasskewtemp=${datafolder}/input/tasskew_${dataset}.nc4temp
 
 echo "Creating tasrange and tasskew"
 echo 'Inputfiles:' ${tas} ${tasmax} ${tasmin}

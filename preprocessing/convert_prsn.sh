@@ -37,9 +37,9 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 # startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-pr=${datafolder}/input/pr_${dataset}_sub.nc4
-prsn=${datafolder}/input/prsn_${dataset}_sub.nc4
-prsn_rel=${datafolder}/input/prsn_rel_${dataset}_sub.nc4
+pr=${datafolder}/input/pr_${dataset}.nc4
+prsn=${datafolder}/input/prsn_${dataset}.nc4
+prsn_rel=${datafolder}/input/prsn_rel_${dataset}.nc4
 
 echo "Creating tasrange and tasskew"
 echo 'Inputfiles:' ${pr} ${prsn} 
