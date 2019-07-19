@@ -9,7 +9,7 @@ from datetime import datetime
 #  from pathlib import Path
 import idetrend.datahandler as dh
 import idetrend.const as c
-#  import settings as s
+import settings as s
 
 
 class bayes_regression(object):
@@ -157,7 +157,7 @@ class bayes_regression(object):
         ).mean(axis=1)
         self.df["estimated"] = np.zeros_like(self.df["y_scaled"].values)
         #  self.df.at[y_mask, "estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y)
-        self.df.at[y_mask, "estimated"] = c.rescale(self.df["estimated_scaled"], y_orig)
+        self.df.at[y_mask, "estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y_orig)
 
         gmt_driven_trend = (
             regressor[:, None]
@@ -175,8 +175,8 @@ class bayes_regression(object):
 
         # insert values at masked timesteps
         self.df.at[y_mask, "cfact_scaled"] = y.values - gmt_driven_trend
-        self.df.at[y_mask, "gmt_driven_trend"] = gmt_driven_trend
-        self.df.at[y_mask, "cfact"] = c.rescale(self.df["cfact_scaled"], y_orig)
+        self.df.at[y_mask, "gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
+        self.df.at[y_mask, "cfact"] = y_orig - gmt_driven_trend
         #  self.df.at[y_mask, "gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
         #  self.df.at[y_mask, "cfact"] = y.values - self.df["gmt_driven_trend"][y_mask]
         #  self.df.at[y_mask, "cfact"] = c.retransform_dict[s.variable](self.df["cfact_scaled"], y_orig)
