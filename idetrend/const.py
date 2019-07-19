@@ -22,10 +22,11 @@ def wind(y_to_scale, y_orig):
     return (y_to_scale - np.nanmin(y_orig)) / (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 transform_dict = {
-    "tasmin": scale,
+    "tasskew": scale,
+    "tasrange": scale,
     "tas": scale,
-    "tasmax": scale,
     "pr": precip,
+    "prsn_rel": precip,
     "rhs": rhs,
     "ps": None,
     "rsds": None,
@@ -67,10 +68,11 @@ def re_wind(y, y_orig):
 
 #  set of inverse transform functions
 retransform_dict = {
-    "tasmin": re_standard,
+    "tasskew": re_standard,
+    "tasrange": re_standard,
     "tas": re_standard,
-    "tasmax": re_standard,
     "pr": re_precip,
+    "prsn_rel": re_precip,
     "rhs": re_rhs,
     "ps": re_standard,
     "rsds": re_standard,
