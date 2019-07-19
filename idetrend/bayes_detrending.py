@@ -39,10 +39,11 @@ class bayes_regression(object):
 
         # create instance of pymc model class
         df_subset = df.loc[::self.subset].copy()
-        y_mask = ~np.isinf(df_subset["y_scaled"])
-        regressor = df_subset["gmt_scaled"][y_mask].values
-        x_fourier = rescale_fourier(df_subset[y_mask], self.modes)
-        observed = df_subset["y_scaled"][y_mask]
+        df_subset.replace([np.inf, -np.inf], np.nan, inplace=True)
+        df_subset.dropna(axis=0, how="any", inplace=True)
+        regressor = df_subset["gmt_scaled"].values
+        x_fourier = rescale_fourier(df_subset, self.modes)
+        observed = df_subset["y_scaled"]
         self.model = pm.Model()
 
         with self.model:
@@ -132,21 +133,20 @@ class bayes_regression(object):
         memory consumtions. """
 
         # to stay within memory bounds: only take last 1000 samples
-        y_mask = ~np.isinf(self.df["y"])
-        y_orig = self.df["y"][y_mask]
-        regressor = self.df["gmt_scaled"][y_mask].values
+        y_orig = self.df["y"]
+        regressor = self.df["gmt_scaled"].values
         subtrace = self.trace[-1000:]
-        x_fourier = rescale_fourier(self.df[y_mask], self.modes)
-        y = self.df["y_scaled"][y_mask]
+        x_fourier = rescale_fourier(self.df, self.modes)
+        y = self.df["y_scaled"]
 
-        self.df["trend"] = np.zeros_like(self.df["y_scaled"].values)
-        self.df.at[y_mask, "trend"] = c.rescale(
+        #  self.df["trend"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["trend"] = c.rescale(
             (subtrace["slope"] * regressor[:, None]).mean(axis=1), y_orig
         )
 
         # our posteriors, they do not contain short term variability
-        self.df["estimated_scaled"] = np.zeros_like(self.df["y_scaled"].values)
-        self.df.at[y_mask, "estimated_scaled"] = (
+        #  self.df["estimated_scaled"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["estimated_scaled"] = (
             subtrace["intercept"]
             + regressor[:, None]
             * (
@@ -155,9 +155,8 @@ class bayes_regression(object):
             )
             + det_seasonality_posterior(subtrace["beta_yearly"], x_fourier)
         ).mean(axis=1)
-        self.df["estimated"] = np.zeros_like(self.df["y_scaled"].values)
-        #  self.df.at[y_mask, "estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y)
-        self.df.at[y_mask, "estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y_orig)
+        #  self.df["estimated"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y_orig)
 
         gmt_driven_trend = (
             regressor[:, None]
@@ -169,17 +168,14 @@ class bayes_regression(object):
 
         # the counterfactual timeseries, our main result
         # create objects of correct length to assign values to
-        self.df["cfact_scaled"] = np.zeros_like(self.df["y_scaled"].values)
-        self.df["gmt_driven_trend"] = np.zeros_like(self.df["y_scaled"].values)
-        self.df["cfact"] = np.zeros_like(self.df["y_scaled"].values)
+        #  self.df["cfact_scaled"] = np.zeros_like(self.df["y_scaled"].values)
+        #  self.df["gmt_driven_trend"] = np.zeros_like(self.df["y_scaled"].values)
+        #  self.df["cfact"] = np.zeros_like(self.df["y_scaled"].values)
 
         # insert values at masked timesteps
-        self.df.at[y_mask, "cfact_scaled"] = y.values - gmt_driven_trend
-        self.df.at[y_mask, "gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
-        self.df.at[y_mask, "cfact"] = y_orig - gmt_driven_trend
-        #  self.df.at[y_mask, "gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
-        #  self.df.at[y_mask, "cfact"] = y.values - self.df["gmt_driven_trend"][y_mask]
-        #  self.df.at[y_mask, "cfact"] = c.retransform_dict[s.variable](self.df["cfact_scaled"], y_orig)
+        self.df["cfact_scaled"] = y.values - gmt_driven_trend
+        self.df["gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
+        self.df["cfact"] = y_orig - gmt_driven_trend
 
 
 
