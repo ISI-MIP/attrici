@@ -36,18 +36,14 @@ transform_dict = {
 
 def rescale(y, y_orig):
     """rescale "standard" data y to y_original"""
-    y_orig = y_orig[~np.isinf(y_orig)]
     return y * (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 def re_standard(y, y_orig):
     """standard" data y to y_original"""
-    y_orig = y_orig[~np.isinf(y_orig)]
     return rescale(y, y_orig) + np.nanmin(y_orig)
 
 def re_precip(y, y_orig):
     """rescale and transform data with lower boundary y to y_original"""
-    y_orig = y_orig[~np.isinf(y_orig)]
-    y = rescale(y, y_orig) + np.nanmin(y_orig)
     return np.exp(y)
 
 #FIXME: double check
@@ -55,15 +51,11 @@ def re_rhs(y, y_orig):
     """ scaled inverse logit for input data of values in [0, 100]
     as for rhs. minval and maxval differ by purpose from these
     in dictionaries below."""
-    y_orig = y_orig[~np.isinf(y_orig)]
-    y = rescale(y, y_orig) + np.nanmin(y_orig)
     return 100 * 0.5 * (1.0 + np.ma.tanh(0.5 * y))
 
 #FIXME: code doubling!
 def re_wind(y, y_orig):
     """rescale and transform data with lower boundary y to y_original"""
-    y_orig = y_orig[~np.isinf(y_orig)]
-    y = y * (np.nanmax(y_orig) - np.nanmin(y_orig)) + np.nanmin(y_orig)
     return np.exp(y)
 
 #  set of inverse transform functions
