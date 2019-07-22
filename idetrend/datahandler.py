@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import sys
+
 sys.path.append("..")
 import idetrend.const as c
 
@@ -26,6 +27,7 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon):
         return lat_sub_dir / ("cell_lat" + str(lat) + "_lon" + str(lon))
     else:
         return lat_sub_dir
+
 
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())

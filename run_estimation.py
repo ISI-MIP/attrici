@@ -5,8 +5,9 @@ from datetime import datetime
 from pathlib import Path
 import settings as s
 import sys
+
 sys.path.append("..")
-import idetrend.bayes_detrending as bt
+import idetrend.estimator as est
 import idetrend.datahandler as dh
 
 try:
@@ -52,7 +53,7 @@ end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 # Print the task and run range
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
-estimator = bt.estimator(s)
+estimator = est.estimator(s)
 
 TIME0 = datetime.now()
 

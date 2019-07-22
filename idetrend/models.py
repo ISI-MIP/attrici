@@ -12,6 +12,7 @@ def det_dot(a, b):
     """
     return (a * b[None, :]).sum(axis=-1)
 
+
 def det_dot2(x, beta):
     # FIXME: can this be replaced through det_dot?
     return np.dot(x, beta.T)
@@ -37,8 +38,13 @@ class Normal(object):
         # reference for quantile mapping
         self.reference_time = 5 * 365
 
-        self.vars_to_estimate = ["slope", "intercept", "sigma", "beta_yearly",
-        "beta_trend"]
+        self.vars_to_estimate = [
+            "slope",
+            "intercept",
+            "sigma",
+            "beta_yearly",
+            "beta_trend",
+        ]
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -78,19 +84,14 @@ class Normal(object):
         mu_gmt = (
             trace["intercept"]
             + regressor[:, None]
-            * (
-                trace["slope"]
-                + det_dot2(x_fourier, trace["beta_trend"])
-            )
+            * (trace["slope"] + det_dot2(x_fourier, trace["beta_trend"]))
         ).mean(axis=1)
 
         mu_reference = mu_gmt[0 : self.reference_time].mean()
         sigma = trace["sigma"].mean()
 
         quantile = stats.norm.cdf(x, loc=mu_gmt, scale=sigma)
-        x_mapped = stats.norm.ppf(
-            quantile, loc=mu_reference, scale=sigma
-        )
+        x_mapped = stats.norm.ppf(quantile, loc=mu_reference, scale=sigma)
 
         return x_mapped
 

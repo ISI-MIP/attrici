@@ -6,7 +6,7 @@ import idetrend.datahandler as dh
 import idetrend.const as c
 import idetrend.models as models
 
-model_for_var = {"tas": models.Normal, "hrs":models.Beta}
+model_for_var = {"tas": models.Normal, "hrs": models.Beta}
 
 
 def fourier_series(t, p, modes):
@@ -16,6 +16,7 @@ def fourier_series(t, p, modes):
     x = x * t[:, None]
     x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
     return x
+
 
 def rescale_fourier(df, modes):
 
@@ -47,10 +48,9 @@ class estimator(object):
 
         self.statmodel = model_for_var[self.variable]()
 
-
     def estimate_parameters(self, df, lat, lon):
 
-        df = df.loc[::self.subset,:]
+        df = df.loc[:: self.subset, :]
         x_fourier = rescale_fourier(df, self.modes)
         regressor = df["gmt_scaled"].values
         self.model = self.statmodel.setup(regressor, x_fourier, df["y_scaled"])
@@ -76,7 +76,6 @@ class estimator(object):
 
         return trace
 
-
     def sample(self):
 
         TIME0 = datetime.now()
@@ -100,13 +99,13 @@ class estimator(object):
 
         return trace
 
-
     def estimate_timeseries(self, df, trace):
 
         regressor = df["gmt_scaled"].values
         x_fourier = rescale_fourier(df, self.modes)
 
         df["cfact_scaled"] = self.statmodel.quantile_mapping(
-            trace[self.subtrace:], regressor, x_fourier, df["y_scaled"])
+            trace[self.subtrace :], regressor, x_fourier, df["y_scaled"]
+        )
 
         return df

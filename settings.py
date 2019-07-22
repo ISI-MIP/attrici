@@ -38,7 +38,7 @@ init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
-subset = 10 # only use every subset datapoint for bayes estimation for speedup
+subset = 10  # only use every subset datapoint for bayes estimation for speedup
 
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.
@@ -49,13 +49,13 @@ live_plot = False  # show live plot (does not work yet)
 
 # parameters for fourier modes and priors
 modes = 3  # number of modes for fourier series of model
-linear_mu = .01  # mean of prior for linear model
-linear_sigma = .01  # sd of prior for linear model
-sigma_beta = .5  # beta parameter of halfcauchy sd of model
-smu = .02  # seasonal prior mean
-stmu = .002  # trend in season prior mean
-sps = .01  # seasonality prior scale (sd)
-stps = .005  # trend in season scale (sd)
+linear_mu = 0.01  # mean of prior for linear model
+linear_sigma = 0.01  # sd of prior for linear model
+sigma_beta = 0.5  # beta parameter of halfcauchy sd of model
+smu = 0.02  # seasonal prior mean
+stmu = 0.002  # trend in season prior mean
+sps = 0.01  # seasonality prior scale (sd)
+stps = 0.005  # trend in season scale (sd)
 
 gmt_file = dataset + "_ssa_gmt.nc4"
 
