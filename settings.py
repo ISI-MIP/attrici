@@ -8,7 +8,7 @@ user = getpass.getuser()
 if user == "mengel":
     conda_path = "/home/mengel/anaconda3/envs/pymc3/"
     data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
-    data_dir = "/p/projects/tumble/mengel/isimip/20190612_Isicfact_TestData/"
+    # data_dir = "/p/projects/tumble/mengel/isimip/20190612_Isicfact_TestData/"
     # data_dir = "/p/tmp/mengel/isimip/isi-cfact"
     log_dir = "./log"
 
@@ -27,7 +27,7 @@ njobarray = 64
 
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
-variable = "prsn"  # select variable to detrend
+variable = "tas"  # select variable to detrend
 dataset = "watch+wfdei"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25
@@ -38,7 +38,7 @@ init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
-subset = 5 # only use every subset datapoint for bayes estimation for speedup
+subset = 10 # only use every subset datapoint for bayes estimation for speedup
 
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.
@@ -61,7 +61,7 @@ gmt_file = dataset + "_ssa_gmt.nc4"
 
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_iowa.nc4"
-source_file = variable + "_" + dataset + "_2p5deg.nc4"
+source_file = variable + "_" + dataset + "_lat49p45lon20p25.nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"

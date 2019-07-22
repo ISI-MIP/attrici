@@ -12,7 +12,7 @@ def det_dot(a, b):
     """
     return (a * b[None, :]).sum(axis=-1)
 
-def det_seasonality_posterior(beta, x):
+def det_dot2(x, beta):
     # FIXME: can this be replaced through det_dot?
     return np.dot(x, beta.T)
 
@@ -36,6 +36,9 @@ class Normal(object):
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
+
+        self.vars_to_estimate = ["slope", "intercept", "sigma", "beta_yearly",
+        "beta_trend"]
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -77,7 +80,7 @@ class Normal(object):
             + regressor[:, None]
             * (
                 trace["slope"]
-                + det_seasonality_posterior(trace["beta_trend"], x_fourier)
+                + det_dot2(x_fourier, trace["beta_trend"])
             )
         ).mean(axis=1)
 
@@ -97,7 +100,7 @@ class Beta(object):
     """ Influence of GMT is modelled through the influence of on the alpha parameter
     of a Beta distribution. Beta parameter is assumed free of a trend. """
 
-    def setup_model(self):
+    def setup(self):
 
         model = pm.Model()
 

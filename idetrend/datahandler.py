@@ -83,6 +83,7 @@ def save_to_csv(df_with_cfact, settings, lat, lon):
     )
 
     df_with_cfact.to_csv(fname)
+    print("Saved timeseries to ", fname)
 
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):

@@ -52,7 +52,7 @@ end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 # Print the task and run range
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
-bayes = bt.bayes_regression(s)
+estimator = bt.estimator(s)
 
 TIME0 = datetime.now()
 
@@ -65,10 +65,15 @@ for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
     data = obs_data.variables[s.variable][:, i, j]
     df = dh.create_dataframe(nct, data, gmt)
 
-    # only run detrending, if at least FIXME: [enter amount and decide what to do when less are available] data points are available in timeseries
-    if df["y"].size - np.sum(df["y"].isna()) > 0:
-        df_with_cfact = bayes.run(df, lat, lon)
-        dh.save_to_csv(df_with_cfact, s, lat, lon)
+    # only run detrending, if at least FIXME:
+    # [enter amount and decide what to do when less are available] data points are available in timeseries
+
+    # if df["y"].size == np.sum(df["y"].isna()):
+    #     print("All data NaN, probably ocean, skip.")
+    # else:
+    trace = estimator.estimate_parameters(df, lat, lon)
+    df_with_cfact = estimator.estimate_timeseries(df, trace)
+    dh.save_to_csv(df_with_cfact, s, lat, lon)
 
 obs_data.close()
 
