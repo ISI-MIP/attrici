@@ -9,39 +9,8 @@ from pathlib import Path
 import netCDF4 as nc
 import numpy as np
 import pandas as pd
-
+from idetrend.datahandler import form_global_nc
 import settings as s
-
-
-def form_global_nc(ds, time, lat, lon, vnames, torigin):
-
-    ds.createDimension("time", None)
-    ds.createDimension("lat", lat.shape[0])
-    ds.createDimension("lon", lon.shape[0])
-
-    times = ds.createVariable("time", "f8", ("time",))
-    longitudes = ds.createVariable("lon", "f8", ("lon",))
-    latitudes = ds.createVariable("lat", "f8", ("lat",))
-    for var in vnames:
-        data = ds.createVariable(
-            var,
-            "f4",
-            ("time", "lat", "lon"),
-            chunksizes=(time.shape[0], 1, 1),
-            fill_value=np.nan,
-        )
-    times.units = torigin
-    latitudes.units = "degree_north"
-    latitudes.long_name = "latitude"
-    latitudes.standard_name = "latitude"
-    longitudes.units = "degree_east"
-    longitudes.long_name = "longitude"
-    longitudes.standard_name = "longitude"
-    # FIXME: make flexible or implement loading from source data
-    latitudes[:] = lat
-    longitudes[:] = lon
-    times[:] = time
-
 
 #  get input and output
 data_gen = Path(s.output_dir / "timeseries").glob("**/*.csv")
@@ -86,5 +55,6 @@ for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     for head in headers:
         ts = df[head]
         out.variables[head][:, i, j] = np.array(ts)
+    print("wrote data from", path, "to", i, j)
 
 out.close()
