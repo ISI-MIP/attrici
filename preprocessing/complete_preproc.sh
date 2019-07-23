@@ -27,7 +27,7 @@ echo "Begin merging!"
 yes | bash merge_data.sh
 echo "Done merging!"
 echo "Begin rechunking!"
-bash rechunk.sh
+bash rechunk.sh 1 #  pass 1 for preprocessing
 echo "Done rechunking!"
 echo "Begin subsetting!"
 bash subset.sh
