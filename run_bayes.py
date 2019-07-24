@@ -8,6 +8,7 @@ import sys
 sys.path.append("..")
 import idetrend.bayes_detrending as bt
 import idetrend.datahandler as dh
+import argparse
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
@@ -20,6 +21,15 @@ except KeyError:
     njobarray = 1
     task_id = 0
     s.progressbar = True
+
+parser = argparse.ArgumentParser(description='Redo selected run numbers.')
+parser.add_argument('-s', '--start', type=int,
+                    help='run number to start calculation from' +
+                    '(get from logfiles and delete traces before running')
+parser.add_argument('-e', '--end', type=int,
+                    help='end run number for calculation' +
+                    '(get from logfiles and delete traces before running')
+args = parser.parse_args()
 
 dh.create_output_dirs(s.output_dir)
 
@@ -49,14 +59,19 @@ calls_per_arrayjob = ncells / njobarray
 start_num = int(task_id * calls_per_arrayjob)
 end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 
-# Print the task and run range
-print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
+if args.start is not None and args.end is not None:
+    run_numbers = range(args.start, args.end + 1)
+    print("Calculating run numbers", args.start, "to", args.end)
+else:
+    run_numbers = np.arange(start_num, end_num + 1, 1, dtype=np.int)
+    # Print the task and run range
+    print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
 bayes = bt.bayes_regression(s)
 
 TIME0 = datetime.now()
 
-for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
+for n in run_numbers:
     i = int(n % len(lats))
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
