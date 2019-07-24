@@ -14,12 +14,7 @@ import settings as s
 
 #  get input and output
 data_gen = Path(s.output_dir / "timeseries").glob("**/*.csv")
-out = nc.Dataset(Path(s.output_dir)
-                 / "cfact"
-                 / s.cfact_file,
-                 "w",
-                 format="NETCDF4",
-                 )
+out = nc.Dataset(Path(s.output_dir) / "cfact" / s.cfact_file, "w", format="NETCDF4")
 
 
 data_list = []
@@ -43,8 +38,8 @@ headers = headers.drop(["y", "y_scaled", "t", "ds", "gmt", "gmt_scaled"])
 form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
 
 #  adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
-lat_indices *= int(lat.shape[0]/360)
-lon_indices *= int(lon.shape[0]/720)
+lat_indices *= int(lat.shape[0] / 360)
+lon_indices *= int(lon.shape[0] / 720)
 
 for (i, j, path) in it.zip_longest(lat_indices, lon_indices, data_list):
     print(path)

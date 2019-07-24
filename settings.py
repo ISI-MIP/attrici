@@ -27,7 +27,7 @@ njobarray = 64
 
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
-variable = "rhs"  # select variable to detrend
+variable = "tas"  # select variable to detrend
 dataset = "watch+wfdei"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25
@@ -62,7 +62,7 @@ gmt_file = dataset + "_ssa_gmt.nc4"
 
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_iowa.nc4"
-source_file = variable + "_" + dataset + "_re.nc4"
+source_file = variable + "_" + dataset + "_sub.nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"
