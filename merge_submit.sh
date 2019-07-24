@@ -4,11 +4,11 @@
 #SBATCH --partition=priority
 #SBATCH --job-name=merge
 #SBATCH --account=isipedia
-#SBATCH --output=test.out
-#SBATCH --error=test.err
+#SBATCH --output=output/merge.out
+#SBATCH --error=output/merge.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=bschmidt@pik-potsdam.de
-#SBATCH --ntasks=12
+#SBATCH --ntasks=64
 #SBATCH --cpus-per-task=1
 ##SBATCH --time=00-00:55:00
 
