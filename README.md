@@ -93,9 +93,9 @@ To enable parallel netCDF output, you need a netCDF4-python module, compiled aga
 
 7. confirm module installed:<br />
 
-   `conda list | grep netcdf4`<br />
+   `conda list | grep netcdf4` should output:<br />
 
-   netcdf4                   1.5.1.2                  pypi_0    pypi
+   netcdf4            1.5.1.2           pypi_0    pypi  
 
 To use:<br />
 `module load anaconda/5.0.0_py3`<br />
