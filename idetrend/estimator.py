@@ -67,11 +67,13 @@ class estimator(object):
 
         # As load_trace does not throw an error when no saved data exists, we here
         # test this manually. FIXME: Could be improved, as we check for existence
-        # of names only, but not that the data is not corrupted.
+        # of names and number of chains only, but not that the data is not corrupted.
         try:
             for var in self.statmodel.vars_to_estimate:
                 if var not in trace.varnames:
                     raise IndexError("Sample data not completely saved. Rerun.")
+            if trace.nchains != self.chains:
+                raise IndexError("Sample data not completely saved. Rerun.")
             print("Successfully loaded sampled data. Skip this for sampling.")
         except IndexError:
             trace = self.sample()
