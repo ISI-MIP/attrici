@@ -25,13 +25,21 @@ except KeyError:
 
 # argparser to enable execution of selected run numbers (--start until --end)
 # run number (e.g. of failed runs) can be retrieved from log files (grep error *)
-parser = argparse.ArgumentParser(description='Redo selected run numbers.')
-parser.add_argument('-s', '--start', type=int,
-                    help='run number to start calculation from' +
-                    '(get from logfiles and delete traces before running')
-parser.add_argument('-e', '--end', type=int,
-                    help='end run number for calculation' +
-                    '(get from logfiles and delete traces before running')
+parser = argparse.ArgumentParser(description="Redo selected run numbers.")
+parser.add_argument(
+    "-s",
+    "--start",
+    type=int,
+    help="run number to start calculation from"
+    + "(get from logfiles and delete traces before running",
+)
+parser.add_argument(
+    "-e",
+    "--end",
+    type=int,
+    help="end run number for calculation"
+    + "(get from logfiles and delete traces before running",
+)
 args = parser.parse_args()
 
 # create output directories (if not existent)
@@ -90,7 +98,7 @@ for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
 
     # Skipping here saves A LOT of time
     if df["y"].size == np.sum(df["y"].isna()):
-       print("All data NaN, probably ocean, skip.")
+        print("All data NaN, probably ocean, skip.")
     else:
         trace = estimator.estimate_parameters(df, lat, lon)
         df_with_cfact = estimator.estimate_timeseries(df, trace)
