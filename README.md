@@ -102,7 +102,7 @@ To use:<br />
 `source activate par_io`<br />
 
 To test:<br />
-`export I_MPI_FABRICS=shm:shm` # only to be set for testing on login nodes, not for submitted jobs
+`export I_MPI_FABRICS=shm:shm` # only to be set for testing on login nodes, not for submitted jobs <br />
 `python -c "from netCDF4 import Dataset; Dataset('test.nc', 'w', parallel=True)"`<br />
 
 ## Credits
