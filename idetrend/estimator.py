@@ -6,7 +6,16 @@ import idetrend.datahandler as dh
 import idetrend.const as c
 import idetrend.models as models
 
-model_for_var = {"tas": models.Normal, "pr": models.Gamma, "rhs": models.Beta}
+model_for_var = {"tas": models.Normal,
+                 "tasrange": models.Rice,
+                 "tasskew": models.Beta,
+                 "pr": models.Gamma,
+                 "prsnratio": models.Beta,
+                 "hurs": models.Beta,
+                 "wind": models.Weibull,
+                 "ps": models.Normal,
+                 "rsds": models.Normal,
+                 "rlds": models.Normal}
 
 
 class estimator(object):

@@ -93,71 +93,11 @@ class Normal(object):
         mu_reference = mu_gmt[0 : self.reference_time].mean()
         sigma = trace["sigma"].mean()
 
-        quantile = stats.norm.cdf(x["y_scaled"], loc=mu_gmt, scale=sigma)
+        quantile = stats.norm.cdf(x, loc=mu_gmt, scale=sigma)
         x_mapped = stats.norm.ppf(quantile, loc=mu_reference, scale=sigma)
 
         return x_mapped
 
-
-class Beta(object):
-
-    """ Influence of GMT is modelled through the influence of on the alpha parameter
-    of a Beta distribution. Beta parameter is assumed free of a trend. """
-
-    def __init__(self):
-
-        # TODO: allow this to be changed by argument to __init__
-        self.modes = 3
-        self.linear_mu = 1
-        self.linear_sigma = 5
-        self.sigma_beta = 0.5
-        self.smu = 1
-        self.sps = 20
-        self.stmu = 0.5
-        self.stps = 20
-
-        # reference for quantile mapping
-        self.reference_time = 5 * 365
-
-        self.vars_to_estimate = [
-            "slope",
-            "intercept",
-            "beta",
-            "beta_yearly",
-            "beta_trend",
-        ]
-
-    def setup(self, regressor, x_fourier, observed):
-
-        model = pm.Model()
-
-        with model:
-            #     slope = pm.Normal("slope", linear_mu, linear_sigma)
-            #     intercept = pm.Normal("intercept", linear_mu, linear_sigma)
-
-            #     alpha = pm.Uniform("alpha", 1.5, 20.)
-            #  beta = pm.Uniform("beta", 1.5, 20.0)
-
-            slope = pm.Uniform("slope", -5, 5)
-            intercept = pm.Uniform("intercept", 1.5, 15)
-            #  sigma = pm.HalfCauchy("sigma", sigma_beta, testval=1)
-
-            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
-            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
-
-            param_gmt = (
-                intercept
-                + slope * regressor
-                + det_dot(x_fourier, beta_yearly)
-                + (regressor * det_dot(x_fourier, beta_trend))
-            )
-            sigma = pm.Uniform("sigma", 0.001, np.sqrt(param_gmt * (1 - param_gmt)))
-            #     pr_intensity = pm.Gamma('pr_intensity', alpha=alpha, beta=beta,
-            #                    observed=tdf_valid["pr_intensity"])
-            #  pm.Beta("obs", alpha=param_gmt, beta=beta, observed=observed["y_scaled"])
-            pm.Beta("obs", mu=param_gmt, sd=sigma, observed=observed["y_scaled"])
-
-            return model
 
 class Gamma(object):
 
@@ -216,8 +156,8 @@ class Gamma(object):
     def quantile_mapping(self, trace, regressor, x_fourier, x):
 
         """
-        specific for normally distributed variables where
-        we diagnose shift in mu through GMT.
+        specific for Gamma distributed variables where
+        we diagnose shift in beta parameter through GMT.
         """
         gmt_driven_trend = (
             regressor[:, None]
@@ -235,9 +175,251 @@ class Gamma(object):
         beta_reference = beta[0:self.reference_time].mean()
         #  sigma = trace["sigma"].mean()
 
-        quantile = stats.gamma.cdf(x["y_scaled"], trace["alpha"].mean(),scale=1./beta)
+        quantile = stats.gamma.cdf(x, trace["alpha"].mean(),scale=1./beta)
         x_mapped = stats.gamma.ppf(quantile, alpha ,scale=1./beta_reference)
 
         return x_mapped
 
 
+class Beta(object):
+
+    """ Influence of GMT is modelled through the influence of on the alpha parameter
+    of a Beta distribution. Beta parameter is assumed free of a trend. """
+
+    def __init__(self):
+
+        # TODO: allow this to be changed by argument to __init__
+        self.modes = 3
+        self.linear_mu = 1
+        self.linear_sigma = 5
+        self.sigma_beta = 0.5
+        self.smu = 1
+        self.sps = 20
+        self.stmu = 0.5
+        self.stps = 20
+
+        # reference for quantile mapping
+        self.reference_time = 5 * 365
+
+        self.vars_to_estimate = [
+            "slope",
+            "intercept",
+            "beta",
+            "beta_yearly",
+            "beta_trend",
+        ]
+
+    def setup(self, regressor, x_fourier, observed):
+
+        model = pm.Model()
+
+        with model:
+            #  slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
+            #  intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            #  sigma = pm.Uniform("sigma", 0.001, 1, testval=.002)
+            #  pm.Beta("obs", mu=param_gmt, sd=sigma, observed=observed)
+
+            slope = pm.Uniform("slope", -5, 5)
+            intercept = pm.Uniform("intercept", 1.5, 15)
+            #  alpha = pm.Uniform("alpha", .1, 20.)
+            beta = pm.Uniform("beta", .1, 20.0)
+
+            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
+            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+
+            param_gmt = (
+                intercept
+                + slope * regressor
+                + det_dot(x_fourier, beta_yearly)
+                + (regressor * det_dot(x_fourier, beta_trend))
+            )
+
+            pm.Beta("obs", alpha=param_gmt, beta=beta, observed=observed)
+
+            return model
+
+    def quantile_mapping(self, trace, regressor, x_fourier, x):
+
+        """
+        specific for variables with two bounds, approximately following a
+        beta distribution.
+        """
+        gmt_driven_trend = (
+            regressor[:, None]
+            * (
+                trace["slope"]
+                + np.dot(x_fourier, trace["beta_trend"].T)
+            )
+        ).mean(axis=1)
+
+        beta_gmt = gmt_driven_trend + trace["intercept"].mean()
+        beta = trace["beta"].mean()
+
+        beta_reference = beta_gmt[0:self.reference_time].mean()
+
+        quantile = stats.beta.cdf(x, beta_gmt, beta)
+        x_mapped = stats.beta.ppf(quantile, beta_reference, beta)
+
+        return x_mapped
+
+
+class Weibull(object):
+
+    """ Influence of GMT is modelled through the influence of on the shape (alpha) parameter
+    of a Weibull distribution. Beta parameter is assumed free of a trend. """
+
+    def __init__(self):
+
+        # TODO: allow this to be changed by argument to __init__
+        self.modes = 3
+        self.linear_mu = 1
+        self.linear_sigma = 5
+        self.smu = .1
+        self.sps = 2
+        self.stmu = .5
+        self.stps = 2
+
+        # reference for quantile mapping
+        self.reference_time = 5 * 365
+
+        self.vars_to_estimate = [
+            "slope",
+            "intercept",
+            "beta",
+            "beta_yearly",
+            "beta_trend",
+        ]
+
+    def setup(self, regressor, x_fourier, observed):
+
+        model = pm.Model()
+
+        with model:
+            #  slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
+            #  intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            #  sigma = pm.Uniform("sigma", 0.001, 1, testval=.002)
+            #  pm.Beta("obs", mu=param_gmt, sd=sigma, observed=observed)
+
+            slope = pm.Uniform("slope", -2, 2)
+            intercept = pm.Uniform("intercept", .5, 15)
+            beta = pm.Uniform("beta", .1, 2.)
+            #  beta = pm.TruncatedNormal("sigma", 1, 1, lower=.01)
+
+            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
+            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+
+            param_gmt = (
+                intercept
+                + slope * regressor
+                + det_dot(x_fourier, beta_yearly)
+                + (regressor * det_dot(x_fourier, beta_trend))
+            )
+
+            pm.Weibull("obs", alpha=param_gmt, beta=beta, observed=observed)
+
+            return model
+
+    def quantile_mapping(self, trace, regressor, x_fourier, x):
+
+        """
+        specific for variables with two bounds, approximately following a
+        beta distribution.
+        """
+        gmt_driven_trend = (
+            regressor[:, None]
+            * (
+                trace["slope"]
+                + np.dot(x_fourier, trace["beta_trend"].T)
+            )
+        ).mean(axis=1)
+
+        beta_gmt = gmt_driven_trend + trace["intercept"].mean()
+        #  beta = trace["beta"].mean()
+
+        beta_reference = beta_gmt[0:self.reference_time].mean()
+
+        # TODO: Is frechet_r really the same as Weibull?
+        quantile = stats.frechet_r.cdf(x, beta_gmt)
+        x_mapped = stats.frechet_r.ppf(quantile, beta_reference)
+
+        return x_mapped
+
+
+class Rice(object):
+
+    """ Influence of GMT is modelled through shift in the non-concentrality (nu) parameter
+    of a Rice distribution. This is useful for normally distributed variables with a lower boundary ot x=0. Sigma parameter is assumed free of a trend. """
+
+    def __init__(self):
+
+        # TODO: allow this to be changed by argument to __init__
+        self.modes = 3
+        self.linear_mu = .1
+        self.linear_sigma = .2
+        self.smu = .01
+        self.sps = .1
+        self.stmu = .01
+        self.stps = .1
+
+        # reference for quantile mapping
+        self.reference_time = 5 * 365
+
+        self.vars_to_estimate = [
+            "slope",
+            "intercept",
+            "sigma",
+            "beta_yearly",
+            "beta_trend",
+        ]
+
+    def setup(self, regressor, x_fourier, observed):
+
+        model = pm.Model()
+
+        with model:
+            #  slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
+            #  intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            #  sigma = pm.Uniform("sigma", 0.001, 1, testval=.002)
+            #  pm.Beta("obs", mu=param_gmt, sd=sigma, observed=observed)
+
+            slope = pm.Uniform("slope", -5, 5)
+            intercept = pm.Uniform("intercept", 1.5, 15)
+            #  sigma = pm.Uniform("sigma", .1, 20.)
+
+            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
+            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+
+            param_gmt = (
+                intercept
+                + slope * regressor
+                + det_dot(x_fourier, beta_yearly)
+                + (regressor * det_dot(x_fourier, beta_trend))
+            )
+
+            pm.Rice("obs", nu=param_gmt, observed=observed)
+
+            return model
+
+    def quantile_mapping(self, trace, regressor, x_fourier, x):
+
+        """
+        specific for variables with two bounds, approximately following a
+        beta distribution.
+        """
+        gmt_driven_trend = (
+            regressor[:, None]
+            * (
+                trace["slope"]
+                + np.dot(x_fourier, trace["beta_trend"].T)
+            )
+        ).mean(axis=1)
+
+        beta_gmt = gmt_driven_trend + trace["intercept"].mean()
+        #  beta = trace["beta"].mean()
+
+        beta_reference = beta_gmt[0:self.reference_time].mean()
+
+        quantile = stats.rice.cdf(x, beta_gmt)
+        x_mapped = stats.rice.ppf(quantile, beta_reference)
+
+        return x_mapped
