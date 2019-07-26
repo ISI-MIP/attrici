@@ -18,9 +18,8 @@
 module purge
 module load intel/2018.1
 module load netcdf-c/4.6.1/intel/serial
-module load nco/4.7.8
-preprocessing=$1
-# module load cdo/1.9.6/gnu-threadsafe
+module load cdo/1.9.6/gnu-threadsafe
+
 
 if [ -e settings.py ]; then
     settings_file=settings.py 
@@ -38,22 +37,24 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | se
 # startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 # endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
 
-if [[ $preprocessing = 1 ]]; then
-    inputfile=${datafolder}/input/${variable}_${dataset}.nc4
-    outputfile=${datafolder}/input/${variable}_${dataset}_re.nc4
-    echo 'Rechunk the following variable to be optimised for timeseries access'
-    echo $variable
-    echo 'Inputfile:' ${inputfile}
-    echo 'Outputfile:' ${outputfile}
-    ncks -4 -O -L 0 --cnk_csh=45000000000 --cnk_plc=g3d --cnk_dmn=time,42369 --cnk_dmn=lat,1 --cnk_dmn=lon,1 ${inputfile} ${outputfile}
-else
-    inputfile=${datafolder}/output/tas/cfact/${variable}_${dataset}_cfactual.nc4
-    outputfile=${datafolder}/output/tas/cfact/${variable}_${dataset}_re.nc4
-    echo 'Rechunk the following variable to be optimised for timeseries access'
-    echo $variable
-    echo 'Inputfile:' ${inputfile}
-    echo 'Outputfile:' ${outputfile}
-    ncks -4 -O -L 0 --cnk_csh=45000000000 --cnk_plc=g3d --cnk_dmn=time,1 --cnk_dmn=lat,360 --cnk_dmn=lon,720 ${inputfile} ${outputfile}
-fi
+tas=${datafolder}/input/tas_${dataset}.nc4
+tasmax=${datafolder}/input/tasmax_${dataset}.nc4
+tasmin=${datafolder}/input/tasmin_${dataset}.nc4
+tasrange=${datafolder}/input/tasrange_${dataset}.nc4
+tasskew=${datafolder}/input/tasskew_${dataset}.nc4
+tasskewtemp=${datafolder}/input/tasskew_${dataset}.nc4temp
 
-echo 'rechunked' $variable 'for faster access to full timeseries'
+echo "Creating tasrange and tasskew"
+echo 'Inputfiles:' ${tas} ${tasmax} ${tasmin}
+echo 'Outputfile:' ${tasrange} ${tasskew}
+
+cdo -O chname,tasmax,tasrange -sub $tasmax $tasmin $tasrange
+cdo -O sub $tas $tasmin $tasskewtemp
+cdo -O chname,tas,tasskew -div $tasskewtemp $tasrange $tasskew 
+rm $tasskewtemp
+
+if [ $? == 0 ]; then
+    echo "Finished without error"
+else
+    echo "Ups. Something went wrong"
+fi

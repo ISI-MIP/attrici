@@ -14,7 +14,7 @@ if user == "mengel":
 
 elif user == "bschmidt":
     conda_path = "/home/bschmidt/.conda/envs/mpi_py3"
-    data_dir = "/home/bschmidt/temp/gswp3/"
+    data_dir = "/home/bschmidt/temp/isi-cfact/"
     log_dir = "./output"
 
 input_dir = Path(data_dir) / "input"
@@ -27,10 +27,10 @@ njobarray = 64
 
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
-variable = "tas"  # select variable to detrend
-dataset = "gswp3"  # select dataset to run on
+variable = "rhs"  # select variable to detrend
+dataset = "watch+wfdei"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
-days_of_year = 365.2425
+days_of_year = 365.25
 
 # model run settings
 debug = False  # use to turn on debug settings
@@ -39,6 +39,7 @@ tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
 subset = 5 # only use every subset datapoint for bayes estimation for speedup
+lateral_sub = 5 # subset dataset (lateral) by sampling every [number] grid point in both dimensions
 
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.
@@ -49,19 +50,19 @@ live_plot = False  # show live plot (does not work yet)
 
 # parameters for fourier modes and priors
 modes = 3  # number of modes for fourier series of model
-linear_mu = 1  # mean of prior for linear model
-linear_sigma = 5  # sd of prior for linear model
-sigma_beta = 0.5  # beta parameter of halfcauchy sd of model
-smu = 1  # seasonal prior mean
-stmu = 0.5  # trend in season prior mean
-sps = 20  # seasonality prior scale (sd)
-stps = 20  # trend in season scale (sd)
+linear_mu = .01  # mean of prior for linear model
+linear_sigma = .01  # sd of prior for linear model
+sigma_beta = .5  # beta parameter of halfcauchy sd of model
+smu = .02  # seasonal prior mean
+stmu = .002  # trend in season prior mean
+sps = .01  # seasonality prior scale (sd)
+stps = .005  # trend in season scale (sd)
 
 gmt_file = dataset + "_ssa_gmt.nc4"
 
 #  source_file = variable + "_" + dataset + "_1979_2018_gregorian_test.nc4"
 # source_file = variable + "_" + dataset + "_iowa.nc4"
-source_file = variable + "_" + dataset + "_1901_2010_30deg.nc4"
+source_file = variable + "_" + dataset + "_re.nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"

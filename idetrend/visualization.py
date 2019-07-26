@@ -9,6 +9,7 @@ from scipy import stats
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 
 #  import os
@@ -21,6 +22,7 @@ regresult = namedtuple(
     "LinregressResult",
     ("slope", "intercept", "rvalue", "pvalue", "stderr_slo", "stderr_int", "vdcount"),
 )
+sns.set_palette(sns.color_palette("Set2"))
 
 # fixed numbers for now.
 days_of_year = 365
@@ -738,3 +740,242 @@ def plot_cfact_ts(data, i, j, last):
     )
     plt.savefig(cfact_path_fig, dpi=400)
     plt.close()
+
+
+###################### Visualization functions from (01.07.19) (for bayes data) ###########
+###################### update old ones #####################
+import sys
+import numpy as np
+
+sys.path.append("..")
+import matplotlib as mpl
+
+
+def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
+
+    vmin = np.nanmin((np.nanpercentile(data[0], 1), np.nanpercentile(data[0], 1)))
+    vmax = np.nanmax((np.nanpercentile(data[0], 99), np.nanpercentile(data[0], 99)))
+    vmin2 = np.nanmin((np.nanpercentile(data[1], 1), np.nanpercentile(data[1], 1)))
+    vmax2 = np.nanmax((np.nanpercentile(data[1], 99), np.nanpercentile(data[1], 99)))
+    vmax = np.nanmax((vmax, vmax2))
+    vmin = np.nanmin((vmin, vmin2))
+
+    mpl.colors.DivergingNorm(vmin=vmin, vcenter=0, vmax=vmax)
+
+    plt.figure(figsize=figsize)
+    ax1 = plt.subplot(211, projection=ccrs.PlateCarree(central_longitude=0))
+    to_det = ax1.pcolormesh(lon, lat, data[0], cmap="coolwarm", vmax=vmax, vmin=-vmax)
+    #  to_det = ax1.pcolormesh(lon, lat, data[0], cmap="coolwarm", norm=divnorm)
+    ax1.title.set_text(titles[0])
+    plt.colorbar(to_det, shrink=0.8)
+
+    ax2 = plt.subplot(212, projection=ccrs.PlateCarree(central_longitude=0))
+    det = ax2.pcolormesh(lon, lat, data[1], cmap="coolwarm", vmax=vmax, vmin=-vmax)
+    ax2.title.set_text(titles[1])
+    plt.colorbar(det, shrink=0.8)
+
+    # min = np.min((np.percentile(data_var, 1),
+    #               np.percentile(data_var, 1)))
+    # vmax = np.max((np.percentile(data_var, 99),
+    #               np.percentile(data_var, 99)))
+
+    #  ax3 = plt.subplot(313, projection=ccrs.PlateCarree(central_longitude=0))
+    #  p = ax3.pcolormesh(lon, lat, data[2], cmap="coolwarm")
+    #  ax3.title.set_text(titles[2])
+    #  plt.colorbar(p, shrink=0.8)
+
+    major_x_ticks = np.arange(lon[0], lon[-1], 20)
+    minor_x_ticks = np.arange(lon[0], lon[-1], 2)
+    major_y_ticks = np.arange(lat[0], lat[-1], -20)
+    minor_y_ticks = np.arange(lat[0], lat[-1], -2)
+    for ax in [ax1, ax2]:
+        ax.set_ybound(major_y_ticks[0], major_y_ticks[-1])
+        ax.coastlines()
+        ax.set_xticks(major_x_ticks, crs=ccrs.PlateCarree())
+        ax.set_yticks(major_y_ticks, crs=ccrs.PlateCarree())
+        ax.set_xticks(minor_x_ticks, minor=True)
+        ax.set_yticks(minor_y_ticks, minor=True)
+        ax.grid(which="major")
+        ax.grid(which="minor", alpha=0.5)
+
+
+def plot_ts_ends(
+    data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24),
+    minmax=False, estimate=True,
+):
+    """ minmax should be either False or a list of tuples of form (min_data, max_data) for each ts to plot"""
+
+    lon_index = int((2 * lon + 360 - 0.5) / s.subset)
+    lat_index = int((180 - 2 * lat - 0.5) / s.subset)
+
+    f, ax = plt.subplots(3, 1, sharey="row", figsize=figsize)
+
+    # ax[0].plot(time["ds"][start:years*365], tdf["gmt"][start:years*365], "r")
+    ax[0].plot(
+        time[start : years * 365 : steps],
+        data[0][start : years * 365 : steps, lat_index, lon_index],
+        label="to detrend",
+    )
+    if minmax:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[0][0][start : years * 365 : steps, lat_index, lon_index],
+            label="to detrend min",
+        )
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[0][1][start : years * 365 : steps, lat_index, lon_index],
+            label="to detrend max",
+        )
+    ax[0].title.set_text("lon: " + str(lon) + " lat: " + str(lat))
+    ax[0].plot(
+        time[start : years * 365 : steps],
+        data[1][start : years * 365 : steps, lat_index, lon_index],
+        "-.",
+        label="detrended",
+    )
+    if minmax:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[1][0][start : years * 365 : steps, lat_index, lon_index],
+            "-.",
+            label="detrended min",
+        )
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[1][1][start : years * 365 : steps, lat_index, lon_index],
+            "-.",
+            label="detrended max",
+        )
+    if estimate:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            data[2][start : years * 365 : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+    if minmax:
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[2][0][start : years * 365 : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+        ax[0].plot(
+            time[start : years * 365 : steps],
+            minmax[2][1][start : years * 365 : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+
+    # ax[1].plot(time["ds"][-years*365:stop], tdf["gmt"][-years*365:stop], "r")
+    ax[1].plot(
+        time[-years * 365 : stop : steps],
+        data[0][-years * 365 : stop : steps, lat_index, lon_index],
+        label="to detrend",
+    )
+    if minmax:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[0][0][-years * 365 : stop : steps, lat_index, lon_index],
+        )
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[0][1][-years * 365 : stop : steps, lat_index, lon_index],
+        )
+    ax[1].title.set_text("lon: " + str(lon) + " lat: " + str(lat))
+    ax[1].plot(
+        time[-years * 365 : stop : steps],
+        data[1][-years * 365 : stop : steps, lat_index, lon_index],
+        "-.",
+        label="detrended",
+    )
+    if minmax:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[1][0][-years * 365 : stop : steps, lat_index, lon_index],
+            "-.",
+        )
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[1][1][-years * 365 : stop : steps, lat_index, lon_index],
+            "-.",
+        )
+    if estimate:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            data[2][-years * 365 : stop : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+    if minmax:
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[2][0][-years * 365 : stop : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+        ax[1].plot(
+            time[-years * 365 : stop : steps],
+            minmax[2][1][-years * 365 : stop : steps, lat_index, lon_index],
+            "k",
+            linewidth=5,
+        )
+
+    if minmax:
+        ax[2].title.set_text("comparison of detrended data")
+        ax[2].plot(
+            time[-years * 365 : stop : steps],
+            data[2][-years * 365 : stop : steps, lat_index, lon_index]
+            - minmax[1][0][-years * 365 : stop : steps, lat_index, lon_index],
+        label = "detrended - min"
+        )
+        ax[2].plot(
+            time[-years * 365 : stop : steps],
+            minmax[1][1][-years * 365 : stop : steps, lat_index, lon_index]
+            - data[2][-years * 365 : stop : steps, lat_index, lon_index],
+        label = "max - detrended"
+        )
+
+    for axis in ax.ravel():
+        axis.grid()
+        axis.legend()
+
+
+def plot_ts_region(
+    data,
+    time,
+    lat,
+    lon,
+    years,
+    start=0,
+    stop=40176,
+    steps=1,
+    figsize=(24, 10),
+    estimate=True,
+):
+
+    lon_index = int((2 * lon + 360 - 0.5) / s.subset)
+    lat_index = int((180 - 2 * lat - 0.5) / s.subset)
+
+    plt.figure(figsize=figsize)
+    plt.plot(
+        time[start:stop:steps],
+        data[0][start:stop:steps, lat_index, lon_index],
+        "-.",
+        label="original",
+    )
+    plt.plot(
+        time[start:stop:steps],
+        data[1][start:stop:steps, lat_index, lon_index],
+        ".-",
+        label="detrended",
+    )
+    #  plt.plot(
+    #      time[start:stop:steps],
+    #      data[2][start:stop:steps, lat_index, lon_index],
+    #      label="trend"
+    #  )
+    plt.legend()
+    #  plt.set_ylim(.001)
+    plt.grid()

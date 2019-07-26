@@ -32,7 +32,7 @@ For estimating parameter distributions (above step 1) and smaller datasets
 
 For larger datasets, produce a `submit.sh` file via
 
-`python create_submit.sh`
+`python create_submit.py`
 
 Then submit to the slurm scheduler
 
@@ -40,7 +40,7 @@ Then submit to the slurm scheduler
 
 For producing counterfactuals (above step 2)
 
-`python run_detrending.py`
+`sbatch merge_submit.py`
 
 ### Running multiple instances at once
 
@@ -66,6 +66,43 @@ We use the jobarray feature of slurm to run many jobs in parallel. We use the in
 You may also optionally
 
 `cp config/theanorc ~/.theanorc`
+
+To enable parallel netCDF output, you need a netCDF4-python module, compiled against a mpi-enabled netcdf-c as well as hdf5 library. To this date, there is no such module available on conda's well known channels, this should be compiled as follows:
+
+1) Download a version from Unidata: https://github.com/Unidata/netcdf4-python/releases
+  In this case, 1.5.1.2, and unpack.
+
+2) Create a conda environment (or install into an environment the does not have netcdf4 module installed yet), based on Intel, with mpi4py and numpy
+
+  module load anaconda/5.0.0_py3
+  conda create -n yourenv -c intel mpi4py numpy
+
+3) activate: source activate your env
+
+4) load an Intel module (for the compiler)
+  module load intel/2018.3
+
+5) load a recent parallel NetCDF4 module and HDF5 module
+
+  module load netcdf-c/4.6.2/intel/parallel
+  module load hdf5/1.10.2/intel/parallel
+
+6) in the unpacked netcdf4-parallel directory from step 1:
+
+  CC=mpiicc python setup.py install
+
+7) confirm module installed:
+
+  conda list | grep netcdf4
+  netcdf4                   1.5.1.2                  pypi_0    pypi
+
+To use:
+module load anaconda/5.0.0_py3
+source activate par_io
+
+To test:
+export I_MPI_FABRICS=shm:shm # only to be set for testing on login nodes, not for submitted jobs
+python -c "from netCDF4 import Dataset; Dataset('test.nc', 'w', parallel=True)"
 
 ## Credits
 

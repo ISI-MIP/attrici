@@ -1,13 +1,16 @@
 import numpy as np
 import pandas as pd
 import pathlib
+import sys
+sys.path.append("..")
+import idetrend.const as c
 
 
 def create_output_dirs(output_dir):
 
     """ params: output_dir: a pathlib object """
 
-    for d in ["traces", "timeseries"]:
+    for d in ["cfact", "traces", "timeseries"]:
         (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
@@ -46,8 +49,8 @@ def create_dataframe(nct, data_to_detrend, gmt):
         ds = nct
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = y_norm(gmt_on_data_cal, gmt_on_data_cal)
-    y_scaled = y_norm(data_to_detrend, data_to_detrend)
+    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal)
+    y_scaled = c.scale(data_to_detrend, data_to_detrend)
 
     tdf = pd.DataFrame(
         {
@@ -80,4 +83,33 @@ def save_to_csv(df_with_cfact, settings, lat, lon):
     )
 
     df_with_cfact.to_csv(fname)
-    print("Timeseries file saved to", fname)
+
+
+def form_global_nc(ds, time, lat, lon, vnames, torigin):
+
+    ds.createDimension("time", None)
+    ds.createDimension("lat", lat.shape[0])
+    ds.createDimension("lon", lon.shape[0])
+
+    times = ds.createVariable("time", "f8", ("time",))
+    longitudes = ds.createVariable("lon", "f8", ("lon",))
+    latitudes = ds.createVariable("lat", "f8", ("lat",))
+    for var in vnames:
+        data = ds.createVariable(
+            var,
+            "f4",
+            ("time", "lat", "lon"),
+            chunksizes=(time.shape[0], 1, 1),
+            fill_value=np.nan,
+        )
+    times.units = torigin
+    latitudes.units = "degree_north"
+    latitudes.long_name = "latitude"
+    latitudes.standard_name = "latitude"
+    longitudes.units = "degree_east"
+    longitudes.long_name = "longitude"
+    longitudes.standard_name = "longitude"
+    # FIXME: make flexible or implement loading from source data
+    latitudes[:] = lat
+    longitudes[:] = lon
+    times[:] = time

@@ -1,27 +1,15 @@
 import os
-import theano
+#  import theano
 import numpy as np
 import pymc3 as pm
-import matplotlib.pylab as plt
-import pandas as pd
-import netCDF4 as nc
+#  import matplotlib.pylab as plt
+#  import pandas as pd
+#  import netCDF4 as nc
 from datetime import datetime
-from pathlib import Path
+#  from pathlib import Path
 import idetrend.datahandler as dh
-
-
-def y_norm(y_to_scale, y_orig):
-    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
-
-
-def y_inv(y, y_orig):
-    """rescale data y to y_original"""
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
-
-
-def rescale(y, y_orig):
-    """rescale data y to y_original"""
-    return y * (y_orig.max() - y_orig.min())
+import idetrend.const as c
+import settings as s
 
 
 class bayes_regression(object):
@@ -51,13 +39,17 @@ class bayes_regression(object):
 
         # create instance of pymc model class
         df_subset = df.loc[::self.subset].copy()
+        df_subset.replace([np.inf, -np.inf], np.nan, inplace=True)
+        df_subset.dropna(axis=0, how="any", inplace=True)
         regressor = df_subset["gmt_scaled"].values
         x_fourier = rescale_fourier(df_subset, self.modes)
+        observed = df_subset["y_scaled"]
         self.model = pm.Model()
 
         with self.model:
             slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
             intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            #  intercept = pm.Normal("intercept", pm.mean(observed) - slope/2, self.linear_sigma)
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
             beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
@@ -69,8 +61,9 @@ class bayes_regression(object):
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
+            #  e = pm.Exponential("e", lam=2)
             out = pm.Normal(
-                "obs", mu=estimated, sd=sigma, observed=df_subset["y_scaled"]
+                "obs", mu=estimated, sd=sigma, observed=observed,
             )
 
         self.df = df
@@ -86,6 +79,10 @@ class bayes_regression(object):
         print("Search for trace in\n", outdir_for_cell)
         self.trace = pm.load_trace(outdir_for_cell, model=self.model)
 
+
+        # As load_trace does not throw an error when no saved data exists, we here
+        # test this manually. FIXME: Could be improved, as we check for existence
+        # of names only, but not that the data is not corrupted.
         try:
             for var in ["slope", "intercept", "beta_yearly", "beta_trend", "sigma"]:
                 if var not in self.trace.varnames:
@@ -136,15 +133,19 @@ class bayes_regression(object):
         memory consumtions. """
 
         # to stay within memory bounds: only take last 1000 samples
+        y_orig = self.df["y"]
         regressor = self.df["gmt_scaled"].values
         subtrace = self.trace[-1000:]
         x_fourier = rescale_fourier(self.df, self.modes)
+        y = self.df["y_scaled"]
 
-        self.df["trend"] = rescale(
-            (subtrace["slope"] * regressor[:, None]).mean(axis=1), self.df["y"]
+        #  self.df["trend"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["trend"] = c.rescale(
+            (subtrace["slope"] * regressor[:, None]).mean(axis=1), y_orig
         )
 
         # our posteriors, they do not contain short term variability
+        #  self.df["estimated_scaled"] = np.zeros_like(self.df["y_scaled"].values)
         self.df["estimated_scaled"] = (
             subtrace["intercept"]
             + regressor[:, None]
@@ -154,7 +155,8 @@ class bayes_regression(object):
             )
             + det_seasonality_posterior(subtrace["beta_yearly"], x_fourier)
         ).mean(axis=1)
-        self.df["estimated"] = y_inv(self.df["estimated_scaled"], self.df["y"])
+        #  self.df["estimated"] = np.zeros_like(self.df["y_scaled"].values)
+        self.df["estimated"] = c.retransform_dict[s.variable](self.df["estimated_scaled"], y_orig)
 
         gmt_driven_trend = (
             regressor[:, None]
@@ -165,10 +167,16 @@ class bayes_regression(object):
         ).mean(axis=1)
 
         # the counterfactual timeseries, our main result
-        self.df["cfact_scaled"] = self.df["y_scaled"].data - gmt_driven_trend
-        self.df["cfact"] = self.df["y"].data - rescale(gmt_driven_trend, self.df["y"])
+        # create objects of correct length to assign values to
+        #  self.df["cfact_scaled"] = np.zeros_like(self.df["y_scaled"].values)
+        #  self.df["gmt_driven_trend"] = np.zeros_like(self.df["y_scaled"].values)
+        #  self.df["cfact"] = np.zeros_like(self.df["y_scaled"].values)
 
-        self.df["gmt_driven_trend"] = rescale(gmt_driven_trend, self.df["y"])
+        # insert values at masked timesteps
+        self.df["cfact_scaled"] = y.values - gmt_driven_trend
+        self.df["gmt_driven_trend"] = c.rescale(gmt_driven_trend, y_orig)
+        self.df["cfact"] = y_orig - gmt_driven_trend
+
 
 
 def det_dot(a, b):

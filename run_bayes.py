@@ -4,19 +4,32 @@ import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
 import settings as s
+import sys
+sys.path.append("..")
 import idetrend.bayes_detrending as bt
 import idetrend.datahandler as dh
+import argparse
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
     task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
     njobarray = int(os.environ["SLURM_ARRAY_TASK_COUNT"])
     s.ncores_per_job = 1
+    s.progressbar = False
 except KeyError:
     submitted = False
     njobarray = 1
     task_id = 0
     s.progressbar = True
+
+parser = argparse.ArgumentParser(description='Redo selected run numbers.')
+parser.add_argument('-s', '--start', type=int,
+                    help='run number to start calculation from' +
+                    '(get from logfiles and delete traces before running')
+parser.add_argument('-e', '--end', type=int,
+                    help='end run number for calculation' +
+                    '(get from logfiles and delete traces before running')
+args = parser.parse_args()
 
 dh.create_output_dirs(s.output_dir)
 
@@ -46,14 +59,19 @@ calls_per_arrayjob = ncells / njobarray
 start_num = int(task_id * calls_per_arrayjob)
 end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 
-# Print the task and run range
-print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
+if args.start is not None and args.end is not None:
+    run_numbers = range(args.start, args.end + 1)
+    print("Calculating run numbers", args.start, "to", args.end)
+else:
+    run_numbers = np.arange(start_num, end_num + 1, 1, dtype=np.int)
+    # Print the task and run range
+    print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
 bayes = bt.bayes_regression(s)
 
 TIME0 = datetime.now()
 
-for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
+for n in run_numbers:
     i = int(n % len(lats))
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
@@ -62,8 +80,10 @@ for n in np.arange(start_num, end_num + 1, 1, dtype=np.int):
     data = obs_data.variables[s.variable][:, i, j]
     df = dh.create_dataframe(nct, data, gmt)
 
-    df_with_cfact = bayes.run(df, lat, lon)
-    dh.save_to_csv(df_with_cfact, s, lat, lon)
+    # only run detrending, if at least FIXME: [enter amount and decide what to do when less are available] data points are available in timeseries
+    if df["y"].size - np.sum(df["y"].isna()) > 0:
+        df_with_cfact = bayes.run(df, lat, lon)
+        dh.save_to_csv(df_with_cfact, s, lat, lon)
 
 obs_data.close()
 
