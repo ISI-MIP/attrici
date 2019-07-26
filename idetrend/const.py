@@ -14,16 +14,18 @@ threshold = {
 }
 
 def scale(y_to_scale, y_orig, gmt=False):
+    if gmt:
+        lower = 0
     if not gmt:
-        if len(threshold[s.variable]) < 2:
+        if len(threshold[s.variable]) <= 2:
+            lower = threshold[s.variable][0]
             print("got lower bound")
-            print(threshold[s.variable][0])
-            y_to_scale[y_to_scale <= threshold[s.variable][0]] = np.nan
+            y_to_scale[y_to_scale <= lower] = np.nan
         if len(threshold[s.variable]) == 2:
+            upper = threshold[s.variable][1]
             print("got upper bound")
-            print(threshold[s.variable][1])
-            y_to_scale[y_to_scale >= threshold[s.variable][1]] = np.nan
-    return (y_to_scale - np.nanmin(y_orig) + threshold[s.variable][0]) / (np.nanmax(y_orig) - np.nanmin(y_orig))
+            y_to_scale[y_to_scale >= upper] = np.nan
+    return (y_to_scale - np.nanmin(y_orig) + lower) / (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 
 def precip(y_to_scale, y_orig):
