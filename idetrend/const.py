@@ -1,9 +1,29 @@
 import numpy as np
+import settings as s
 
+threshold = {
+    "tas": (0, ),
+    "tasrange": (.01, ),
+    "tasskew": (.0001, .9999),
+    "pr": (.0000011574, ),
+    "rhs": (.01, 99.99),
+    "ps": (0, ),
+    "rsds": (0, ),
+    "rlds": (0, ),
+    "wind": (0.01, ),
+}
 
-def scale(y_to_scale, y_orig):
-    y_orig = y_orig[~np.isinf(y_orig)]
-    return (y_to_scale - np.nanmin(y_orig)) / (np.nanmax(y_orig) - np.nanmin(y_orig))
+def scale(y_to_scale, y_orig, gmt=False):
+    if not gmt:
+        if len(threshold[s.variable]) < 2:
+            print("got lower bound")
+            print(threshold[s.variable][0])
+            y_to_scale[y_to_scale <= threshold[s.variable][0]] = np.nan
+        if len(threshold[s.variable]) == 2:
+            print("got upper bound")
+            print(threshold[s.variable][1])
+            y_to_scale[y_to_scale >= threshold[s.variable][1]] = np.nan
+    return (y_to_scale - np.nanmin(y_orig) + threshold[s.variable][0]) / (np.nanmax(y_orig) - np.nanmin(y_orig))
 
 
 def precip(y_to_scale, y_orig):
@@ -85,6 +105,28 @@ retransform_dict = {
     "wind": re_wind,
 }
 
+def fourier_series(t, p, modes):
+    # 2 pi n / p
+    x = 2 * np.pi * np.arange(1, modes + 1) / p
+    # 2 pi n / p * t
+    x = x * t[:, None]
+    x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
+    return x
+
+
+def rescale_fourier(df, modes):
+    """ This function computes a scaled (0, 1) fourier series for a given input dataset.
+    An input vector of dates ("ds") must be available in a datestamp format.
+    If the time vector has gaps (due to dropped NA's), the fourier series will also contain gaps (jumps in value).
+    The output format will be of [len["ds"], 2*modes], where the first half of the columns contains the cos(x)-series and die latter half
+    contains the sin(x)-series
+    """
+
+    # rescale the period, as t is also scaled
+    p = 365.25 / (df["ds"].max() - df["ds"].min()).days
+    x = fourier_series(df["t"], p, modes)
+    return x
+
 ######## Not needed but kept for possible later use ####
 #  unit = {
 #      "tasmax": "K",
@@ -98,14 +140,3 @@ retransform_dict = {
 #      "wind": "m/s",
 #  }
 #
-#  maxval = {
-#      "tasmax": None,
-#      "tas": None,
-#      "tasmin": None,
-#      "pr": None,
-#      "rhs": 99.9,
-#      "ps": None,
-#      "rsds": 3025.0,
-#      "rlds": 3025.0,
-#      "wind": None,
-#  }

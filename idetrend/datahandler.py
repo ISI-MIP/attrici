@@ -51,7 +51,7 @@ def create_dataframe(nct, data_to_detrend, gmt):
         ds = nct
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal)
+    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal, gmt=True)
     y_scaled = c.scale(data_to_detrend, data_to_detrend)
 
     tdf = pd.DataFrame(
