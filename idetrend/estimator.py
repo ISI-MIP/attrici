@@ -6,7 +6,7 @@ import idetrend.datahandler as dh
 import idetrend.const as c
 import idetrend.models as models
 
-model_for_var = {"tas": models.Normal, "pr": models.Gamma, "hrs": models.Beta}
+model_for_var = {"tas": models.Normal, "pr": models.Gamma, "rhs": models.Beta}
 
 
 class estimator(object):
@@ -31,7 +31,7 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        df = df.loc[:: self.subset, :]
+        df = df.loc[:: self.subset, :].copy()
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df.dropna(axis=0, how="any", inplace=True)
         x_fourier = c.rescale_fourier(df, self.modes)

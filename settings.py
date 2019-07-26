@@ -27,7 +27,7 @@ njobarray = 64
 
 ################### For Bayesian ############
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
-variable = "tas"  # select variable to detrend
+variable = "pr"  # select variable to detrend
 dataset = "watch+wfdei"  # select dataset to run on
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25
@@ -50,13 +50,13 @@ live_plot = False  # show live plot (does not work yet)
 
 # parameters for fourier modes and priors
 modes = 3  # number of modes for fourier series of model
-linear_mu = .01  # mean of prior for linear model
-linear_sigma = .01  # sd of prior for linear model
+linear_mu = .2  # mean of prior for linear model
+linear_sigma = .8  # sd of prior for linear model
 sigma_beta = .5  # beta parameter of halfcauchy sd of model
-smu = .02  # seasonal prior mean
-stmu = .002  # trend in season prior mean
-sps = .01  # seasonality prior scale (sd)
-stps = .005  # trend in season scale (sd)
+smu = 0  # seasonal prior mean
+stmu = 0  # trend in season prior mean
+sps = .1  # seasonality prior scale (sd)
+stps = .5  # trend in season scale (sd)
 
 gmt_file = dataset + "_ssa_gmt.nc4"
 
