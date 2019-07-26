@@ -25,7 +25,7 @@ unset I_MPI_DAPL_UD
 unset I_MPI_DAPL_UD_PROVIDER
 export I_MPI_PMI_LIBRARY=/p/system/slurm/lib/libpmi.so
 export SUBMITTED=1
-compiledir=/tmp/theano/$SLURM_ARRAY_TASK_ID
+compiledir=/tmp/{{s.user}}/theano/$SLURM_ARRAY_TASK_ID
 mkdir -p $compiledir
 export THEANO_FLAGS=base_compiledir=$compiledir
 

@@ -1,3 +1,4 @@
+module load cdo/1.9.6/gnu-threadsafe
 # run from parent directory
 if [ -e settings.py ]; then
     settings_file=settings.py 
@@ -16,10 +17,11 @@ dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 \
 # datafolder selections relies on the folder being wrapped in double quotation marks
 datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | \
     sed "s/'//g" | sed 's/"//g')"
-outputfile=${datafolder}${variable}_${dataset}_gregorian.nc4
+outputfile=${datafolder}/input/${variable}_${dataset}.nc4
+inputfolder=${datafolder}/links/
 echo 'Outputfile:' $outputfile
 echo 'Inputfiles:'
-echo ${datafolder}${variable}_${dataset}_????_????.nc* 
+echo ${inputfolder}${variable}_${dataset}_????_????.nc* 
 
 if [ -e ${outputfile} ]; then
     while true; do
@@ -29,7 +31,7 @@ if [ -e ${outputfile} ]; then
                 echo 'Deleting' $outputfile
                 rm $outputfile 
                 echo 'Merging files!'
-                cdo mergetime ${datafolder}${variable}_${dataset}_????_????.nc* \
+                cdo mergetime ${inputfolder}${variable}_${dataset}_????_????.nc* \
                 $outputfile
                 echo 'Done with merge!'
             break;;
@@ -41,7 +43,7 @@ if [ -e ${outputfile} ]; then
     done
 else
     echo 'Merging files!'
-    cdo mergetime ${datafolder}${variable}_${dataset}_????_????.nc* \
+    cdo mergetime ${inputfolder}${variable}_${dataset}_????_????.nc* \
     $outputfile
 fi
 echo 'Done!'
