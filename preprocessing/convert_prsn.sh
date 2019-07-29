@@ -2,7 +2,7 @@
 
 #SBATCH --qos=priority
 #SBATCH --partition=priority
-#SBATCH --job-name=rechunk
+#SBATCH --job-name=prsn_pp
 #SBATCH --account=isipedia
 #SBATCH --output=../output/%x.out
 #SBATCH --error=../output/%x.err
@@ -41,11 +41,15 @@ pr=${datafolder}/input/pr_${dataset}.nc4
 prsn=${datafolder}/input/prsn_${dataset}.nc4
 prsn_rel=${datafolder}/input/prsn_rel_${dataset}.nc4
 
-echo "Creating tasrange and tasskew"
+echo "Creating prsnratio"
 echo 'Inputfiles:' ${pr} ${prsn} 
-echo 'Outputfile:' ${prsn_rel} 
+echo 'Outputfile:' ${prsnratio} 
 
-cdo -O chname,prsn,prsnratio -div ${prsn} ${pr} ${prsn_rel}
+cdo -O chname,prsn,prsnratio -div ${prsn} ${pr} temp.nc4
+# if precipitation greater than threshold (1mm/day), then use prsnvalue from temp.nc4
+# else go with pr-value (close to zero). This inhibits creation of NaN's by zero-division
+cdo -O ifthen -gtc,0.0000011574 ${pr} temp.nc4 ${prsnratio}
+rm temp.nc4
 
 if [ $? == 0 ]; then
     echo "Finished without error"
