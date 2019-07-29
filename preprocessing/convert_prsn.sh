@@ -45,7 +45,7 @@ echo "Creating tasrange and tasskew"
 echo 'Inputfiles:' ${pr} ${prsn} 
 echo 'Outputfile:' ${prsn_rel} 
 
-cdo -O chname,prsn,prsn_rel -div ${prsn} ${pr} ${prsn_rel}
+cdo -O chname,prsn,prsnratio -div ${prsn} ${pr} ${prsn_rel}
 
 if [ $? == 0 ]; then
     echo "Finished without error"
