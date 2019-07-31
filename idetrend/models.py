@@ -14,6 +14,7 @@ def det_dot(a, b):
     # TODO: sum() method could be run on output (outside func), so func can be used more generally.
     return (a * b[None, :]).sum(axis=-1)
 
+
 class Normal(object):
 
     """ Influence of GMT is modelled through a shift of
@@ -125,8 +126,12 @@ class Gamma(object):
             slope = pm.Uniform("slope", -10, 10)
             intercept = pm.Uniform("intercept", -1, 100)
 
-            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
-            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+            beta_yearly = pm.Normal(
+                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            )
+            beta_trend = pm.Normal(
+                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            )
 
             beta = (
                 intercept
@@ -134,8 +139,7 @@ class Gamma(object):
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
-            pm.Gamma('pr_intensity', alpha=alpha, beta=beta,
-                           observed=observed)
+            pm.Gamma("pr_intensity", alpha=alpha, beta=beta, observed=observed)
             return model
 
     def quantile_mapping(self, trace, regressor, x_fourier, x):
@@ -146,18 +150,15 @@ class Gamma(object):
         """
         gmt_driven_trend = (
             regressor[:, None]
-            * (
-                trace["slope"]
-                + np.dot(x_fourier, trace["beta_trend"].T)
-            )
+            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
         ).mean(axis=1)
 
         alpha = trace["alpha"].mean()
         beta = gmt_driven_trend + trace["intercept"].mean()
-        beta_reference = beta[0:self.reference_time].mean()
+        beta_reference = beta[0 : self.reference_time].mean()
 
-        quantile = stats.gamma.cdf(x, trace["alpha"].mean(), scale=1./beta)
-        x_mapped = stats.gamma.ppf(quantile, alpha, scale=1./beta_reference)
+        quantile = stats.gamma.cdf(x, trace["alpha"].mean(), scale=1.0 / beta)
+        x_mapped = stats.gamma.ppf(quantile, alpha, scale=1.0 / beta_reference)
 
         return x_mapped
 
@@ -196,11 +197,15 @@ class Beta(object):
 
         with model:
             slope = pm.Uniform("slope", -10, 10)
-            intercept = pm.Uniform("intercept",.01 , 15)
-            beta = pm.Uniform("beta", .1, 20.0)
+            intercept = pm.Uniform("intercept", 0.01, 15)
+            beta = pm.Uniform("beta", 0.1, 20.0)
 
-            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
-            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+            beta_yearly = pm.Normal(
+                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            )
+            beta_trend = pm.Normal(
+                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            )
 
             param_gmt = (
                 intercept
@@ -221,15 +226,12 @@ class Beta(object):
         """
         gmt_driven_trend = (
             regressor[:, None]
-            * (
-                trace["slope"]
-                + np.dot(x_fourier, trace["beta_trend"].T)
-            )
+            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
         ).mean(axis=1)
 
         beta_gmt = gmt_driven_trend + trace["intercept"].mean()
         beta = trace["beta"].mean()
-        beta_reference = beta_gmt[0:self.reference_time].mean()
+        beta_reference = beta_gmt[0 : self.reference_time].mean()
 
         quantile = stats.beta.cdf(x, beta_gmt, beta)
         x_mapped = stats.beta.ppf(quantile, beta_reference, beta)
@@ -271,10 +273,14 @@ class Weibull(object):
         with model:
             slope = pm.Uniform("slope", -5, 5)
             intercept = pm.Uniform("intercept", -5, 5)
-            beta = pm.Uniform("beta", .001, 1.)
+            beta = pm.Uniform("beta", 0.001, 1.0)
 
-            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
-            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+            beta_yearly = pm.Normal(
+                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            )
+            beta_trend = pm.Normal(
+                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            )
 
             param_gmt = (
                 intercept
@@ -295,14 +301,11 @@ class Weibull(object):
         """
         gmt_driven_trend = (
             regressor[:, None]
-            * (
-                trace["slope"]
-                + np.dot(x_fourier, trace["beta_trend"].T)
-            )
+            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
         ).mean(axis=1)
 
         beta_gmt = gmt_driven_trend + trace["intercept"].mean()
-        beta_reference = beta_gmt[0:self.reference_time].mean()
+        beta_reference = beta_gmt[0 : self.reference_time].mean()
 
         # TODO: Is frechet_r (same as weibull_min, in scipy.stats) really the same as Weibull in pymc3?
         quantile = stats.frechet_r.cdf(x, beta_gmt)
@@ -320,12 +323,12 @@ class Rice(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = 3
-        self.linear_mu = .1
-        self.linear_sigma = .2
-        self.smu = .01
-        self.sps = .1
-        self.stmu = .01
-        self.stps = .1
+        self.linear_mu = 0.1
+        self.linear_sigma = 0.2
+        self.smu = 0.01
+        self.sps = 0.1
+        self.stmu = 0.01
+        self.stps = 0.1
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -346,8 +349,12 @@ class Rice(object):
             slope = pm.Uniform("slope", -5, 5)
             intercept = pm.Uniform("intercept", 1.5, 15)
 
-            beta_yearly = pm.Normal("beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes)
-            beta_trend = pm.Normal("beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes)
+            beta_yearly = pm.Normal(
+                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            )
+            beta_trend = pm.Normal(
+                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            )
 
             param_gmt = (
                 intercept
@@ -368,14 +375,11 @@ class Rice(object):
         """
         gmt_driven_trend = (
             regressor[:, None]
-            * (
-                trace["slope"]
-                + np.dot(x_fourier, trace["beta_trend"].T)
-            )
+            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
         ).mean(axis=1)
 
         beta_gmt = gmt_driven_trend + trace["intercept"].mean()
-        beta_reference = beta_gmt[0:self.reference_time].mean()
+        beta_reference = beta_gmt[0 : self.reference_time].mean()
 
         quantile = stats.rice.cdf(x, beta_gmt)
         x_mapped = stats.rice.ppf(quantile, beta_reference)

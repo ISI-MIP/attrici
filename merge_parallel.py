@@ -8,6 +8,7 @@ from pathlib import Path
 import settings as s
 import numpy as np
 
+
 def get_ts_list(data_gen):
     """ this function extracts lat and lon values from the names the argument (iterable). It then calculates indices from of respective lon/lat"""
     data_list = []

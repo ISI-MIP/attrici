@@ -22,12 +22,16 @@ variable = "tas"
 to_detrend_file = os.path.join(s.data_dir, "test_data_" + variable + ".nc4")
 data = nc.Dataset(to_detrend_file, "r")
 data_to_detrend = data.variables[variable]
-pd.DataFrame(data_to_detrend[:, 3, 5]).to_csv("data/"+variable+"_testdata.csv", header=None)
+pd.DataFrame(data_to_detrend[:, 3, 5]).to_csv(
+    "data/" + variable + "_testdata.csv", header=None
+)
 data.close()
 
 variable = "pr"
 to_detrend_file = os.path.join(s.data_dir, "test_data_" + variable + ".nc4")
 data = nc.Dataset(to_detrend_file, "r")
 data_to_detrend = data.variables[variable]
-pd.DataFrame(data_to_detrend[:, 3, 10]).to_csv("data/"+variable+"_testdata.csv", header=None)
+pd.DataFrame(data_to_detrend[:, 3, 10]).to_csv(
+    "data/" + variable + "_testdata.csv", header=None
+)
 data.close()

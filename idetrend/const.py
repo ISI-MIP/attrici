@@ -2,17 +2,18 @@ import numpy as np
 import settings as s
 
 threshold = {
-    "tas": (0, ),
-    "tasrange": (.01, ),
-    "tasskew": (.0001, .9999),
-    "pr": (.0000011574, ),
-    "prsnratio": (.01, .99),
-    "rhs": (.01, 99.99),
-    "ps": (0, ),
-    "rsds": (0, ),
-    "rlds": (0, ),
-    "wind": (0.01, ),
+    "tas": (0,),
+    "tasrange": (0.01,),
+    "tasskew": (0.0001, 0.9999),
+    "pr": (0.0000011574,),
+    "prsnratio": (0.01, 0.99),
+    "rhs": (0.01, 99.99),
+    "ps": (0,),
+    "rsds": (0,),
+    "rlds": (0,),
+    "wind": (0.01,),
 }
+
 
 def scale(y_to_scale, y_orig, gmt=False):
     if gmt:
@@ -26,7 +27,9 @@ def scale(y_to_scale, y_orig, gmt=False):
             upper = threshold[s.variable][1]
             print("got upper bound")
             y_to_scale[y_to_scale >= upper] = np.nan
-    return (y_to_scale - np.nanmin(y_orig) + lower) / (np.nanmax(y_orig) - np.nanmin(y_orig))
+    return (y_to_scale - np.nanmin(y_orig) + lower) / (
+        np.nanmax(y_orig) - np.nanmin(y_orig)
+    )
 
 
 def precip(y_to_scale, y_orig):
@@ -108,6 +111,7 @@ retransform_dict = {
     "wind": re_wind,
 }
 
+
 def fourier_series(t, p, modes):
     # 2 pi n / p
     x = 2 * np.pi * np.arange(1, modes + 1) / p
@@ -129,6 +133,7 @@ def rescale_fourier(df, modes):
     p = 365.25 / (df["ds"].max() - df["ds"].min()).days
     x = fourier_series(df["t"], p, modes)
     return x
+
 
 ######## Not needed but kept for possible later use ####
 #  unit = {
