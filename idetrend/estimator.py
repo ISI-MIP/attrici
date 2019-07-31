@@ -102,5 +102,8 @@ class estimator(object):
         df["cfact_scaled"] = self.statmodel.quantile_mapping(
             trace[self.subtrace :], regressor, x_fourier, df["y_scaled"]
         )
+        df["cfact"] = self.statmodel.quantile_mapping(
+            trace[self.subtrace :], regressor, x_fourier, df["y"]
+        )
 
         return df
