@@ -6,8 +6,6 @@ from mpi4py import MPI
 import pandas as pd
 from pathlib import Path
 import settings as s
-from idetrend.datahandler import form_global_nc
-from math import floor
 import numpy as np
 
 def get_ts_list(data_gen):
