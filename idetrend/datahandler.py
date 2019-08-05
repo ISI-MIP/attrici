@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import sys
+
 sys.path.append("..")
 import idetrend.const as c
 
@@ -27,6 +28,7 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon):
     else:
         return lat_sub_dir
 
+
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
 
@@ -49,7 +51,7 @@ def create_dataframe(nct, data_to_detrend, gmt):
         ds = nct
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal)
+    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal, gmt=True)
     y_scaled = c.scale(data_to_detrend, data_to_detrend)
 
     tdf = pd.DataFrame(
@@ -83,6 +85,7 @@ def save_to_csv(df_with_cfact, settings, lat, lon):
     )
 
     df_with_cfact.to_csv(fname)
+    print("Saved timeseries to ", fname)
 
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):

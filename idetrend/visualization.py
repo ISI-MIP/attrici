@@ -800,8 +800,17 @@ def plot_3maps(data, lat, lon, years, titles, figsize=(24, 24)):
 
 
 def plot_ts_ends(
-    data, time, lat, lon, years, start=0, stop=40176, steps=1, figsize=(24, 24),
-    minmax=False, estimate=True,
+    data,
+    time,
+    lat,
+    lon,
+    years,
+    start=0,
+    stop=40176,
+    steps=1,
+    figsize=(24, 24),
+    minmax=False,
+    estimate=True,
 ):
     """ minmax should be either False or a list of tuples of form (min_data, max_data) for each ts to plot"""
 
@@ -928,13 +937,13 @@ def plot_ts_ends(
             time[-years * 365 : stop : steps],
             data[2][-years * 365 : stop : steps, lat_index, lon_index]
             - minmax[1][0][-years * 365 : stop : steps, lat_index, lon_index],
-        label = "detrended - min"
+            label="detrended - min",
         )
         ax[2].plot(
             time[-years * 365 : stop : steps],
             minmax[1][1][-years * 365 : stop : steps, lat_index, lon_index]
             - data[2][-years * 365 : stop : steps, lat_index, lon_index],
-        label = "max - detrended"
+            label="max - detrended",
         )
 
     for axis in ax.ravel():

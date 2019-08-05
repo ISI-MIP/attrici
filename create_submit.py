@@ -5,6 +5,7 @@ import pathlib
 
 jobname = pathlib.Path.cwd().name
 template_file = "submit.sh.jinja2"
+merge_template_file = "merge_submit.sh.jinja2"
 
 
 def write_submit(settings, jobname, template_file):
@@ -30,3 +31,4 @@ def write_submit(settings, jobname, template_file):
 if __name__ == "__main__":
 
     write_submit(settings, jobname, template_file)
+    write_submit(settings, jobname, merge_template_file)
