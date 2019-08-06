@@ -69,40 +69,41 @@ You may also optionally
 
 To enable parallel netCDF output, you need a netCDF4-python module, compiled against a mpi-enabled netcdf-c as well as hdf5 library. To this date, there is no such module available on conda's well known channels, this should be compiled as follows:
 
-1) Download a version from Unidata: https://github.com/Unidata/netcdf4-python/releases
-  In this case, 1.5.1.2, and unpack.
+1. Download a version from Unidata: https://github.com/Unidata/netcdf4-python/releases <br />
+  In this case, 1.5.1.2, and unpack.<br />
 
-2) Create a conda environment (or install into an environment the does not have netcdf4 module installed yet), based on Intel, with mpi4py and numpy
+2. Create a conda environment (or install into an environment the does not have netcdf4 module installed yet), based on Intel, with mpi4py and numpy<br />
 
-  module load anaconda/5.0.0_py3
-  conda create -n yourenv -c intel mpi4py numpy
+   `module load anaconda/5.0.0_py3` <br />
+   `conda create -n yourenv -c intel mpi4py numpy`<br />
 
-3) activate: source activate your env
+3. activate: `source activate yourenv`<br />
 
-4) load an Intel module (for the compiler)
-  module load intel/2018.3
+4. load an Intel module (for the compiler)<br />
+   `module load intel/2018.3`
 
-5) load a recent parallel NetCDF4 module and HDF5 module
+5. load a recent parallel NetCDF4 module and HDF5 module<br />
 
-  module load netcdf-c/4.6.2/intel/parallel
-  module load hdf5/1.10.2/intel/parallel
+   `module load netcdf-c/4.6.2/intel/parallel`<br />
+   `module load hdf5/1.10.2/intel/parallel`
 
-6) in the unpacked netcdf4-parallel directory from step 1:
+6. in the unpacked netcdf4-parallel directory from step 1:<br />
 
-  CC=mpiicc python setup.py install
+   `CC=mpiicc python setup.py install`<br />
 
-7) confirm module installed:
+7. confirm module installed:<br />
 
-  conda list | grep netcdf4
-  netcdf4                   1.5.1.2                  pypi_0    pypi
+   `conda list | grep netcdf4` should output:<br />
 
-To use:
-module load anaconda/5.0.0_py3
-source activate par_io
+   netcdf4            1.5.1.2           pypi_0    pypi  
 
-To test:
-export I_MPI_FABRICS=shm:shm # only to be set for testing on login nodes, not for submitted jobs
-python -c "from netCDF4 import Dataset; Dataset('test.nc', 'w', parallel=True)"
+To use:<br />
+`module load anaconda/5.0.0_py3`<br />
+`source activate par_io`<br />
+
+To test:<br />
+`export I_MPI_FABRICS=shm:shm` # only to be set for testing on login nodes, not for submitted jobs <br />
+`python -c "from netCDF4 import Dataset; Dataset('test.nc', 'w', parallel=True)"`<br />
 
 ## Credits
 

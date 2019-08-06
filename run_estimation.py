@@ -5,8 +5,10 @@ from datetime import datetime
 from pathlib import Path
 import settings as s
 import sys
+import argparse
+
 sys.path.append("..")
-import idetrend.bayes_detrending as bt
+import idetrend.estimator as est
 import idetrend.datahandler as dh
 import argparse
 
@@ -22,13 +24,24 @@ except KeyError:
     task_id = 0
     s.progressbar = True
 
-parser = argparse.ArgumentParser(description='Redo selected run numbers.')
-parser.add_argument('-s', '--start', type=int,
-                    help='run number to start calculation from' +
-                    '(get from logfiles and delete traces before running')
-parser.add_argument('-e', '--end', type=int,
-                    help='end run number for calculation' +
-                    '(get from logfiles and delete traces before running')
+
+# argparser to enable execution of selected run numbers (--start until --end)
+# run number (e.g. of failed runs) can be retrieved from log files (grep error *)
+parser = argparse.ArgumentParser(description="Redo selected run numbers.")
+parser.add_argument(
+    "-s",
+    "--start",
+    type=int,
+    help="run number to start calculation from"
+    + "(get from logfiles and delete traces before running",
+)
+parser.add_argument(
+    "-e",
+    "--end",
+    type=int,
+    help="end run number for calculation"
+    + "(get from logfiles and delete traces before running",
+)
 args = parser.parse_args()
 
 dh.create_output_dirs(s.output_dir)
@@ -54,10 +67,15 @@ if ncells % njobarray:
 
 calls_per_arrayjob = ncells / njobarray
 
-# Calculate the starting and ending values for this task based
-# on the SLURM task and the number of runs per task.
-start_num = int(task_id * calls_per_arrayjob)
-end_num = int((task_id + 1) * calls_per_arrayjob - 1)
+if args.start is not None and args.end is not None:
+    start_num = args.start
+    end_num = args.end
+    print("Calculating selected run numbers", args.start, "to", args.end)
+else:
+    # Calculate the starting and ending values for this task based
+    # on the SLURM task and the number of runs per task.
+    start_num = int(task_id * calls_per_arrayjob)
+    end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 
 if args.start is not None and args.end is not None:
     run_numbers = range(args.start, args.end + 1)
@@ -67,7 +85,7 @@ else:
     # Print the task and run range
     print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
-bayes = bt.bayes_regression(s)
+estimator = est.estimator(s)
 
 TIME0 = datetime.now()
 
@@ -80,10 +98,16 @@ for n in run_numbers:
     data = obs_data.variables[s.variable][:, i, j]
     df = dh.create_dataframe(nct, data, gmt)
 
-    # only run detrending, if at least FIXME: [enter amount and decide what to do when less are available] data points are available in timeseries
-    if df["y"].size - np.sum(df["y"].isna()) > 0:
-        df_with_cfact = bayes.run(df, lat, lon)
-        dh.save_to_csv(df_with_cfact, s, lat, lon)
+    # only run detrending, if at least FIXME:
+    # [enter amount and decide what to do when less are available] data points are available in timeseries
+
+    # Skipping here saves A LOT of time
+    if df["y"].size == np.sum(df["y"].isna()):
+        print("All data NaN, probably ocean, skip.")
+    else:
+        trace = estimator.estimate_parameters(df, lat, lon)
+        df_with_cfact = estimator.estimate_timeseries(df, trace)
+        dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()
 

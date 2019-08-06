@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import sys
+
 sys.path.append("..")
 import idetrend.const as c
 
@@ -14,18 +15,19 @@ def create_output_dirs(output_dir):
         (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
-def make_cell_output_dir(output_dir, sub_dir, lat, lon):
+def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
 
     """ params: output_dir: a pathlib object """
 
-    lat_sub_dir = output_dir / sub_dir / ("lat_" + str(lat))
-    lat_sub_dir.mkdir(exist_ok=True)
+    lat_sub_dir = output_dir / sub_dir / variable / ("lat_" + str(lat))
+    lat_sub_dir.mkdir(parents=True, exist_ok=True)
 
     if sub_dir == "traces":
         #
-        return lat_sub_dir / ("cell_lat" + str(lat) + "_lon" + str(lon))
+        return lat_sub_dir / ("lon" + str(lon))
     else:
         return lat_sub_dir
+
 
 def y_norm(y_to_scale, y_orig):
     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
@@ -49,7 +51,7 @@ def create_dataframe(nct, data_to_detrend, gmt):
         ds = nct
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal)
+    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal, gmt=True)
     y_scaled = c.scale(data_to_detrend, data_to_detrend)
 
     tdf = pd.DataFrame(
@@ -66,24 +68,41 @@ def create_dataframe(nct, data_to_detrend, gmt):
     return tdf
 
 
-def save_to_csv(df_with_cfact, settings, lat, lon):
+def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 
-    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon)
+    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon,
+        settings.variable)
 
     fname = outdir_for_cell / (
         "ts_"
-        + settings.variable
-        + "_"
         + settings.dataset
         + "_lat"
         + str(lat)
         + "_lon"
         + str(lon)
-        + ".csv"
+        + dformat
     )
 
-    df_with_cfact.to_csv(fname)
+    if dformat == ".csv":
+        df_with_cfact.to_csv(fname)
+    elif dformat == ".h5":
+        df_with_cfact.to_hdf(fname,"lat_"+str(lat)+"_lon_"+str(lon), mode="w")
+    else:
+        raise NotImplementedError("choose storage format .h5 or csv.")
 
+    print("Saved timeseries to ", fname)
+
+
+def read_from_disk(data_path):
+
+    if data_path.split(".")[-1] == "h5":
+        df = pd.read_hdf(data_path)
+    elif data_path.split(".")[-1] == "csv":
+        df = pd.read_csv(data_path, index_col=0)
+    else:
+        raise NotImplementedError("choose storage format .h5 or csv.")
+
+    return df
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):
 

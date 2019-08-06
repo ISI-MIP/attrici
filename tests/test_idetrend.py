@@ -5,6 +5,7 @@ import netCDF4 as nc
 import settings as s
 import idetrend as idtr
 import idetrend.visualization
+
 doy = 30
 days_of_year = 365
 min_ts_len = 2
@@ -25,8 +26,9 @@ linregres_tas = np.array(
 
 # saved linear regression result from using data_to_detrend[:,3,10]
 # from our pr test data and doy=30. data transformed with log before regression.
-linregres_pr = np.array([-3.16381964e-01,  8.08311175e+01, -6.44054507e-02,  5.28658251e-01,
-        5.00323456e-01])
+linregres_pr = np.array(
+    [-3.16381964e-01, 8.08311175e01, -6.44054507e-02, 5.28658251e-01, 5.00323456e-01]
+)
 
 
 test_path = os.path.dirname(__file__)
@@ -42,6 +44,7 @@ tas_testdata = pd.read_csv(
 pr_testdata = pd.read_csv(
     os.path.join(test_path, "data/pr_testdata.csv"), index_col=0, header=None
 ).squeeze()
+
 
 def test_tas_regr():
 
@@ -100,12 +103,10 @@ def test_tas_regr():
 #     np.testing.assert_allclose(checked_detrended,now_detrended)
 
 
-
-
 def get_netcdf_data(dfile, variable):
 
     print(dfile)
-    ncf = nc.Dataset(dfile,"r")
+    ncf = nc.Dataset(dfile, "r")
     data = ncf.variables[variable][:]
     ncf.close()
     return data
@@ -126,23 +127,25 @@ def test_detrending():
     to_detrend_file = os.path.join(s.data_dir, s.to_detrend_file)
     detrended_file = os.path.join(s.data_dir, s.detrended_file)
 
-    lats, lons, slope, intercept = \
-        idetrend.detrending.get_coefficient_fields(regression_file)
+    lats, lons, slope, intercept = idetrend.detrending.get_coefficient_fields(
+        regression_file
+    )
 
-    detrend = idtr.detrending.detrending(lons,
+    detrend = idtr.detrending.detrending(
+        lons,
         lats,
         slope,
         intercept,
         to_detrend_file,
         s.variable,
         gmt_on_each_day,
-        s.days_of_year
-        )
+        s.days_of_year,
+    )
 
     detrend.write_detrended(detrended_file)
 
     checked_detrended = get_netcdf_data(detrended_bk_file, s.variable)
     now_detrended = get_netcdf_data(detrended_file, s.variable)
     # print(now_detrended)
-    np.testing.assert_allclose(checked_detrended,now_detrended)
+    np.testing.assert_allclose(checked_detrended, now_detrended)
     # assert False

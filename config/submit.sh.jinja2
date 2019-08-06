@@ -14,9 +14,10 @@
 #SBATCH --time=00-23:50:00
 
 module purge
+module load brotli/1.0.2
 module load anaconda/5.0.0_py3
 module load compiler/gnu/7.3.0
-module load intel/2019.3
+module load intel/2019.4
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:{{s.conda_path}}/lib/libfabric/libfabric.so
 export FI_PROVIDER_PATH={{s.conda_path}}/lib/libfabric/prov
@@ -35,7 +36,7 @@ cleanup() {
 }
 
 trap cleanup SIGTERM
-srun -n $SLURM_NTASKS {{s.conda_path}}/bin/python -u run_bayes.py
+srun -n $SLURM_NTASKS {{s.conda_path}}/bin/python -u run_estimation.py
 cleanup
 
 echo "Finished run."

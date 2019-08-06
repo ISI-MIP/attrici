@@ -23,10 +23,10 @@ preprocessing=$1
 # module load cdo/1.9.6/gnu-threadsafe
 
 if [ -e settings.py ]; then
-    settings_file=settings.py 
-else 
+    settings_file=settings.py
+else
     settings_file=../settings.py
-fi 
+fi
 
 # Get information from settings file
 # sed gets rid of string markers (',")
@@ -49,7 +49,7 @@ if [[ $preprocessing = 1 ]]; then
 else
     inputfile=${datafolder}/output/tas/cfact/${variable}_${dataset}_cfactual.nc4
     outputfile=${datafolder}/output/tas/cfact/${variable}_${dataset}_re.nc4
-    echo 'Rechunk the following variable to be optimised for timeseries access'
+    echo 'Rechunk the following variable to be optimised for access of spatial fields and one time slice.'
     echo $variable
     echo 'Inputfile:' ${inputfile}
     echo 'Outputfile:' ${outputfile}
