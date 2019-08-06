@@ -41,7 +41,9 @@ class estimator(object):
         try:
             self.statmodel = model_for_var[self.variable]()
         except KeyError as error:
-            print("No statistical model for this variable. Probably treated as part of other variables.")
+            print(
+                "No statistical model for this variable. Probably treated as part of other variables."
+            )
             raise error
 
     def estimate_parameters(self, df, lat, lon):
@@ -54,8 +56,9 @@ class estimator(object):
 
         self.model = self.statmodel.setup(regressor, x_fourier, df["y_scaled"])
 
-        outdir_for_cell = dh.make_cell_output_dir(self.output_dir, "traces", lat, lon,
-            variable=self.variable)
+        outdir_for_cell = dh.make_cell_output_dir(
+            self.output_dir, "traces", lat, lon, variable=self.variable
+        )
 
         # TODO: isolate loading trace function
         print("Search for trace in\n", outdir_for_cell)

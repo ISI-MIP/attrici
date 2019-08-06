@@ -70,23 +70,18 @@ def create_dataframe(nct, data_to_detrend, gmt):
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 
-    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon,
-        settings.variable)
+    outdir_for_cell = make_cell_output_dir(
+        settings.output_dir, "timeseries", lat, lon, settings.variable
+    )
 
     fname = outdir_for_cell / (
-        "ts_"
-        + settings.dataset
-        + "_lat"
-        + str(lat)
-        + "_lon"
-        + str(lon)
-        + dformat
+        "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + dformat
     )
 
     if dformat == ".csv":
         df_with_cfact.to_csv(fname)
     elif dformat == ".h5":
-        df_with_cfact.to_hdf(fname,"lat_"+str(lat)+"_lon_"+str(lon), mode="w")
+        df_with_cfact.to_hdf(fname, "lat_" + str(lat) + "_lon_" + str(lon), mode="w")
     else:
         raise NotImplementedError("choose storage format .h5 or csv.")
 
@@ -103,6 +98,7 @@ def read_from_disk(data_path):
         raise NotImplementedError("choose storage format .h5 or csv.")
 
     return df
+
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):
 

@@ -36,7 +36,7 @@ params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"
 # .h5 or .csv
-storage_format=".h5"
+storage_format = ".h5"
 
 
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
@@ -68,4 +68,3 @@ smu = 0  # seasonal prior mean
 stmu = 0  # trend in season prior mean
 sps = 0.1  # seasonality prior scale (sd)
 stps = 0.5  # trend in season scale (sd)
-
