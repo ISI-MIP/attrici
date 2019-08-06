@@ -3,7 +3,6 @@ import pymc3 as pm
 from scipy import stats
 
 
-# TODO: Do we need these functions at all? I dont see, where this saves code
 def det_dot(a, b):
     """
     The theano dot product and NUTS sampler don't work with large matrices?
@@ -11,14 +10,13 @@ def det_dot(a, b):
     :param a: (np matrix)
     :param b: (theano vector)
     """
-    # TODO: sum() method could be run on output (outside func), so func can be used more generally.
     return (a * b[None, :]).sum(axis=-1)
 
 
 class Normal(object):
 
     """ Influence of GMT is modelled through a shift of
-    mu (the mean) of a normally distributed variable. """
+    mu (the mean) of a normally distributed variable. Works for example for tas."""
 
     def __init__(self):
 

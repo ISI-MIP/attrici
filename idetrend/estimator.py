@@ -34,8 +34,6 @@ class estimator(object):
         self.variable = cfg.variable
         # FIXME: make this variable-dependent -> move to models.py
         self.modes = cfg.modes
-        # start at this element before trace end for cfact estimation
-        self.subtrace = 1000
         self.save_trace = True
 
         try:
@@ -51,6 +49,7 @@ class estimator(object):
         df = df.loc[:: self.subset, :].copy()
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df.dropna(axis=0, how="any", inplace=True)
+
         x_fourier = c.rescale_fourier(df, self.modes)
         regressor = df["gmt_scaled"].values
 
@@ -104,16 +103,14 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace):
+    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
         regressor = df["gmt_scaled"].values
         x_fourier = c.rescale_fourier(df, self.modes)
 
         df["cfact_scaled"] = self.statmodel.quantile_mapping(
-            trace[self.subtrace :], regressor, x_fourier, df["y_scaled"]
+            trace[subtrace :], regressor, x_fourier, df["y_scaled"]
         )
-        # df["cfact"] = self.statmodel.quantile_mapping(
-        #     trace[self.subtrace :], regressor, x_fourier, df["y"]
-        # )
+        df["cfact"] = dh.undo_normalization(df["cfact_scaled"], datamin, scale)
 
         return df
