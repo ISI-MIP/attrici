@@ -38,7 +38,11 @@ class estimator(object):
         self.subtrace = 1000
         self.save_trace = True
 
-        self.statmodel = model_for_var[self.variable]()
+        try:
+            self.statmodel = model_for_var[self.variable]()
+        except KeyError as error:
+            print("No statistical model for this variable. Probably treated as part of other variables.")
+            raise error
 
     def estimate_parameters(self, df, lat, lon):
 
@@ -50,7 +54,8 @@ class estimator(object):
 
         self.model = self.statmodel.setup(regressor, x_fourier, df["y_scaled"])
 
-        outdir_for_cell = dh.make_cell_output_dir(self.output_dir, "traces", lat, lon)
+        outdir_for_cell = dh.make_cell_output_dir(self.output_dir, "traces", lat, lon,
+            variable=self.variable)
 
         # TODO: isolate loading trace function
         print("Search for trace in\n", outdir_for_cell)
@@ -104,8 +109,8 @@ class estimator(object):
         df["cfact_scaled"] = self.statmodel.quantile_mapping(
             trace[self.subtrace :], regressor, x_fourier, df["y_scaled"]
         )
-        df["cfact"] = self.statmodel.quantile_mapping(
-            trace[self.subtrace :], regressor, x_fourier, df["y"]
-        )
+        # df["cfact"] = self.statmodel.quantile_mapping(
+        #     trace[self.subtrace :], regressor, x_fourier, df["y"]
+        # )
 
         return df

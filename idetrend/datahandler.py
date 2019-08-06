@@ -15,16 +15,16 @@ def create_output_dirs(output_dir):
         (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
-def make_cell_output_dir(output_dir, sub_dir, lat, lon):
+def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
 
     """ params: output_dir: a pathlib object """
 
-    lat_sub_dir = output_dir / sub_dir / ("lat_" + str(lat))
-    lat_sub_dir.mkdir(exist_ok=True)
+    lat_sub_dir = output_dir / sub_dir / variable / ("lat_" + str(lat))
+    lat_sub_dir.mkdir(parents=True, exist_ok=True)
 
     if sub_dir == "traces":
         #
-        return lat_sub_dir / ("cell_lat" + str(lat) + "_lon" + str(lon))
+        return lat_sub_dir / ("lon" + str(lon))
     else:
         return lat_sub_dir
 
@@ -70,12 +70,11 @@ def create_dataframe(nct, data_to_detrend, gmt):
 
 def save_to_csv(df_with_cfact, settings, lat, lon):
 
-    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon)
+    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon,
+        settings.variable)
 
     fname = outdir_for_cell / (
         "ts_"
-        + settings.variable
-        + "_"
         + settings.dataset
         + "_lat"
         + str(lat)
@@ -86,6 +85,8 @@ def save_to_csv(df_with_cfact, settings, lat, lon):
 
     df_with_cfact.to_csv(fname)
     print("Saved timeseries to ", fname)
+
+
 
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):

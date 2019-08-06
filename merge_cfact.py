@@ -12,6 +12,10 @@ import pandas as pd
 from idetrend.datahandler import form_global_nc
 import settings as s
 
+ts_dir = s.output_dir / "output" / "isi-cfact" / "timeseries" / s.variable
+cfact_dir = s.output_dir / "output" / "isi-cfact" / "cfact" / s.variable
+
+
 #  get input and output
 data_gen = Path(s.output_dir / "timeseries").glob("**/*.csv")
 out = nc.Dataset(Path(s.output_dir) / "cfact" / s.cfact_file, "w", format="NETCDF4")
