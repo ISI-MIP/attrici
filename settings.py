@@ -28,6 +28,17 @@ njobarray = 64
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "tas"  # select variable to detrend
 dataset = "watch+wfdei"  # select dataset to run on
+
+gmt_file = dataset + "_ssa_gmt.nc4"
+# source_file = variable + "_" + dataset + "_sub.nc4"
+source_file = variable + "_" + dataset + "_sub80.nc4"
+params_file = variable + "_" + dataset + "_parameters.nc4"
+cfact_file = variable + "_" + dataset + "_cfactual.nc4"
+trend_file = variable + "_" + dataset + "_trend.nc4"
+# .h5 or .csv
+storage_format=".h5"
+
+
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25
 
@@ -58,10 +69,3 @@ stmu = 0  # trend in season prior mean
 sps = 0.1  # seasonality prior scale (sd)
 stps = 0.5  # trend in season scale (sd)
 
-gmt_file = dataset + "_ssa_gmt.nc4"
-
-# source_file = variable + "_" + dataset + "_sub.nc4"
-source_file = variable + "_" + dataset + "_sub80.nc4"
-params_file = variable + "_" + dataset + "_parameters.nc4"
-cfact_file = variable + "_" + dataset + "_cfactual.nc4"
-trend_file = variable + "_" + dataset + "_trend.nc4"

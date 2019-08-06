@@ -9,7 +9,7 @@ from pathlib import Path
 import netCDF4 as nc
 import numpy as np
 import pandas as pd
-from idetrend.datahandler import form_global_nc
+import idetrend.datahandler as dh
 import settings as s
 
 ts_dir = s.output_dir / "timeseries" / s.variable
@@ -39,7 +39,7 @@ lon = obs.variables["lon"][:]
 #  get headers and form empty netCDF file with all meatdata
 headers = pd.read_csv(data_list[0], index_col=0, nrows=1).keys()
 headers = headers.drop(["y", "y_scaled", "t", "ds", "gmt", "gmt_scaled"])
-form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
+dh.form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
 
 # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
 # TODO: make this more robust

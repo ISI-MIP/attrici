@@ -107,7 +107,7 @@ for n in run_numbers:
     else:
         trace = estimator.estimate_parameters(df, lat, lon)
         df_with_cfact = estimator.estimate_timeseries(df, trace)
-        dh.save_to_csv(df_with_cfact, s, lat, lon)
+        dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()
 
