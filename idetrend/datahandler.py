@@ -93,6 +93,17 @@ def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
     print("Saved timeseries to ", fname)
 
 
+def read_from_disk(data_path):
+
+    if data_path.split(".")[-1] == "h5":
+        df = pd.read_hdf(data_path)
+    elif data_path.split(".")[-1] == "csv":
+        df = pd.read_csv(data_path, index_col=0)
+    else:
+        raise NotImplementedError("choose storage format .h5 or csv.")
+
+    return df
+
 def form_global_nc(ds, time, lat, lon, vnames, torigin):
 
     ds.createDimension("time", None)
