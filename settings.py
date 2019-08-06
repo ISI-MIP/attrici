@@ -38,7 +38,7 @@ draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
 subset = 5  # only use every subset datapoint for bayes estimation for speedup
 lateral_sub = (
-    5
+    80
 )  # subset dataset (lateral) by sampling every [number] grid point in both dimensions
 
 # number of cores to use for one gridpoint
