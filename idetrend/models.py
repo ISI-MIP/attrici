@@ -90,19 +90,19 @@ class Normal(object):
 class Gamma(object):
 
     """ Influence of GMT is modelled through the influence of on the alpha parameter
-    of a Beta distribution. Beta parameter is assumed free of a trend. """
+    of a Beta distribution. Beta parameter is assumed free of a trend.
+    Example: precipitation """
 
-    def __init__(self):
+    def __init__(self, modes=3):
 
         # TODO: allow this to be changed by argument to __init__
-        self.modes = 3
+        self.modes = modes
         self.linear_mu = 1
         self.linear_sigma = 5
         self.smu = 0
-        self.sps = 10
+        self.sps = 0.1
         self.stmu = 0
-        self.stps = 10
-        self.chains = 2
+        self.stps = 0.1
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -137,7 +137,7 @@ class Gamma(object):
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
-            pm.Gamma("pr_intensity", alpha=alpha, beta=beta, observed=observed)
+            pm.Gamma("obs", alpha=alpha, beta=beta, observed=observed)
             return model
 
     def quantile_mapping(self, trace, regressor, x_fourier, x):

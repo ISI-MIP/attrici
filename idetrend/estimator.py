@@ -5,6 +5,7 @@ from datetime import datetime
 import idetrend.datahandler as dh
 import idetrend.const as c
 import idetrend.models as models
+import idetrend.fourier as fourier
 
 model_for_var = {
     "tas": models.Normal,
@@ -46,11 +47,12 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
+        orig_len = len(df)
         df = df.loc[:: self.subset, :].copy()
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df.dropna(axis=0, how="any", inplace=True)
-
-        x_fourier = c.rescale_fourier(df, self.modes)
+        print(len(df), "data points used from originally", orig_len, "datapoints.")
+        x_fourier = fourier.rescale(df, self.modes)
         regressor = df["gmt_scaled"].values
 
         self.model = self.statmodel.setup(regressor, x_fourier, df["y_scaled"])
@@ -106,11 +108,11 @@ class estimator(object):
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
         regressor = df["gmt_scaled"].values
-        x_fourier = c.rescale_fourier(df, self.modes)
+        x_fourier = fourier.rescale(df, self.modes)
 
         df["cfact_scaled"] = self.statmodel.quantile_mapping(
             trace[subtrace :], regressor, x_fourier, df["y_scaled"]
         )
-        df["cfact"] = dh.undo_normalization(df["cfact_scaled"], datamin, scale)
+        # df["cfact"] = dh.undo_normalization(df["cfact_scaled"], datamin, scale)
 
         return df

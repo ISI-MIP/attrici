@@ -89,14 +89,14 @@ estimator = est.estimator(s)
 
 TIME0 = datetime.now()
 
-for n in run_numbers:
+for n in run_numbers[:]:
     i = int(n % len(lats))
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
     print("This is SLURM task", task_id, "run number", n, "lat,lon", lat, lon)
 
     data = obs_data.variables[s.variable][:, i, j]
-    df, datamin, scale = dh.create_dataframe(nct, data, gmt)
+    df, datamin, scale = dh.create_dataframe(nct, data, gmt, s.variable)
 
     # only run detrending, if at least FIXME:
     # [enter amount and decide what to do when less are available] data points are available in timeseries
@@ -107,6 +107,7 @@ for n in run_numbers:
     else:
         trace = estimator.estimate_parameters(df, lat, lon)
         df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
+
         dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()

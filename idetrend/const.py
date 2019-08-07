@@ -1,5 +1,5 @@
 import numpy as np
-import settings as s
+# import settings as s
 
 threshold = {
     "tas": (0,),
@@ -15,29 +15,54 @@ threshold = {
 }
 
 
-def fourier_series(t, p, modes):
-    # 2 pi n / p
-    x = 2 * np.pi * np.arange(1, modes + 1) / p
-    # 2 pi n / p * t
-    x = x * t[:, None]
-    x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
-    return x
+def scale_to_unity(data):
+
+    """ Take a pandas Series and scale it linearly to
+    lie within [0, 1]. Return pandas Series as well as the
+    data minimum and the scale. """
+
+    scale = data.max() - data.min()
+    scaled_data = (data - data.min())/scale
+
+    return scaled_data, data.min(), scale
+
+def rescale_to_original(scaled_data, datamin, scale):
+
+    """ Use a given datamin and scale to rescale to original. """
+
+    return scaled_data*scale + datamin
+
+def mask_and_scale_precip(data):
+
+    pr_thresh = 0.000001157407 # 0.1 mm per day
+
+    # get scale and datamin before masking
+    scale = data.max() - data.min()
+    datamin = data.min()
+    masked_data = data.copy()
+    masked_data[masked_data < pr_thresh] = np.nan
+    # do not use datamin to shift data to avoid zero
+    scaled_data = masked_data/scale
+
+    return scaled_data, datamin, scale
+
+def refill_and_rescale_precip(scaled_data, datamin, scale):
+    pass
+
+mask_and_scale = {
+"gmt": [scale_to_unity, rescale_to_original],
+"tas": [scale_to_unity, rescale_to_original],
+"pr":[mask_and_scale_precip, refill_and_rescale_precip]}
 
 
-def rescale_fourier(df, modes):
-    """ This function computes a scaled (0, 1) fourier series for a given input dataset.
-    An input vector of dates ("ds") must be available in a datestamp format.
-    If the time vector has gaps (due to dropped NA's), the fourier series will
-     also contain gaps (jumps in value).
-    The output format will be of [len["ds"], 2*modes], where the first
-    half of the columns contains the cos(x)-series and die latter half
-    contains the sin(x)-series
-    """
 
-    # rescale the period, as t is also scaled
-    p = 365.25 / (df["ds"].max() - df["ds"].min()).days
-    x = fourier_series(df["t"], p, modes)
-    return x
+# def y_norm(y_to_scale, y_orig):
+#     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+
+
+# def y_inv(y, y_orig):
+#     """rescale data y to y_original"""
+#     return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
 
 # def scale(y_to_scale, y_orig, gmt=False):

@@ -43,7 +43,7 @@ lon = obs.variables["lon"][:]
 
 #  get headers and form empty netCDF file with all meatdata
 headers = dh.read_from_disk(data_list[0]).keys()
-headers = headers.drop(["y", "y_scaled", "t", "ds", "gmt", "gmt_scaled"])
+headers = headers.drop(["y", "t", "ds", "gmt", "gmt_scaled"])
 dh.form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
 
 # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)

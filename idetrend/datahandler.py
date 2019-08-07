@@ -3,7 +3,7 @@ import pandas as pd
 import pathlib
 import sys
 
-sys.path.append("..")
+# sys.path.append("..")
 import idetrend.const as c
 
 
@@ -28,22 +28,22 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
     else:
         return lat_sub_dir
 
-def normalize_to_unity(data):
+# def normalize_to_unity(data):
 
-    """ Take a pandas Series and scale it linearly to
-    lie within [0, 1]. Return pandas Series as well as the
-    data minimum and the scale. """
+#     """ Take a pandas Series and scale it linearly to
+#     lie within [0, 1]. Return pandas Series as well as the
+#     data minimum and the scale. """
 
-    scale = data.max() - data.min()
-    scaled_data = (data - data.min())/scale
+#     scale = data.max() - data.min()
+#     scaled_data = (data - data.min())/scale
 
-    return scaled_data, data.min(), scale
+#     return scaled_data, data.min(), scale
 
-def undo_normalization(scaled_data, datamin, scale):
+# def undo_normalization(scaled_data, datamin, scale):
 
-    """ Use a given datamin and scale to rescale to original """
+#     """ Use a given datamin and scale to rescale to original. """
 
-    return scaled_data*scale + datamin
+#     return scaled_data*scale + datamin
 
 # def y_norm(y_to_scale, y_orig):
 #     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
@@ -53,8 +53,7 @@ def undo_normalization(scaled_data, datamin, scale):
 #     """rescale data y to y_original"""
 #     return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
-
-def create_dataframe(nct, data_to_detrend, gmt):
+def create_dataframe(nct, data_to_detrend, gmt, variable):
 
     # proper dates plus additional time axis that is
     # from 0 to 1 for better sampling performance
@@ -67,8 +66,11 @@ def create_dataframe(nct, data_to_detrend, gmt):
         ds = nct
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled, _, _ = normalize_to_unity(gmt_on_data_cal)
-    y_scaled, datamin, scale = normalize_to_unity(data_to_detrend)
+
+    f_scale = c.mask_and_scale["gmt"][0]
+    gmt_scaled, _, _ = f_scale(gmt_on_data_cal)
+    f_scale = c.mask_and_scale[variable][0]
+    y_scaled, datamin, scale = f_scale(data_to_detrend)
 
     tdf = pd.DataFrame(
         {
