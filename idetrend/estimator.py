@@ -50,8 +50,10 @@ class estimator(object):
 
         orig_len = len(df)
         df = df.loc[:: self.subset, :].copy()
-        x_fourier = fourier.rescale(df, self.modes)
+        # reindex to a [0,1,2, ..] index
+        df.reset_index(inplace=True, drop=True)
 
+        x_fourier = fourier.rescale(df, self.modes)
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df_valid = df.dropna(axis=0, how="any")
         print(
