@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def series(t, p, modes):
     # 2 pi n / p
     x = 2 * np.pi * np.arange(1, modes + 1) / p
@@ -23,4 +24,3 @@ def rescale(df, modes):
     p = 365.25 / (df["ds"].max() - df["ds"].min()).days
     x = series(df["t"], p, modes)
     return x
-

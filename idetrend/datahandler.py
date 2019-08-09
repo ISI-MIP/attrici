@@ -3,7 +3,6 @@ import pandas as pd
 import pathlib
 import sys
 
-# sys.path.append("..")
 import idetrend.const as c
 
 
@@ -28,30 +27,6 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
     else:
         return lat_sub_dir
 
-# def normalize_to_unity(data):
-
-#     """ Take a pandas Series and scale it linearly to
-#     lie within [0, 1]. Return pandas Series as well as the
-#     data minimum and the scale. """
-
-#     scale = data.max() - data.min()
-#     scaled_data = (data - data.min())/scale
-
-#     return scaled_data, data.min(), scale
-
-# def undo_normalization(scaled_data, datamin, scale):
-
-#     """ Use a given datamin and scale to rescale to original. """
-
-#     return scaled_data*scale + datamin
-
-# def y_norm(y_to_scale, y_orig):
-#     return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
-
-
-# def y_inv(y, y_orig):
-#     """rescale data y to y_original"""
-#     return y * (y_orig.max() - y_orig.min()) + y_orig.min()
 
 def create_dataframe(nct, data_to_detrend, gmt, variable):
 
@@ -85,6 +60,7 @@ def create_dataframe(nct, data_to_detrend, gmt, variable):
 
     return tdf, datamin, scale
 
+
 def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
 
     valid_index = df.dropna().index
@@ -96,6 +72,7 @@ def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
     df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
 
     return df
+
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 

@@ -51,17 +51,17 @@ class estimator(object):
         orig_len = len(df)
         df = df.loc[:: self.subset, :].copy()
         x_fourier = fourier.rescale(df, self.modes)
-        # df_fourier = pd.DataFrame(index = df.index, columns=np.arange(self.modes*2))
 
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         df_valid = df.dropna(axis=0, how="any")
-        print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
-        # only set parts of fourier series where we have valid data
-        # df_fourier.loc[df_valid.index,:] = x_fourier[df_valid.index,:]
+        print(
+            len(df_valid), "data points used from originally", orig_len, "datapoints."
+        )
         regressor = df_valid["gmt_scaled"].values
 
-        self.model = self.statmodel.setup(regressor, x_fourier[df_valid.index,:],
-         df_valid["y_scaled"])
+        self.model = self.statmodel.setup(
+            regressor, x_fourier[df_valid.index, :], df_valid["y_scaled"]
+        )
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, variable=self.variable
@@ -117,8 +117,7 @@ class estimator(object):
         x_fourier = fourier.rescale(df, self.modes)
 
         cfact_scaled = self.statmodel.quantile_mapping(
-            trace[subtrace :], regressor, x_fourier, df["y_scaled"]
+            trace[subtrace:], regressor, x_fourier, df["y_scaled"]
         )
-        # df["cfact"] = dh.undo_normalization(df["cfact_scaled"], datamin, scale)
 
         return cfact_scaled

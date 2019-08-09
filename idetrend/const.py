@@ -1,4 +1,5 @@
 import numpy as np
+
 # import settings as s
 
 threshold = {
@@ -22,19 +23,21 @@ def scale_to_unity(data):
     data minimum and the scale. """
 
     scale = data.max() - data.min()
-    scaled_data = (data - data.min())/scale
+    scaled_data = (data - data.min()) / scale
 
     return scaled_data, data.min(), scale
+
 
 def rescale_to_original(scaled_data, datamin, scale):
 
     """ Use a given datamin and scale to rescale to original. """
 
-    return scaled_data*scale + datamin
+    return scaled_data * scale + datamin
+
 
 def mask_and_scale_precip(data):
 
-    pr_thresh = 0.000001157407 # 0.1 mm per day
+    pr_thresh = 0.000001157407  # 0.1 mm per day
 
     # get scale and datamin before masking
     scale = data.max() - data.min()
@@ -42,19 +45,21 @@ def mask_and_scale_precip(data):
     masked_data = data.copy()
     masked_data[masked_data < pr_thresh] = np.nan
     # do not use datamin to shift data to avoid zero
-    scaled_data = masked_data/scale
+    scaled_data = masked_data / scale
 
     return scaled_data, datamin, scale
 
+
 def refill_and_rescale_precip(scaled_data, datamin, scale):
 
-    return scaled_data*scale
+    return scaled_data * scale
+
 
 mask_and_scale = {
-"gmt": [scale_to_unity, rescale_to_original],
-"tas": [scale_to_unity, rescale_to_original],
-"pr":[mask_and_scale_precip, refill_and_rescale_precip]}
-
+    "gmt": [scale_to_unity, rescale_to_original],
+    "tas": [scale_to_unity, rescale_to_original],
+    "pr": [mask_and_scale_precip, refill_and_rescale_precip],
+}
 
 
 # def y_norm(y_to_scale, y_orig):
@@ -161,7 +166,6 @@ mask_and_scale = {
 #     "rlds": re_standard,
 #     "wind": re_wind,
 # }
-
 
 
 ######## Not needed but kept for possible later use ####
