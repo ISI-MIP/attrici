@@ -43,9 +43,16 @@ def create_dataframe(nct, data_to_detrend, gmt, variable):
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
 
     f_scale = c.mask_and_scale["gmt"][0]
-    gmt_scaled, _, _ = f_scale(gmt_on_data_cal)
-    f_scale = c.mask_and_scale[variable][0]
-    y_scaled, datamin, scale = f_scale(data_to_detrend)
+    gmt_scaled, _, _ = f_scale(gmt_on_data_cal, "gmt")
+
+    c.check_bounds(data_to_detrend, variable)
+    try:
+        f_scale = c.mask_and_scale[variable][0]
+    except KeyError as error:
+        print("Error:",variable, "is not implement (yet). Please check if part of the ISIMIP set.")
+        raise error
+    # print(data_to_detrend)
+    y_scaled, datamin, scale = f_scale(pd.Series(data_to_detrend), variable)
 
     tdf = pd.DataFrame(
         {

@@ -41,6 +41,8 @@ class Normal(object):
             "beta_trend",
         ]
 
+        print("Using Normal distribution model.")
+
     def setup(self, regressor, x_fourier, observed):
 
         model = pm.Model()
@@ -114,6 +116,9 @@ class Gamma(object):
             "beta_yearly",
             "beta_trend",
         ]
+
+        print("Using gamma distribution model.")
+
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -189,6 +194,10 @@ class Beta(object):
             "beta_trend",
         ]
 
+
+        print("Using Gamma distribution model.")
+
+
     def setup(self, regressor, x_fourier, observed):
 
         model = pm.Model()
@@ -263,6 +272,10 @@ class Weibull(object):
             "beta_yearly",
             "beta_trend",
         ]
+
+
+        print("Using Weibull distribution model.")
+
 
     def setup(self, regressor, x_fourier, observed):
 

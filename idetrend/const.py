@@ -1,22 +1,46 @@
 import numpy as np
 
-# import settings as s
 
 threshold = {
-    "tas": (0,),
-    "tasrange": (0.01,),
+    "tas": (0,None),
+    "tasrange": (0.01,None),
     "tasskew": (0.0001, 0.9999),
-    "pr": (0.0000011574,),
+    "pr": (0.0000011574,None),
     "prsnratio": (0.01, 0.99),
     "rhs": (0.01, 99.99),
-    "ps": (0,),
-    "rsds": (0,),
-    "rlds": (0,),
+    "ps": (0,None),
+    "rsds": (0,None),
+    "rlds": (0,None),
     "wind": (0.01,),
 }
 
+bound = {
+    "tas": (0.0,None),
+    "tasrange": (0.0,None),
+    "tasskew": (0.0, 1.),
+    "pr": (0.0,None),
+    "prsnratio": (0.0,1.0),
+    "rhs": (0.01, 99.99),
+    "ps": (0,None),
+    "rsds": (0,1),
+    "rlds": (0,None),
+    "wind": (0.0,None),
+}
 
-def scale_to_unity(data):
+
+def check_bounds(data, variable):
+
+    lower = bound[variable][0]
+    upper = bound[variable][1]
+
+    if lower is not None and data.min() < lower:
+        raise ValueError(data.min(), "is smaller than lower bound",lower,".")
+
+    if upper is not None and data.max() > upper:
+        raise ValueError(data.max(), "is bigger than upper bound",upper,".")
+
+
+def scale_to_unity(data, variable):
 
     """ Take a pandas Series and scale it linearly to
     lie within [0, 1]. Return pandas Series as well as the
@@ -35,7 +59,21 @@ def rescale_to_original(scaled_data, datamin, scale):
     return scaled_data * scale + datamin
 
 
-def mask_and_scale_precip(data):
+def scale_to_unity_and_mask(data, variable):
+
+    print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
+    data[data <= threshold[variable][0]] = np.nan
+    print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+    data[data >= threshold[variable][1]] = np.nan
+
+    scale = data.max() - data.min()
+    scaled_data = (data) / scale
+
+    return scaled_data, data.min(), scale
+
+
+
+def mask_and_scale_precip(data, variable):
 
     pr_thresh = 0.000001157407  # 0.1 mm per day
 
@@ -58,6 +96,7 @@ def refill_and_rescale_precip(scaled_data, datamin, scale):
 mask_and_scale = {
     "gmt": [scale_to_unity, rescale_to_original],
     "tas": [scale_to_unity, rescale_to_original],
+    "tasrange": [scale_to_unity_and_mask, rescale_to_original],
     "pr": [mask_and_scale_precip, refill_and_rescale_precip],
 }
 
