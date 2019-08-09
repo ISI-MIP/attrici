@@ -47,7 +47,8 @@ def mask_and_scale_precip(data):
     return scaled_data, datamin, scale
 
 def refill_and_rescale_precip(scaled_data, datamin, scale):
-    pass
+
+    return scaled_data/scale
 
 mask_and_scale = {
 "gmt": [scale_to_unity, rescale_to_original],

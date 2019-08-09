@@ -89,7 +89,7 @@ estimator = est.estimator(s)
 
 TIME0 = datetime.now()
 
-for n in run_numbers[:]:
+for n in run_numbers[11:]:
     i = int(n % len(lats))
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
@@ -106,8 +106,8 @@ for n in run_numbers[:]:
         print("All data NaN, probably ocean, skip.")
     else:
         trace = estimator.estimate_parameters(df, lat, lon)
-        df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
-
+        cfact_scaled = estimator.estimate_timeseries(df, trace, datamin, scale)
+        df_with_cfact = dh.add_cfact_to_df(df, cfact_scaled, datamin, scale, s.variable)
         dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()

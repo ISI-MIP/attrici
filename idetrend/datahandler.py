@@ -85,6 +85,14 @@ def create_dataframe(nct, data_to_detrend, gmt, variable):
 
     return tdf, datamin, scale
 
+def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+
+    valid_index = df.dropna().index
+    df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
+    f_rescale = c.mask_and_scale[variable][1]
+    df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
+
+    return df
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 
