@@ -43,7 +43,6 @@ ipykernel=5.1.1=py37h39e3cac_0
 ipython=7.7.0=py37h39e3cac_0
 ipython_genutils=0.2.0=py37_0
 ipywidgets=7.5.0=py_0
-isi-cfact=0.1=dev_0
 jedi=0.13.3=py37_0
 jinja2=2.10.1=py37_0
 jpeg=9b=h024ee3a_2

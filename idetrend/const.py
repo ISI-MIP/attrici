@@ -96,6 +96,8 @@ def refill_and_rescale_precip(scaled_data, datamin, scale):
 mask_and_scale = {
     "gmt": [scale_to_unity, rescale_to_original],
     "tas": [scale_to_unity, rescale_to_original],
+    "ps": [scale_to_unity, rescale_to_original],
+    "rlds": [scale_to_unity, rescale_to_original],
     "tasrange": [scale_to_unity_and_mask, refill_and_rescale_precip],
     "pr": [mask_and_scale_precip, refill_and_rescale_precip],
 }
