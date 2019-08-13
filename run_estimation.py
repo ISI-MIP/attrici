@@ -96,7 +96,7 @@ for n in run_numbers[11:]:
     print("This is SLURM task", task_id, "run number", n, "lat,lon", lat, lon)
 
     data = obs_data.variables[s.variable][:, i, j]
-    df, datamin, scale = dh.create_dataframe(nct, data, gmt, s.variable)
+    df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
 
     # only run detrending, if at least FIXME:
     # [enter amount and decide what to do when less are available] data points are available in timeseries

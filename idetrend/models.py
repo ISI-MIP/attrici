@@ -328,18 +328,18 @@ class Weibull(object):
 class Rice(object):
 
     """ Influence of GMT is modelled through shift in the non-concentrality (nu) parameter
-    of a Rice distribution. This is useful for normally distributed variables with a lower boundary ot x=0. Sigma parameter is assumed free of a trend. """
+    of a Rice distribution.
+    This is useful for normally distributed variables with a lower boundary ot x=0.
+    Sigma parameter is assumed free of a trend. """
 
-    def __init__(self):
+    def __init__(self, modes=3):
 
         # TODO: allow this to be changed by argument to __init__
-        self.modes = 3
-        self.linear_mu = 0.1
-        self.linear_sigma = 0.2
+        self.modes = modes
         self.smu = 0.01
-        self.sps = 0.1
-        self.stmu = 0.01
-        self.stps = 0.1
+        self.sps = 1.
+        self.stmu = 0.0
+        self.stps = 1.
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -351,6 +351,9 @@ class Rice(object):
             "beta_yearly",
             "beta_trend",
         ]
+
+        print("Using Rice distribution model.")
+
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -374,7 +377,7 @@ class Rice(object):
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Rice("obs", nu=param_gmt, observed=observed)
+            pm.Rice("obs", nu=param_gmt, sigma=sigma, observed=observed)
 
             return model
 
@@ -382,7 +385,7 @@ class Rice(object):
 
         """
         specific for variables with two bounds, approximately following a
-        beta distribution.
+        Rice distribution.
         """
         gmt_driven_trend = (
             regressor[:, None]

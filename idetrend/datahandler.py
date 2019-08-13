@@ -28,17 +28,15 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
         return lat_sub_dir
 
 
-def create_dataframe(nct, data_to_detrend, gmt, variable):
+def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
     # proper dates plus additional time axis that is
     # from 0 to 1 for better sampling performance
 
-    if nct.__class__.__name__ == "Variable":
-        ds = pd.to_datetime(
-            nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
-        )
-    else:
-        ds = nct
+    ds = pd.to_datetime(
+        nct_array, unit="D", origin=pd.Timestamp(units.lstrip("days since"))
+    )
+
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
 
