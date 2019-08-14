@@ -7,7 +7,7 @@ threshold = {
     "tasskew": (0.0001, 0.9999),
     "pr": (0.0000011574,None),
     "prsnratio": (0.01, 0.99),
-    "rhs": (0.01, 99.99),
+    "hurs": (0.01, 99.99),
     "ps": (0,None),
     "rsds": (0,None),
     "rlds": (0,None),
@@ -20,7 +20,7 @@ bound = {
     "tasskew": (0.0, 1.),
     "pr": (0.0,None),
     "prsnratio": (0.0,1.0),
-    "rhs": (0.01, 99.99),
+    "hurs": (0.0, 100.0),
     "ps": (0,None),
     "rsds": (0,1),
     "rlds": (0,None),
@@ -59,7 +59,7 @@ def rescale_to_original(scaled_data, datamin, scale):
     return scaled_data * scale + datamin
 
 
-def scale_to_unity_and_mask(data, variable):
+def scale_and_mask(data, variable):
 
     print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
@@ -72,8 +72,20 @@ def scale_to_unity_and_mask(data, variable):
     return scaled_data, data.min(), scale
 
 
+def scale_offset_and_mask(data, variable):
 
-def mask_and_scale_precip(data, variable):
+    print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
+    data[data <= threshold[variable][0]] = np.nan
+    print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+    data[data >= threshold[variable][1]] = np.nan
+
+    scale = data.max() - data.min()
+    scaled_data = (data - data.min()) / scale
+
+    return scaled_data, data.min(), scale
+
+
+def scale_and_mask_precip(data, variable):
 
     pr_thresh = 0.000001157407  # 0.1 mm per day
 
@@ -88,7 +100,9 @@ def mask_and_scale_precip(data, variable):
     return scaled_data, datamin, scale
 
 
-def refill_and_rescale_precip(scaled_data, datamin, scale):
+def refill_and_rescale(scaled_data, datamin, scale):
+
+    # TODO: implement refilling of values that have been masked before.
 
     return scaled_data * scale
 
@@ -99,8 +113,9 @@ mask_and_scale = {
     "ps": [scale_to_unity, rescale_to_original],
     "rlds": [scale_to_unity, rescale_to_original],
     "wind": [scale_to_unity, rescale_to_original],
-    "tasrange": [scale_to_unity_and_mask, refill_and_rescale_precip],
-    "pr": [mask_and_scale_precip, refill_and_rescale_precip],
+    "hurs": [scale_offset_and_mask, refill_and_rescale],
+    "tasrange": [scale_and_mask, refill_and_rescale],
+    "pr": [scale_and_mask_precip, refill_and_rescale],
 }
 
 

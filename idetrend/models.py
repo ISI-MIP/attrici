@@ -18,10 +18,10 @@ class Normal(object):
     """ Influence of GMT is modelled through a shift of
     mu (the mean) of a normally distributed variable. Works for example for tas."""
 
-    def __init__(self):
+    def __init__(self, modes=3):
 
         # TODO: allow this to be changed by argument to __init__
-        self.modes = 3
+        self.modes = modes
         self.linear_mu = 1
         self.linear_sigma = 5
         self.sigma_beta = 0.5
@@ -171,10 +171,10 @@ class Beta(object):
     """ Influence of GMT is modelled through the influence of on the alpha parameter
     of a Beta distribution. Beta parameter is assumed free of a trend. """
 
-    def __init__(self):
+    def __init__(self, modes=3):
 
         # TODO: allow this to be changed by argument to __init__
-        self.modes = 3
+        self.modes = modes
         self.linear_mu = 0
         self.linear_sigma = 5
         self.sigma_beta = 0.5
@@ -195,7 +195,7 @@ class Beta(object):
         ]
 
 
-        print("Using Gamma distribution model.")
+        print("Using Beta distribution model.")
 
 
     def setup(self, regressor, x_fourier, observed):
