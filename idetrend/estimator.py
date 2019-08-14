@@ -48,21 +48,12 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        orig_len = len(df)
-        df = df.loc[:: self.subset, :].copy()
-        # reindex to a [0,1,2, ..] index
-        df.reset_index(inplace=True, drop=True)
 
-        x_fourier = fourier.rescale(df, self.modes)
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        df_valid = df.dropna(axis=0, how="any")
-        print(
-            len(df_valid), "data points used from originally", orig_len, "datapoints."
-        )
-        regressor = df_valid["gmt_scaled"].values
+        df_valid, x_fourier_valid, regressor = dh.get_valid_subset(
+            df, self.modes, self.subset)
 
         self.model = self.statmodel.setup(
-            regressor, x_fourier[df_valid.index, :], df_valid["y_scaled"]
+            regressor, x_fourier_valid, df_valid["y_scaled"]
         )
 
         outdir_for_cell = dh.make_cell_output_dir(
