@@ -1,6 +1,8 @@
 import numpy as np
 import pymc3 as pm
 from scipy import stats
+import theano.tensor as tt
+import pandas as pd
 
 
 def det_dot(a, b):
@@ -22,13 +24,14 @@ class Normal(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.linear_mu = 1
-        self.linear_sigma = 5
-        self.sigma_beta = 0.5
-        self.smu = 1
-        self.sps = 20
-        self.stmu = 0.5
-        self.stps = 20
+        self.mu_intercept = .5
+        self.sigma_intercept = 1
+        self.mu_slope = 0.
+        self.sigma_slope = 1
+        self.smu = 0
+        self.sps = 2
+        self.stmu = 0
+        self.stps = 2
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -48,8 +51,8 @@ class Normal(object):
         model = pm.Model()
 
         with model:
-            slope = pm.Normal("slope", self.linear_mu, self.linear_sigma)
-            intercept = pm.Normal("intercept", self.linear_mu, self.linear_sigma)
+            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
             sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
 
             beta_yearly = pm.Normal(
@@ -175,16 +178,14 @@ class Beta(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.linear_mu = 0
-        self.linear_sigma = 5
-        self.sigma_beta = 0.5
+        self.mu_intercept = 0.5
+        self.sigma_intercept = 1.
+        self.mu_slope = 0.
+        self.sigma_slope = 1.
         self.smu = 0
-        self.sps = 20
+        self.sps = 1.
         self.stmu = 0
-        self.stps = 20
-
-        # reference for quantile mapping
-        self.reference_time = 5 * 365
+        self.stps = 1.
 
         self.vars_to_estimate = [
             "slope",
@@ -203,8 +204,8 @@ class Beta(object):
         model = pm.Model()
 
         with model:
-            slope = pm.Uniform("slope", -10, 10)
-            intercept = pm.Uniform("intercept", 0.01, 15)
+            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
             beta = pm.Uniform("beta", 0.1, 20.0)
 
             beta_yearly = pm.Normal(
@@ -214,37 +215,54 @@ class Beta(object):
                 "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
             )
 
-            param_gmt = (
+            log_param_gmt = tt.exp(
                 intercept
                 + slope * regressor
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Beta("obs", alpha=param_gmt, beta=beta, observed=observed)
+            pm.Beta("obs", alpha=log_param_gmt,
+                beta=beta, observed=observed)
 
             return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, x):
+    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
 
         """
         specific for variables with two bounds, approximately following a
-        beta distribution.
+        beta distribution. Mapping done for each day.
         """
-        gmt_driven_trend = (
-            regressor[:, None]
+
+        # FIXME: bring this to settings.py
+        ref_start_date = "1901-01-01"
+        ref_end_date = "1910-12-31"
+
+        log_param_gmt = (
+            trace["intercept"]
+            + np.dot(x_fourier, trace["beta_yearly"].T)
+            + regressor[:, None]
             * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
         ).mean(axis=1)
 
-        beta_gmt = gmt_driven_trend + trace["intercept"].mean()
-        beta = trace["beta"].mean()
-        beta_reference = beta_gmt[0 : self.reference_time].mean()
+        df_param = pd.DataFrame({"log_param_gmt":log_param_gmt},index=date_index)
+        # restrict data to the reference period
+        df_param_ref = df_param.loc[ref_start_date:ref_end_date]
+        # mean over each day in the year
+        df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
 
-        quantile = stats.beta.cdf(x, beta_gmt, beta)
-        x_mapped = stats.beta.ppf(quantile, beta_reference, beta)
+        # write the average values for the reference period to each day of the
+        # whole timeseries
+        for day in df_param_ref.index:
+            df_param.loc[df_param.index.dayofyear == day,
+                         "log_param_gmt_ref"] = df_param_ref.loc[day].values[0]
+
+        beta = trace["beta"].mean()
+
+        quantile = stats.beta.cdf(x, df_param["log_param_gmt"], beta)
+        x_mapped = stats.beta.ppf(quantile, df_param["log_param_gmt_ref"], beta)
 
         return x_mapped
-
 
 class Weibull(object):
 

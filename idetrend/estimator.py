@@ -110,7 +110,7 @@ class estimator(object):
         x_fourier = fourier.rescale(df, self.modes)
 
         cfact_scaled = self.statmodel.quantile_mapping(
-            trace[subtrace:], regressor, x_fourier, df["y_scaled"]
+            trace[-subtrace:], regressor, x_fourier, df["ds"], df["y_scaled"]
         )
 
         return cfact_scaled
