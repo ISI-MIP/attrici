@@ -16,6 +16,42 @@ The following graph illustrates the approach. Grey is the original data, red is 
 
 ![Counterfactual example](image01.png)
 
+## Variable-specific comments
+
+#### tas
+Works fine using normal distribution
+
+#### tasmin
+Constructed from tas, tasskew and tasrange
+TODO
+
+#### tasmax
+Constructed from tas, tasskew and tasrange
+TODO
+
+#### rsds
+Deviationg approach from Lange et al. 2019, using Normal distribution
+This is because the yearly cycle is handled inherently here, so no need for specific treatment.
+
+#### rlds
+Works using Normal distribution
+
+#### pr
+TODO:
+Check with new quantile mapping method
+
+#### wind
+Works currently using a Normal distribution, may need to switch to lower-bounded distribution.
+
+#### psl / ps
+Works using Normal distribution
+
+#### prsnratio
+TODO
+
+#### hurs (relative humidity)
+With Beta distribution, currently with errors.
+
 ## Usage
 
 This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work.
@@ -95,7 +131,7 @@ To enable parallel netCDF output, you need a netCDF4-python module, compiled aga
 
    `conda list | grep netcdf4` should output:<br />
 
-   netcdf4            1.5.1.2           pypi_0    pypi  
+   netcdf4            1.5.1.2           pypi_0    pypi
 
 To use:<br />
 `module load anaconda/5.0.0_py3`<br />
