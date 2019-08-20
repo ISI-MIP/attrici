@@ -47,7 +47,7 @@ Works currently using a Normal distribution, may need to switch to lower-bounded
 Works using Normal distribution
 
 #### prsnratio
-TODO
+Works using beta distribution
 
 #### hurs (relative humidity)
 With Beta distribution, currently with errors.

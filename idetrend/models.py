@@ -223,7 +223,10 @@ class Beta(object):
         with model:
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
             intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
-            beta = pm.Uniform("beta", 0.1, 20.0)
+            # TODO: should we switch to a Normal distribution instead of uniform?
+            # May help to constrain cfact if no observational data is there
+            # for example for prsnratio.
+            beta = pm.Lognormal("beta", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes

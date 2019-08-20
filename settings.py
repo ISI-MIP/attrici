@@ -26,7 +26,8 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 njobarray = 64
 
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
-variable = "prsnratio"  # select variable to detrend
+variable = "tasskew"  # select variable to detrend
+subset = 5  # only use every subset datapoint for bayes estimation for speedup
 dataset = "watch+wfdei"  # select dataset to run on
 
 gmt_file = dataset + "_ssa_gmt.nc4"
@@ -46,7 +47,6 @@ init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
-subset = 5  # only use every subset datapoint for bayes estimation for speedup
 lateral_sub = (
     80
 )  # subset dataset (lateral) by sampling every [number] grid point in both dimensions
