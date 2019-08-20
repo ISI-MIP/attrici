@@ -26,7 +26,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 njobarray = 64
 
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
-variable = "hurs"  # select variable to detrend
+variable = "rsds"  # select variable to detrend
 dataset = "watch+wfdei"  # select dataset to run on
 
 gmt_file = dataset + "_ssa_gmt.nc4"

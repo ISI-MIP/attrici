@@ -28,12 +28,14 @@ class Normal(object):
         self.sigma_intercept = 1
         self.mu_slope = 0.
         self.sigma_slope = 1
+        self.sigma = 0.5
         self.smu = 0
         self.sps = 2
         self.stmu = 0
         self.stps = 2
 
         # reference for quantile mapping
+        # FIXME: move to settings
         self.reference_time = 5 * 365
 
         self.vars_to_estimate = [
@@ -53,7 +55,7 @@ class Normal(object):
         with model:
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
             intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
-            sigma = pm.HalfCauchy("sigma", self.sigma_beta, testval=1)
+            sigma = pm.HalfCauchy("sigma", self.sigma, testval=1)
 
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
@@ -70,24 +72,39 @@ class Normal(object):
 
         return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, x):
+    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
 
         """
-        specific for normally distributed variables where
-        we diagnose shift in mu through GMT.
+        specific for normally distributed variables. Mapping done for each day.
         """
 
-        mu_gmt = (
+        # FIXME: bring this to settings.py
+        ref_start_date = "1901-01-01"
+        ref_end_date = "1910-12-31"
+
+        log_param_gmt = (
             trace["intercept"]
+            + np.dot(x_fourier, trace["beta_yearly"].T)
             + regressor[:, None]
             * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
         ).mean(axis=1)
 
-        mu_reference = mu_gmt[0 : self.reference_time].mean()
+        df_param = pd.DataFrame({"param_gmt":log_param_gmt},index=date_index)
+        # restrict data to the reference period
+        df_param_ref = df_param.loc[ref_start_date:ref_end_date]
+        # mean over each day in the year
+        df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
+
+        # write the average values for the reference period to each day of the
+        # whole timeseries
+        for day in df_param_ref.index:
+            df_param.loc[df_param.index.dayofyear == day,
+                         "param_gmt_ref"] = df_param_ref.loc[day].values[0]
+
         sigma = trace["sigma"].mean()
 
-        quantile = stats.norm.cdf(x, loc=mu_gmt, scale=sigma)
-        x_mapped = stats.norm.ppf(quantile, loc=mu_reference, scale=sigma)
+        quantile = stats.norm.cdf(x, loc=df_param["param_gmt"], scale=sigma)
+        x_mapped = stats.norm.ppf(quantile, loc=df_param["param_gmt_ref"], scale=sigma)
 
         return x_mapped
 

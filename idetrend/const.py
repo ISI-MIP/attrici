@@ -22,7 +22,7 @@ bound = {
     "prsnratio": (0.0,1.0),
     "hurs": (0.0, 100.0),
     "ps": (0,None),
-    "rsds": (0,1),
+    "rsds": (0,None),
     "rlds": (0,None),
     "wind": (0.0,None),
 }
@@ -128,7 +128,7 @@ mask_and_scale = {
     "rlds": [scale_to_unity, rescale_to_original],
     "wind": [scale_to_unity, rescale_to_original],
     "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
-    "rsds": [mask_and_scale_by_bounds, refill_and_rescale],
+    "rsds": [scale_to_unity, rescale_to_original],
     "tasrange": [scale_and_mask, refill_and_rescale],
     "pr": [scale_and_mask_precip, refill_and_rescale],
 }
