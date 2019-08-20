@@ -67,7 +67,21 @@ def scale_and_mask(data, variable):
     data[data >= threshold[variable][1]] = np.nan
 
     scale = data.max() - data.min()
-    scaled_data = (data) / scale
+    scaled_data = data / scale
+    print("Min, max after scaling:",scaled_data.min(),scaled_data.max())
+
+    return scaled_data, data.min(), scale
+
+def mask_and_scale_by_bounds(data, variable):
+
+    print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
+    data[data <= threshold[variable][0]] = np.nan
+    print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+    data[data >= threshold[variable][1]] = np.nan
+
+    scale = bound[variable][1] - bound[variable][0]
+    scaled_data = data / scale
+    print("Scaling by bounds of variable, scale is ", scale,".")
 
     return scaled_data, data.min(), scale
 
@@ -113,7 +127,8 @@ mask_and_scale = {
     "ps": [scale_to_unity, rescale_to_original],
     "rlds": [scale_to_unity, rescale_to_original],
     "wind": [scale_to_unity, rescale_to_original],
-    "hurs": [scale_offset_and_mask, refill_and_rescale],
+    "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
+    "rsds": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
     "pr": [scale_and_mask_precip, refill_and_rescale],
 }
