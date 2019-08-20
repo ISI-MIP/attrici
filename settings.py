@@ -26,7 +26,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 njobarray = 64
 
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
-variable = "tasrange"  # select variable to detrend
+variable = "prsnratio"  # select variable to detrend
 dataset = "watch+wfdei"  # select dataset to run on
 
 gmt_file = dataset + "_ssa_gmt.nc4"
@@ -37,7 +37,6 @@ cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"
 # .h5 or .csv
 storage_format = ".h5"
-
 
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25

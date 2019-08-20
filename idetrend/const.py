@@ -126,11 +126,13 @@ mask_and_scale = {
     "tas": [scale_to_unity, rescale_to_original],
     "ps": [scale_to_unity, rescale_to_original],
     "rlds": [scale_to_unity, rescale_to_original],
+    "rsds": [scale_to_unity, rescale_to_original],
     "wind": [scale_to_unity, rescale_to_original],
     "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
-    "rsds": [scale_to_unity, rescale_to_original],
+    "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
     "pr": [scale_and_mask_precip, refill_and_rescale],
+
 }
 
 
