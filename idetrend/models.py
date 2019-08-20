@@ -22,14 +22,14 @@ def get_reference_parameter(trace, regressor, x_fourier, date_index):
     ref_start_date = "1901-01-01"
     ref_end_date = "1910-12-31"
 
-    log_param_gmt = (
+    param_gmt = (
         trace["intercept"]
         + np.dot(x_fourier, trace["beta_yearly"].T)
         + regressor[:, None]
         * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
     ).mean(axis=1)
 
-    df_param = pd.DataFrame({"log_param_gmt":log_param_gmt},index=date_index)
+    df_param = pd.DataFrame({"param_gmt":param_gmt},index=date_index)
     # restrict data to the reference period
     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
     # mean over each day in the year
@@ -39,7 +39,7 @@ def get_reference_parameter(trace, regressor, x_fourier, date_index):
     # whole timeseries
     for day in df_param_ref.index:
         df_param.loc[df_param.index.dayofyear == day,
-                     "log_param_gmt_ref"] = df_param_ref.loc[day].values[0]
+                     "param_gmt_ref"] = df_param_ref.loc[day].values[0]
 
     return df_param
 
@@ -107,28 +107,7 @@ class Normal(object):
         specific for normally distributed variables. Mapping done for each day.
         """
 
-        # FIXME: bring this to settings.py
-        ref_start_date = "1901-01-01"
-        ref_end_date = "1910-12-31"
-
-        log_param_gmt = (
-            trace["intercept"]
-            + np.dot(x_fourier, trace["beta_yearly"].T)
-            + regressor[:, None]
-            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
-        ).mean(axis=1)
-
-        df_param = pd.DataFrame({"param_gmt":log_param_gmt},index=date_index)
-        # restrict data to the reference period
-        df_param_ref = df_param.loc[ref_start_date:ref_end_date]
-        # mean over each day in the year
-        df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
-
-        # write the average values for the reference period to each day of the
-        # whole timeseries
-        for day in df_param_ref.index:
-            df_param.loc[df_param.index.dayofyear == day,
-                         "param_gmt_ref"] = df_param_ref.loc[day].values[0]
+        df_param = get_reference_parameter(trace, regressor, x_fourier, date_index)
 
         sigma = trace["sigma"].mean()
 
@@ -287,8 +266,8 @@ class Beta(object):
 
         beta = trace["beta"].mean()
 
-        quantile = stats.beta.cdf(x, df_param["log_param_gmt"], beta)
-        x_mapped = stats.beta.ppf(quantile, df_param["log_param_gmt_ref"], beta)
+        quantile = stats.beta.cdf(x, df_param["param_gmt"], beta)
+        x_mapped = stats.beta.ppf(quantile, df_param["param_gmt_ref"], beta)
 
         return x_mapped
 
