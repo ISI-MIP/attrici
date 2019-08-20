@@ -16,18 +16,24 @@ The following graph illustrates the approach. Grey is the original data, red is 
 
 ![Counterfactual example](image01.png)
 
-## Variable-specific comments
+## Comments for each variable
 
 #### tas
 Works fine using normal distribution
 
 #### tasmin
 Constructed from tas, tasskew and tasrange
-TODO
+To do in postprocessing
 
 #### tasmax
 Constructed from tas, tasskew and tasrange
-TODO
+To do in postprocessing
+
+#### tasrange
+CHECK
+
+#### tasskew
+works using Beta distribution
 
 #### rsds
 Deviationg approach from Lange et al. 2019, using Normal distribution
@@ -50,7 +56,7 @@ Works using Normal distribution
 Works using beta distribution
 
 #### hurs (relative humidity)
-With Beta distribution, currently with errors.
+With Beta distribution, working
 
 ## Usage
 
