@@ -259,12 +259,12 @@ class Beta(object):
         beta distribution. Mapping done for each day.
         """
 
-        df_param = get_reference_parameter(trace, regressor, x_fourier, date_index)
+        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
 
         beta = trace["beta"].mean()
 
-        quantile = stats.beta.cdf(x, df_param["param_gmt"], beta)
-        x_mapped = stats.beta.ppf(quantile, df_param["param_gmt_ref"], beta)
+        quantile = stats.beta.cdf(x, np.exp(df_log["param_gmt"]), beta)
+        x_mapped = stats.beta.ppf(quantile, np.exp(df_log["param_gmt_ref"]), beta)
 
         return x_mapped
 
@@ -277,7 +277,7 @@ class Weibull(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.5
+        self.mu_intercept = 0.
         self.sigma_intercept = 1.
         self.mu_slope = 0.
         self.sigma_slope = 1.
