@@ -127,12 +127,14 @@ class Gamma(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.linear_mu = 1
-        self.linear_sigma = 5
+        self.mu_intercept = 0.5
+        self.sigma_intercept = 1.
+        self.mu_slope = 0.
+        self.sigma_slope = 1.
         self.smu = 0
-        self.sps = 0.1
+        self.sps = 1.
         self.stmu = 0
-        self.stps = 0.1
+        self.stps = 1.
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -145,7 +147,7 @@ class Gamma(object):
             "beta_trend",
         ]
 
-        print("Using gamma distribution model.")
+        print("Using Gamma distribution model.")
 
 
     def setup(self, regressor, x_fourier, observed):
@@ -153,9 +155,10 @@ class Gamma(object):
         model = pm.Model()
 
         with model:
-            alpha = pm.Uniform("alpha", 0.01, 1)
-            slope = pm.Uniform("slope", -10, 10)
-            intercept = pm.Uniform("intercept", -1, 100)
+
+            alpha = pm.Beta("alpha", alpha=2, beta=2)
+            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
 
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
@@ -164,32 +167,29 @@ class Gamma(object):
                 "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
             )
 
-            beta = (
+            log_param_gmt = tt.exp(
                 intercept
                 + slope * regressor
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
-            pm.Gamma("obs", alpha=alpha, beta=beta, observed=observed)
+
+            pm.Gamma("obs", alpha=alpha, beta=log_param_gmt, observed=observed)
             return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, x):
+    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
 
         """
         specific for Gamma distributed variables where
         we diagnose shift in beta parameter through GMT.
         """
-        gmt_driven_trend = (
-            regressor[:, None]
-            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
-        ).mean(axis=1)
+
+        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
 
         alpha = trace["alpha"].mean()
-        beta = gmt_driven_trend + trace["intercept"].mean()
-        beta_reference = beta[0 : self.reference_time].mean()
 
-        quantile = stats.gamma.cdf(x, trace["alpha"].mean(), scale=1.0 / beta)
-        x_mapped = stats.gamma.ppf(quantile, alpha, scale=1.0 / beta_reference)
+        quantile = stats.gamma.cdf(x, alpha, scale = 1./np.exp(df_log["param_gmt"]))
+        x_mapped = stats.gamma.ppf(quantile, alpha, scale = 1./np.exp(df_log["param_gmt_ref"]))
 
         return x_mapped
 
@@ -332,7 +332,7 @@ class Weibull(object):
 
         """
         specific for variables with two bounds, approximately following a
-        beta distribution.
+        Weibull distribution.
         """
 
         df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)

@@ -26,8 +26,8 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 njobarray = 64
 
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
-variable = "tasskew"  # select variable to detrend
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+variable = "pr"  # select variable to detrend
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
 dataset = "watch+wfdei"  # select dataset to run on
 
 gmt_file = dataset + "_ssa_gmt.nc4"
