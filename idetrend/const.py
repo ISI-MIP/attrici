@@ -63,8 +63,11 @@ def scale_and_mask(data, variable):
 
     print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
-    print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
-    data[data >= threshold[variable][1]] = np.nan
+    try:
+        print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+        data[data >= threshold[variable][1]] = np.nan
+    except IndexError:
+        pass
 
     scale = data.max() - data.min()
     scaled_data = data / scale
@@ -127,7 +130,7 @@ mask_and_scale = {
     "ps": [scale_to_unity, rescale_to_original],
     "rlds": [scale_to_unity, rescale_to_original],
     "rsds": [scale_to_unity, rescale_to_original],
-    "wind": [scale_to_unity, rescale_to_original],
+    "wind": [scale_and_mask, refill_and_rescale],
     "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],

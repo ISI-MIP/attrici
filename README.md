@@ -19,6 +19,7 @@ The following graph illustrates the approach. Grey is the original data, red is 
 ## Comments for each variable
 
 #### tas
+x
 Works fine using normal distribution
 
 #### tasmin
@@ -30,31 +31,39 @@ Constructed from tas, tasskew and tasrange
 To do in postprocessing
 
 #### tasrange
+x
 CHECK
 
 #### tasskew
+x
 works using Beta distribution
 
 #### rsds
+x
 Deviationg approach from Lange et al. 2019, using Normal distribution
 This is because the yearly cycle is handled inherently here, so no need for specific treatment.
 
 #### rlds
+x
 Works using Normal distribution
 
 #### pr
+x
 Works with Gamma distribution
 
 #### wind
-Works currently using a Normal distribution, may need to switch to lower-bounded distribution.
+TODO: currently bad energy
+Using Weibull distribution
 
 #### psl / ps
 Works using Normal distribution
 
 #### prsnratio
+x
 Works using beta distribution
 
 #### hurs (relative humidity)
+x
 With Beta distribution, working
 
 ## Usage
