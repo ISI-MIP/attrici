@@ -12,7 +12,7 @@ model_for_var = {
     "tas": models.Normal,
     "tasrange": models.Normal,
     "tasskew": models.Beta,
-    "pr": models.Gamma,
+    "pr": models.Weibull,
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Normal,

@@ -231,9 +231,6 @@ class Beta(object):
         with model:
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
             intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
-            # TODO: should we switch to a Normal distribution instead of uniform?
-            # May help to constrain cfact if no observational data is there
-            # for example for prsnratio.
             beta = pm.Lognormal("beta", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
@@ -276,16 +273,18 @@ class Weibull(object):
     """ Influence of GMT is modelled through the influence of on the shape (alpha) parameter
     of a Weibull distribution. Beta parameter is assumed free of a trend. """
 
-    def __init__(self):
+    def __init__(self, modes=3):
 
         # TODO: allow this to be changed by argument to __init__
-        self.modes = 3
-        self.linear_mu = 0
-        self.linear_sigma = 5
+        self.modes = modes
+        self.mu_intercept = 0.5
+        self.sigma_intercept = 1.
+        self.mu_slope = 0.
+        self.sigma_slope = 1.
         self.smu = 0
-        self.sps = 5
+        self.sps = 1.
         self.stmu = 0
-        self.stps = 5
+        self.stps = 1.
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -307,9 +306,9 @@ class Weibull(object):
         model = pm.Model()
 
         with model:
-            slope = pm.Uniform("slope", -5, 5)
-            intercept = pm.Uniform("intercept", -5, 5)
-            beta = pm.Uniform("beta", 0.001, 1.0)
+            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            beta = pm.Lognormal("beta", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
@@ -318,34 +317,30 @@ class Weibull(object):
                 "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
             )
 
-            param_gmt = (
+            log_param_gmt = tt.exp(
                 intercept
                 + slope * regressor
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Weibull("obs", alpha=param_gmt, beta=beta, observed=observed)
+            pm.Weibull("obs", alpha=log_param_gmt, beta=beta, observed=observed)
 
             return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, x):
+    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
 
         """
         specific for variables with two bounds, approximately following a
         beta distribution.
         """
-        gmt_driven_trend = (
-            regressor[:, None]
-            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
-        ).mean(axis=1)
 
-        beta_gmt = gmt_driven_trend + trace["intercept"].mean()
-        beta_reference = beta_gmt[0 : self.reference_time].mean()
+        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
 
-        # TODO: Is frechet_r (same as weibull_min, in scipy.stats) really the same as Weibull in pymc3?
-        quantile = stats.frechet_r.cdf(x, beta_gmt)
-        x_mapped = stats.frechet_r.ppf(quantile, beta_reference)
+        beta = trace["beta"].mean()
+
+        quantile = stats.weibull_min.cdf(x, np.exp(df_log["param_gmt"]), scale=beta)
+        x_mapped = stats.weibull_min.ppf(quantile, np.exp(df_log["param_gmt_ref"]), scale=beta)
 
         return x_mapped
 
