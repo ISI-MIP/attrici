@@ -43,8 +43,7 @@ This is because the yearly cycle is handled inherently here, so no need for spec
 Works using Normal distribution
 
 #### pr
-TODO:
-Check with new quantile mapping method
+Works with Gamma distribution
 
 #### wind
 Works currently using a Normal distribution, may need to switch to lower-bounded distribution.

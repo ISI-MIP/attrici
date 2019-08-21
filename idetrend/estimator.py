@@ -10,7 +10,7 @@ import idetrend.fourier as fourier
 
 model_for_var = {
     "tas": models.Normal,
-    "tasrange": models.Normal,
+    "tasrange": models.Rice,
     "tasskew": models.Beta,
     "pr": models.Gamma,
     "prsnratio": models.Beta,

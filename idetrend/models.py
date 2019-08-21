@@ -356,9 +356,13 @@ class Rice(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.smu = 0.01
+        self.mu_intercept = 0.
+        self.sigma_intercept = 1.
+        self.mu_slope = 0.
+        self.sigma_slope = 1.
+        self.smu = 0
         self.sps = 1.
-        self.stmu = 0.0
+        self.stmu = 0
         self.stps = 1.
 
         # reference for quantile mapping
@@ -380,8 +384,10 @@ class Rice(object):
         model = pm.Model()
 
         with model:
-            slope = pm.Uniform("slope", -5, 5)
-            intercept = pm.Uniform("intercept", 1.5, 15)
+
+            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            sigma = pm.Lognormal("sigma", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
@@ -390,32 +396,29 @@ class Rice(object):
                 "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
             )
 
-            param_gmt = (
+            log_param_gmt = tt.exp(
                 intercept
                 + slope * regressor
                 + det_dot(x_fourier, beta_yearly)
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Rice("obs", nu=param_gmt, sigma=sigma, observed=observed)
+            pm.Rice("obs", nu=log_param_gmt, sigma=sigma, observed=observed)
 
             return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, x):
+    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
 
         """
         specific for variables with two bounds, approximately following a
         Rice distribution.
         """
-        gmt_driven_trend = (
-            regressor[:, None]
-            * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
-        ).mean(axis=1)
 
-        beta_gmt = gmt_driven_trend + trace["intercept"].mean()
-        beta_reference = beta_gmt[0 : self.reference_time].mean()
+        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
 
-        quantile = stats.rice.cdf(x, beta_gmt)
-        x_mapped = stats.rice.ppf(quantile, beta_reference)
+        sigma = trace["sigma"].mean()
+
+        quantile = stats.rice.cdf(x, np.exp(df_log["param_gmt"]), scale=sigma)
+        x_mapped = stats.rice.ppf(quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma)
 
         return x_mapped
