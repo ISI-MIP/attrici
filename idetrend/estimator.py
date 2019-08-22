@@ -48,9 +48,9 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-
         df_valid, x_fourier_valid, regressor = dh.get_valid_subset(
-            df, self.modes, self.subset)
+            df, self.modes, self.subset
+        )
 
         self.model = self.statmodel.setup(
             regressor, x_fourier_valid, df_valid["y_scaled"]

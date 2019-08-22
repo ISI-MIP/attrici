@@ -2,29 +2,29 @@ import numpy as np
 
 
 threshold = {
-    "tas": (0,None),
-    "tasrange": (0.01,None),
+    "tas": (0, None),
+    "tasrange": (0.01, None),
     "tasskew": (0.0001, 0.9999),
-    "pr": (0.0000011574,None),
+    "pr": (0.0000011574, None),
     "prsnratio": (0.01, 0.99),
     "hurs": (0.01, 99.99),
-    "ps": (0,None),
-    "rsds": (0,None),
-    "rlds": (0,None),
+    "ps": (0, None),
+    "rsds": (0, None),
+    "rlds": (0, None),
     "wind": (0.01,),
 }
 
 bound = {
-    "tas": (0.0,None),
-    "tasrange": (0.0,None),
-    "tasskew": (0.0, 1.),
-    "pr": (0.0,None),
-    "prsnratio": (0.0,1.0),
+    "tas": (0.0, None),
+    "tasrange": (0.0, None),
+    "tasskew": (0.0, 1.0),
+    "pr": (0.0, None),
+    "prsnratio": (0.0, 1.0),
     "hurs": (0.0, 100.0),
-    "ps": (0,None),
-    "rsds": (0,None),
-    "rlds": (0,None),
-    "wind": (0.0,None),
+    "ps": (0, None),
+    "rsds": (0, None),
+    "rlds": (0, None),
+    "wind": (0.0, None),
 }
 
 
@@ -34,10 +34,10 @@ def check_bounds(data, variable):
     upper = bound[variable][1]
 
     if lower is not None and data.min() < lower:
-        raise ValueError(data.min(), "is smaller than lower bound",lower,".")
+        raise ValueError(data.min(), "is smaller than lower bound", lower, ".")
 
     if upper is not None and data.max() > upper:
-        raise ValueError(data.max(), "is bigger than upper bound",upper,".")
+        raise ValueError(data.max(), "is bigger than upper bound", upper, ".")
 
 
 def scale_to_unity(data, variable):
@@ -61,39 +61,42 @@ def rescale_to_original(scaled_data, datamin, scale):
 
 def scale_and_mask(data, variable):
 
-    print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
+    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
     try:
-        print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+        print(
+            "Mask", (data >= threshold[variable][1]).sum(), "values above upper bound."
+        )
         data[data >= threshold[variable][1]] = np.nan
     except IndexError:
         pass
 
     scale = data.max() - data.min()
     scaled_data = data / scale
-    print("Min, max after scaling:",scaled_data.min(),scaled_data.max())
+    print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
 
     return scaled_data, data.min(), scale
 
+
 def mask_and_scale_by_bounds(data, variable):
 
-    print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
+    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
-    print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
     data[data >= threshold[variable][1]] = np.nan
 
     scale = bound[variable][1] - bound[variable][0]
     scaled_data = data / scale
-    print("Scaling by bounds of variable, scale is ", scale,".")
+    print("Scaling by bounds of variable, scale is ", scale, ".")
 
     return scaled_data, data.min(), scale
 
 
 def scale_offset_and_mask(data, variable):
 
-    print("Mask", (data <= threshold[variable][0]).sum(),"values below lower bound.")
+    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
-    print("Mask", (data >= threshold[variable][1]).sum(),"values above upper bound.")
+    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
     data[data >= threshold[variable][1]] = np.nan
 
     scale = data.max() - data.min()
@@ -136,6 +139,4 @@ mask_and_scale = {
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
     "pr": [scale_and_mask_precip, refill_and_rescale],
-
 }
-

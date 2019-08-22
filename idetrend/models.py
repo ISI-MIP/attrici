@@ -15,7 +15,6 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-
 def get_reference_parameter(trace, regressor, x_fourier, date_index):
 
     # FIXME: bring this to settings.py
@@ -29,7 +28,7 @@ def get_reference_parameter(trace, regressor, x_fourier, date_index):
         * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
     ).mean(axis=1)
 
-    df_param = pd.DataFrame({"param_gmt":param_gmt},index=date_index)
+    df_param = pd.DataFrame({"param_gmt": param_gmt}, index=date_index)
     # restrict data to the reference period
     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
     # mean over each day in the year
@@ -38,8 +37,9 @@ def get_reference_parameter(trace, regressor, x_fourier, date_index):
     # write the average values for the reference period to each day of the
     # whole timeseries
     for day in df_param_ref.index:
-        df_param.loc[df_param.index.dayofyear == day,
-                     "param_gmt_ref"] = df_param_ref.loc[day].values[0]
+        df_param.loc[
+            df_param.index.dayofyear == day, "param_gmt_ref"
+        ] = df_param_ref.loc[day].values[0]
 
     return df_param
 
@@ -53,9 +53,9 @@ class Normal(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = .5
+        self.mu_intercept = 0.5
         self.sigma_intercept = 1
-        self.mu_slope = 0.
+        self.mu_slope = 0.0
         self.sigma_slope = 1
         self.sigma = 0.5
         self.smu = 0
@@ -83,7 +83,9 @@ class Normal(object):
 
         with model:
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            intercept = pm.Normal(
+                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            )
             sigma = pm.HalfCauchy("sigma", self.sigma, testval=1)
 
             beta_yearly = pm.Normal(
@@ -128,13 +130,13 @@ class Gamma(object):
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
         self.mu_intercept = 0.5
-        self.sigma_intercept = 1.
-        self.mu_slope = 0.
-        self.sigma_slope = 1.
+        self.sigma_intercept = 1.0
+        self.mu_slope = 0.0
+        self.sigma_slope = 1.0
         self.smu = 0
-        self.sps = 1.
+        self.sps = 1.0
         self.stmu = 0
-        self.stps = 1.
+        self.stps = 1.0
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -149,7 +151,6 @@ class Gamma(object):
 
         print("Using Gamma distribution model.")
 
-
     def setup(self, regressor, x_fourier, observed):
 
         model = pm.Model()
@@ -158,7 +159,9 @@ class Gamma(object):
 
             alpha = pm.Beta("alpha", alpha=2, beta=2)
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            intercept = pm.Normal(
+                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            )
 
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
@@ -188,8 +191,10 @@ class Gamma(object):
 
         alpha = trace["alpha"].mean()
 
-        quantile = stats.gamma.cdf(x, alpha, scale = 1./np.exp(df_log["param_gmt"]))
-        x_mapped = stats.gamma.ppf(quantile, alpha, scale = 1./np.exp(df_log["param_gmt_ref"]))
+        quantile = stats.gamma.cdf(x, alpha, scale=1.0 / np.exp(df_log["param_gmt"]))
+        x_mapped = stats.gamma.ppf(
+            quantile, alpha, scale=1.0 / np.exp(df_log["param_gmt_ref"])
+        )
 
         return x_mapped
 
@@ -204,13 +209,13 @@ class Beta(object):
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
         self.mu_intercept = 0.5
-        self.sigma_intercept = 1.
-        self.mu_slope = 0.
-        self.sigma_slope = 1.
+        self.sigma_intercept = 1.0
+        self.mu_slope = 0.0
+        self.sigma_slope = 1.0
         self.smu = 0
-        self.sps = 1.
+        self.sps = 1.0
         self.stmu = 0
-        self.stps = 1.
+        self.stps = 1.0
 
         self.vars_to_estimate = [
             "slope",
@@ -220,9 +225,7 @@ class Beta(object):
             "beta_trend",
         ]
 
-
         print("Using Beta distribution model.")
-
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -230,7 +233,9 @@ class Beta(object):
 
         with model:
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            intercept = pm.Normal(
+                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            )
             beta = pm.Lognormal("beta", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
@@ -247,8 +252,7 @@ class Beta(object):
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Beta("obs", alpha=log_param_gmt,
-                beta=beta, observed=observed)
+            pm.Beta("obs", alpha=log_param_gmt, beta=beta, observed=observed)
 
             return model
 
@@ -268,6 +272,7 @@ class Beta(object):
 
         return x_mapped
 
+
 class Weibull(object):
 
     """ Influence of GMT is modelled through the influence of on the shape (alpha) parameter
@@ -277,14 +282,14 @@ class Weibull(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.
-        self.sigma_intercept = 1.
-        self.mu_slope = 0.
-        self.sigma_slope = 1.
+        self.mu_intercept = 0.0
+        self.sigma_intercept = 1.0
+        self.mu_slope = 0.0
+        self.sigma_slope = 1.0
         self.smu = 0
-        self.sps = 1.
+        self.sps = 1.0
         self.stmu = 0
-        self.stps = 1.
+        self.stps = 1.0
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -297,9 +302,7 @@ class Weibull(object):
             "beta_trend",
         ]
 
-
         print("Using Weibull distribution model.")
-
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -307,7 +310,9 @@ class Weibull(object):
 
         with model:
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            intercept = pm.Normal(
+                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            )
             beta = pm.Lognormal("beta", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
@@ -340,7 +345,9 @@ class Weibull(object):
         beta = trace["beta"].mean()
 
         quantile = stats.weibull_min.cdf(x, np.exp(df_log["param_gmt"]), scale=beta)
-        x_mapped = stats.weibull_min.ppf(quantile, np.exp(df_log["param_gmt_ref"]), scale=beta)
+        x_mapped = stats.weibull_min.ppf(
+            quantile, np.exp(df_log["param_gmt_ref"]), scale=beta
+        )
 
         return x_mapped
 
@@ -356,14 +363,14 @@ class Rice(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.
-        self.sigma_intercept = 1.
-        self.mu_slope = 0.
-        self.sigma_slope = 1.
+        self.mu_intercept = 0.0
+        self.sigma_intercept = 1.0
+        self.mu_slope = 0.0
+        self.sigma_slope = 1.0
         self.smu = 0
-        self.sps = 1.
+        self.sps = 1.0
         self.stmu = 0
-        self.stps = 1.
+        self.stps = 1.0
 
         # reference for quantile mapping
         self.reference_time = 5 * 365
@@ -378,7 +385,6 @@ class Rice(object):
 
         print("Using Rice distribution model.")
 
-
     def setup(self, regressor, x_fourier, observed):
 
         model = pm.Model()
@@ -386,7 +392,9 @@ class Rice(object):
         with model:
 
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal("intercept", mu=self.mu_intercept, sigma=self.sigma_intercept)
+            intercept = pm.Normal(
+                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            )
             sigma = pm.Lognormal("sigma", mu=2, sigma=1)
 
             beta_yearly = pm.Normal(
@@ -419,6 +427,8 @@ class Rice(object):
         sigma = trace["sigma"].mean()
 
         quantile = stats.rice.cdf(x, np.exp(df_log["param_gmt"]), scale=sigma)
-        x_mapped = stats.rice.ppf(quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma)
+        x_mapped = stats.rice.ppf(
+            quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma
+        )
 
         return x_mapped
