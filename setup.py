@@ -8,6 +8,6 @@ setup(
     author="Matthias Mengel, Benjamin Schmidt",
     author_email="matthias.mengel@pik-potsdam.de",
     license="GPLv3",
-    packages=["idetrend"],
+    packages=["icounter"],
     zip_safe=False,
 )

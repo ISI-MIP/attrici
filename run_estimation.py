@@ -8,8 +8,8 @@ import sys
 import argparse
 
 sys.path.append("..")
-import idetrend.estimator as est
-import idetrend.datahandler as dh
+import icounter.estimator as est
+import icounter.datahandler as dh
 import argparse
 
 try:
