@@ -62,7 +62,7 @@ With Beta distribution, working
 
 This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work.
 
-`module load intel/2019.3`
+`module load intel/2019.4`
 
 `conda activate yourenv`
 
