@@ -9,8 +9,9 @@ as we aim to compare impact events of the past (for which we have data) to the e
 
 1. We approximate the change in past climate through a model with three parts. Long-term trend, an ever-repeating yearly cycle, and a trend in the yearly cycle. Trends are induced by global mean temperature change. We use a Bayesian approach to estimate all parameters of the model and their dependencies at once, here implemented through pymc3. Yearly cycle and trend in yearly cycles are approximated through a finite number of modes, which are periodic in the year. The parameter distributions tell us which part of changes in the variables can be explained through global mean temperature as a direct driver.
 
-2. We subtract the estimated trends from global mean temperature change from the observed data. This provides a counterfactual, which comes without the trends easily explained by global mean temperature change.
-
+2. We do quantile mapping to map each value from the observed dataset to a value that we expect it would have been without the climate-induced trend. Our hierachical model approach provides us with a time evolution of our distribution through the time evolution of a gmt-dependent parameter.
+We first this time-evolving distribution to map each value to its quantile in this time evolving distribution.
+We then use the distribution from a reference period in the beginning of our dataset where we assume that climate change did not play a role, to remap the quantile to value of the variable. This value is our counterfactual value. Quantile mapping is different for each day of the year because our model is sensitive to the yearly cycle and the trend in the yearly cycle
 
 The following graph illustrates the approach. Grey is the original data, red is our estimation of change. Blue is the original data minus the parts that were estimated to driven by global mean temperature change.
 
@@ -19,7 +20,6 @@ The following graph illustrates the approach. Grey is the original data, red is 
 ## Comments for each variable
 
 #### tas
-x
 Works fine using normal distribution
 
 #### tasmin
@@ -31,39 +31,31 @@ Constructed from tas, tasskew and tasrange
 To do in postprocessing
 
 #### tasrange
-x
-CHECK
+Works using Rice distribution
 
 #### tasskew
-x
 works using Beta distribution
 
 #### rsds
-x
 Deviationg approach from Lange et al. 2019, using Normal distribution
 This is because the yearly cycle is handled inherently here, so no need for specific treatment.
 
 #### rlds
-x
 Works using Normal distribution
 
 #### pr
-x
 Works with Gamma distribution
 
 #### wind
-TODO: currently bad energy
-Using Weibull distribution
+Works using Weibull distribution
 
 #### psl / ps
 Works using Normal distribution
 
 #### prsnratio
-x
 Works using beta distribution
 
 #### hurs (relative humidity)
-x
 With Beta distribution, working
 
 ## Usage
@@ -78,7 +70,7 @@ Adjust `settings.py`
 
 For estimating parameter distributions (above step 1) and smaller datasets
 
-`python run_bayes.py`
+`python run_estimation.py`
 
 For larger datasets, produce a `submit.sh` file via
 
@@ -88,9 +80,9 @@ Then submit to the slurm scheduler
 
 `sbatch submit.sh`
 
-For producing counterfactuals (above step 2)
+For merging the single timeseries files to netcdf datasets
 
-`sbatch merge_submit.py`
+`python merge_cfact.py`
 
 ### Running multiple instances at once
 
@@ -101,8 +93,7 @@ In the root package directory.
 
 `pip install -e .`
 
-
-Copy the `settings.py`, `run_bayes.py` and `submit.sh` to a separate directory,
+Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` `submit.sh` to a separate directory,
 for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
 ## Install
@@ -117,12 +108,12 @@ You may also optionally
 
 `cp config/theanorc ~/.theanorc`
 
-To enable parallel netCDF output, you need a netCDF4-python module, compiled against a mpi-enabled netcdf-c as well as hdf5 library. To this date, there is no such module available on conda's well known channels, this should be compiled as follows:
+Optional: to enable parallel netCDF output, you need a netCDF4-python module, compiled against a mpi-enabled netcdf-c as well as hdf5 library. To this date, there is no such module available on conda's well known channels, this should be compiled as follows:
 
 1. Download a version from Unidata: https://github.com/Unidata/netcdf4-python/releases <br />
   In this case, 1.5.1.2, and unpack.<br />
 
-2. Create a conda environment (or install into an environment the does not have netcdf4 module installed yet), based on Intel, with mpi4py and numpy<br />
+2. Create a conda environment (or install into an environment that does not have netcdf4 module installed yet), based on Intel, with mpi4py and numpy<br />
 
    `module load anaconda/5.0.0_py3` <br />
    `conda create -n yourenv -c intel mpi4py numpy`<br />
@@ -130,7 +121,7 @@ To enable parallel netCDF output, you need a netCDF4-python module, compiled aga
 3. activate: `source activate yourenv`<br />
 
 4. load an Intel module (for the compiler)<br />
-   `module load intel/2018.3`
+   `module load intel/2019.4`
 
 5. load a recent parallel NetCDF4 module and HDF5 module<br />
 
@@ -149,7 +140,7 @@ To enable parallel netCDF output, you need a netCDF4-python module, compiled aga
 
 To use:<br />
 `module load anaconda/5.0.0_py3`<br />
-`source activate par_io`<br />
+`source activate your_parallel_netcdf_python`<br />
 
 To test:<br />
 `export I_MPI_FABRICS=shm:shm` # only to be set for testing on login nodes, not for submitted jobs <br />

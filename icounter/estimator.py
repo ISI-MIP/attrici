@@ -3,10 +3,11 @@ import numpy as np
 import pandas as pd
 import pymc3 as pm
 from datetime import datetime
-import idetrend.datahandler as dh
-import idetrend.const as c
-import idetrend.models as models
-import idetrend.fourier as fourier
+
+import icounter.datahandler as dh
+import icounter.const as c
+import icounter.models as models
+import icounter.fourier as fourier
 
 model_for_var = {
     "tas": models.Normal,

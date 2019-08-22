@@ -3,8 +3,8 @@ import pandas as pd
 import pathlib
 import sys
 
-import idetrend.const as c
-import idetrend.fourier as fourier
+import icounter.const as c
+import icounter.fourier as fourier
 
 
 def create_output_dirs(output_dir):
