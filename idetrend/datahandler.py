@@ -3,8 +3,8 @@ import pandas as pd
 import pathlib
 import sys
 
-sys.path.append("..")
 import idetrend.const as c
+import idetrend.fourier as fourier
 
 
 def create_output_dirs(output_dir):
@@ -29,30 +29,51 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
         return lat_sub_dir
 
 
-def y_norm(y_to_scale, y_orig):
-    return (y_to_scale - y_orig.min()) / (y_orig.max() - y_orig.min())
+def get_valid_subset(df, modes, subset):
+
+    orig_len = len(df)
+    df = df.loc[::subset, :].copy()
+    # reindex to a [0,1,2, ..] index
+    df.reset_index(inplace=True, drop=True)
+
+    x_fourier = fourier.rescale(df, modes)
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    df_valid = df.dropna(axis=0, how="any")
+
+    print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
+
+    regressor = df_valid["gmt_scaled"].values
+
+    return df_valid, x_fourier[df_valid.index, :], regressor
 
 
-def y_inv(y, y_orig):
-    """rescale data y to y_original"""
-    return y * (y_orig.max() - y_orig.min()) + y_orig.min()
-
-
-def create_dataframe(nct, data_to_detrend, gmt):
+def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
     # proper dates plus additional time axis that is
     # from 0 to 1 for better sampling performance
 
-    if nct.__class__.__name__ == "Variable":
-        ds = pd.to_datetime(
-            nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
-        )
-    else:
-        ds = nct
+    ds = pd.to_datetime(
+        nct_array, unit="D", origin=pd.Timestamp(units.lstrip("days since"))
+    )
+
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled = c.scale(gmt_on_data_cal, gmt_on_data_cal, gmt=True)
-    y_scaled = c.scale(data_to_detrend, data_to_detrend)
+
+    f_scale = c.mask_and_scale["gmt"][0]
+    gmt_scaled, _, _ = f_scale(gmt_on_data_cal, "gmt")
+
+    c.check_bounds(data_to_detrend, variable)
+    try:
+        f_scale = c.mask_and_scale[variable][0]
+    except KeyError as error:
+        print(
+            "Error:",
+            variable,
+            "is not implement (yet). Please check if part of the ISIMIP set.",
+        )
+        raise error
+    # print(data_to_detrend)
+    y_scaled, datamin, scale = f_scale(pd.Series(data_to_detrend), variable)
 
     tdf = pd.DataFrame(
         {
@@ -65,28 +86,36 @@ def create_dataframe(nct, data_to_detrend, gmt):
         }
     )
 
-    return tdf
+    return tdf, datamin, scale
+
+
+def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+
+    valid_index = df.dropna().index
+    df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
+    f_rescale = c.mask_and_scale[variable][1]
+    # populate cfact with original values
+    df["cfact"] = df["y"]
+    # overwrite only values adjusted through cfact calculation
+    df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
+
+    return df
 
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 
-    outdir_for_cell = make_cell_output_dir(settings.output_dir, "timeseries", lat, lon,
-        settings.variable)
+    outdir_for_cell = make_cell_output_dir(
+        settings.output_dir, "timeseries", lat, lon, settings.variable
+    )
 
     fname = outdir_for_cell / (
-        "ts_"
-        + settings.dataset
-        + "_lat"
-        + str(lat)
-        + "_lon"
-        + str(lon)
-        + dformat
+        "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + dformat
     )
 
     if dformat == ".csv":
         df_with_cfact.to_csv(fname)
     elif dformat == ".h5":
-        df_with_cfact.to_hdf(fname,"lat_"+str(lat)+"_lon_"+str(lon), mode="w")
+        df_with_cfact.to_hdf(fname, "lat_" + str(lat) + "_lon_" + str(lon), mode="w")
     else:
         raise NotImplementedError("choose storage format .h5 or csv.")
 
@@ -103,6 +132,7 @@ def read_from_disk(data_path):
         raise NotImplementedError("choose storage format .h5 or csv.")
 
     return df
+
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):
 

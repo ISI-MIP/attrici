@@ -1,150 +1,142 @@
 import numpy as np
-import settings as s
+
 
 threshold = {
-    "tas": (0,),
-    "tasrange": (0.01,),
+    "tas": (0, None),
+    "tasrange": (0.01, None),
     "tasskew": (0.0001, 0.9999),
-    "pr": (0.0000011574,),
+    "pr": (0.0000011574, None),
     "prsnratio": (0.01, 0.99),
-    "rhs": (0.01, 99.99),
-    "ps": (0,),
-    "rsds": (0,),
-    "rlds": (0,),
+    "hurs": (0.01, 99.99),
+    "ps": (0, None),
+    "rsds": (0, None),
+    "rlds": (0, None),
     "wind": (0.01,),
 }
 
-
-def scale(y_to_scale, y_orig, gmt=False):
-    if gmt:
-        lower = 0
-    if not gmt:
-        if len(threshold[s.variable]) <= 2:
-            lower = threshold[s.variable][0]
-            print("got lower bound")
-            y_to_scale[y_to_scale <= lower] = np.nan
-        if len(threshold[s.variable]) == 2:
-            upper = threshold[s.variable][1]
-            print("got upper bound")
-            y_to_scale[y_to_scale >= upper] = np.nan
-    return (y_to_scale - np.nanmin(y_orig) + lower) / (
-        np.nanmax(y_orig) - np.nanmin(y_orig)
-    )
-
-
-def precip(y_to_scale, y_orig):
-    """scale and transform data with lower boundary y to y_original"""
-    y_to_scale[
-        y_to_scale <= 0.000001157407
-    ] = 0  # amounts to .1 mm per day if unit is mm per sec
-    y_to_scale = np.log(y_to_scale)
-    return scale(y_to_scale, y_orig)
-
-
-# FIXME: double check
-def rhs(y_to_scale, y_orig):
-    """scale and transform data with lower boundary y to y_original"""
-    y_to_scale = 2.0 * np.ma.arctanh(2.0 * y_to_scale / (100 - 0) - 1.0)
-    return scale(y_to_scale, y_orig)
-
-
-def wind(y_to_scale, y_orig):
-    """scale and transform wind data with lower boundary y to y_original"""
-    y_to_scale = np.log(y_to_scale)
-    return (y_to_scale - np.nanmin(y_orig)) / (np.nanmax(y_orig) - np.nanmin(y_orig))
-
-
-transform_dict = {
-    "tasskew": scale,
-    "tasrange": scale,
-    "tas": scale,
-    "pr": precip,
-    "prsn_rel": precip,
-    "rhs": rhs,
-    "ps": None,
-    "rsds": None,
-    "rlds": None,
-    "wind": wind,
+bound = {
+    "tas": (0.0, None),
+    "tasrange": (0.0, None),
+    "tasskew": (0.0, 1.0),
+    "pr": (0.0, None),
+    "prsnratio": (0.0, 1.0),
+    "hurs": (0.0, 100.0),
+    "ps": (0, None),
+    "rsds": (0, None),
+    "rlds": (0, None),
+    "wind": (0.0, None),
 }
 
 
-def rescale(y, y_orig):
-    """rescale "standard" data y to y_original"""
-    return y * (np.nanmax(y_orig) - np.nanmin(y_orig))
+def check_bounds(data, variable):
+
+    lower = bound[variable][0]
+    upper = bound[variable][1]
+
+    if lower is not None and data.min() < lower:
+        raise ValueError(data.min(), "is smaller than lower bound", lower, ".")
+
+    if upper is not None and data.max() > upper:
+        raise ValueError(data.max(), "is bigger than upper bound", upper, ".")
 
 
-def re_standard(y, y_orig):
-    """standard" data y to y_original"""
-    return rescale(y, y_orig) + np.nanmin(y_orig)
+def scale_to_unity(data, variable):
+
+    """ Take a pandas Series and scale it linearly to
+    lie within [0, 1]. Return pandas Series as well as the
+    data minimum and the scale. """
+
+    scale = data.max() - data.min()
+    scaled_data = (data - data.min()) / scale
+
+    return scaled_data, data.min(), scale
 
 
-def re_precip(y, y_orig):
-    """rescale and transform data with lower boundary y to y_original"""
-    return np.exp(y)
+def rescale_to_original(scaled_data, datamin, scale):
+
+    """ Use a given datamin and scale to rescale to original. """
+
+    return scaled_data * scale + datamin
 
 
-# FIXME: double check
-def re_rhs(y, y_orig):
-    """ scaled inverse logit for input data of values in [0, 100]
-    as for rhs. minval and maxval differ by purpose from these
-    in dictionaries below."""
-    return 100 * 0.5 * (1.0 + np.ma.tanh(0.5 * y))
+def scale_and_mask(data, variable):
+
+    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
+    data[data <= threshold[variable][0]] = np.nan
+    try:
+        print(
+            "Mask", (data >= threshold[variable][1]).sum(), "values above upper bound."
+        )
+        data[data >= threshold[variable][1]] = np.nan
+    except IndexError:
+        pass
+
+    scale = data.max() - data.min()
+    scaled_data = data / scale
+    print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
+
+    return scaled_data, data.min(), scale
 
 
-# FIXME: code doubling!
-def re_wind(y, y_orig):
-    """rescale and transform data with lower boundary y to y_original"""
-    return np.exp(y)
+def mask_and_scale_by_bounds(data, variable):
+
+    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
+    data[data <= threshold[variable][0]] = np.nan
+    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
+    data[data >= threshold[variable][1]] = np.nan
+
+    scale = bound[variable][1] - bound[variable][0]
+    scaled_data = data / scale
+    print("Scaling by bounds of variable, scale is ", scale, ".")
+
+    return scaled_data, data.min(), scale
 
 
-#  set of inverse transform functions
-retransform_dict = {
-    "tasskew": re_standard,
-    "tasrange": re_standard,
-    "tas": re_standard,
-    "pr": re_precip,
-    "prsn_rel": re_precip,
-    "rhs": re_rhs,
-    "ps": re_standard,
-    "rsds": re_standard,
-    "rlds": re_standard,
-    "wind": re_wind,
+def scale_offset_and_mask(data, variable):
+
+    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
+    data[data <= threshold[variable][0]] = np.nan
+    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
+    data[data >= threshold[variable][1]] = np.nan
+
+    scale = data.max() - data.min()
+    scaled_data = (data - data.min()) / scale
+
+    return scaled_data, data.min(), scale
+
+
+def scale_and_mask_precip(data, variable):
+
+    pr_thresh = 0.000001157407  # 0.1 mm per day
+
+    # get scale and datamin before masking
+    scale = data.max() - data.min()
+    datamin = data.min()
+    masked_data = data.copy()
+    masked_data[masked_data < pr_thresh] = np.nan
+    # do not use datamin to shift data to avoid zero
+    scaled_data = masked_data / scale
+
+    return scaled_data, datamin, scale
+
+
+def refill_and_rescale(scaled_data, datamin, scale):
+
+    # TODO: implement refilling of values that have been masked before.
+
+    return scaled_data * scale
+
+
+mask_and_scale = {
+    "gmt": [scale_to_unity, rescale_to_original],
+    "tas": [scale_to_unity, rescale_to_original],
+    "ps": [scale_to_unity, rescale_to_original],
+    "rlds": [scale_to_unity, rescale_to_original],
+    "rsds": [scale_to_unity, rescale_to_original],
+    "wind": [scale_and_mask, refill_and_rescale],
+    "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
+    "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
+    "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],
+    "tasrange": [scale_and_mask, refill_and_rescale],
+    "pr": [scale_and_mask_precip, refill_and_rescale],
 }
-
-
-def fourier_series(t, p, modes):
-    # 2 pi n / p
-    x = 2 * np.pi * np.arange(1, modes + 1) / p
-    # 2 pi n / p * t
-    x = x * t[:, None]
-    x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
-    return x
-
-
-def rescale_fourier(df, modes):
-    """ This function computes a scaled (0, 1) fourier series for a given input dataset.
-    An input vector of dates ("ds") must be available in a datestamp format.
-    If the time vector has gaps (due to dropped NA's), the fourier series will also contain gaps (jumps in value).
-    The output format will be of [len["ds"], 2*modes], where the first half of the columns contains the cos(x)-series and die latter half
-    contains the sin(x)-series
-    """
-
-    # rescale the period, as t is also scaled
-    p = 365.25 / (df["ds"].max() - df["ds"].min()).days
-    x = fourier_series(df["t"], p, modes)
-    return x
-
-
-######## Not needed but kept for possible later use ####
-#  unit = {
-#      "tasmax": "K",
-#      "tas": "K",
-#      "tasmin": "K",
-#      "pr": "mm/s",
-#      "rhs": "%",
-#      "ps": "hPa",
-#      "rsds": u"J/cm\u00B2",
-#      "rlds": u"J/cm\u00B2",
-#      "wind": "m/s",
-#  }
-#

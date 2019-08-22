@@ -19,10 +19,10 @@ TIME0 = datetime.now()
 ts_dir = s.output_dir / "timeseries" / s.variable
 cfact_dir = s.output_dir / "cfact" / s.variable
 
-data_gen = ts_dir.glob("**/*"+s.storage_format)
-cfact_dir.mkdir(parents=True,exist_ok=True)
+data_gen = ts_dir.glob("**/*" + s.storage_format)
+cfact_dir.mkdir(parents=True, exist_ok=True)
 cfact_file = cfact_dir / s.cfact_file
-cfact_file.unlink()
+# cfact_file.unlink()
 out = nc.Dataset(cfact_file, "w", format="NETCDF4")
 
 data_list = []
@@ -43,7 +43,7 @@ lon = obs.variables["lon"][:]
 
 #  get headers and form empty netCDF file with all meatdata
 headers = dh.read_from_disk(data_list[0]).keys()
-headers = headers.drop(["y", "y_scaled", "t", "ds", "gmt", "gmt_scaled"])
+headers = headers.drop(["y", "t", "ds", "gmt", "gmt_scaled"])
 dh.form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
 
 # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
@@ -61,8 +61,4 @@ for (i, j, dfpath) in it.zip_longest(lat_indices, lon_indices, data_list):
 
 out.close()
 print("Successfully wrote", cfact_file, "file. Took")
-print(
-    "It took {0:.1f} minutes.".format(
-        (datetime.now() - TIME0).total_seconds() / 60
-    )
-)
+print("It took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))

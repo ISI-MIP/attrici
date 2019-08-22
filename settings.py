@@ -26,7 +26,8 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 njobarray = 64
 
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
-variable = "tas"  # select variable to detrend
+variable = "wind"  # select variable to detrend
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
 dataset = "watch+wfdei"  # select dataset to run on
 
 gmt_file = dataset + "_ssa_gmt.nc4"
@@ -36,8 +37,7 @@ params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"
 # .h5 or .csv
-storage_format=".h5"
-
+storage_format = ".h5"
 
 # length of the gregorian year, as used in GSWP3 and ERA5 data.
 days_of_year = 365.25
@@ -47,7 +47,6 @@ init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
-subset = 5  # only use every subset datapoint for bayes estimation for speedup
 lateral_sub = (
     80
 )  # subset dataset (lateral) by sampling every [number] grid point in both dimensions
@@ -68,4 +67,3 @@ smu = 0  # seasonal prior mean
 stmu = 0  # trend in season prior mean
 sps = 0.1  # seasonality prior scale (sd)
 stps = 0.5  # trend in season scale (sd)
-
