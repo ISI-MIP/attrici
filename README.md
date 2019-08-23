@@ -17,46 +17,9 @@ The following graph illustrates the approach. Grey is the original data, red is 
 
 ![Counterfactual example](image01.png)
 
-## Comments for each variable
+## Example
 
-#### tas
-Works fine using normal distribution
-
-#### tasmin
-Constructed from tas, tasskew and tasrange
-To do in postprocessing
-
-#### tasmax
-Constructed from tas, tasskew and tasrange
-To do in postprocessing
-
-#### tasrange
-Works using Rice distribution
-
-#### tasskew
-works using Beta distribution
-
-#### rsds
-Deviationg approach from Lange et al. 2019, using Normal distribution
-This is because the yearly cycle is handled inherently here, so no need for specific treatment.
-
-#### rlds
-Works using Normal distribution
-
-#### pr
-Works with Gamma distribution
-
-#### wind
-Works using Weibull distribution
-
-#### psl / ps
-Works using Normal distribution
-
-#### prsnratio
-Works using beta distribution
-
-#### hurs (relative humidity)
-With Beta distribution, working
+See [here](examples/tas_example.ipynb) for a notebook leading you through the basic steps.
 
 ## Usage
 
@@ -145,6 +108,59 @@ To use:<br />
 To test:<br />
 `export I_MPI_FABRICS=shm:shm` # only to be set for testing on login nodes, not for submitted jobs <br />
 `python -c "from netCDF4 import Dataset; Dataset('test.nc', 'w', parallel=True)"`<br />
+
+## Comments for each variable
+
+#### tas
+data checked
+Works using normal distribution
+
+#### tasmin
+Constructed from tas, tasskew and tasrange
+To do in postprocessing
+
+#### tasmax
+Constructed from tas, tasskew and tasrange
+To do in postprocessing
+
+#### tasrange
+With Rice distribution
+FIXME: does not seem to find and remove trend. A lot of grid cells fail.
+
+#### tasskew
+data checked
+Works using Beta distribution
+
+#### rsds
+Deviationg approach from Lange et al. 2019, using Normal distribution
+This is because the yearly cycle is handled inherently here, so no need for specific treatment.
+FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
+
+#### rlds
+data checked
+Works using Normal distribution
+Needs a restart to finish some hanging runs
+
+#### pr
+Works with Gamma distribution
+FIXME: Needs checks as current version is not working at low latitudes
+
+#### wind
+Works using Weibull distribution
+FIXME: does not seem to detrend. Seems we rather chose the parameter that adjusted the variability range
+
+#### psl / ps
+data checked
+Works using Normal distribution
+
+#### prsnratio
+Works using beta distribution
+
+#### hurs (relative humidity)
+data checked
+With Beta distribution, working
+Needs to be rerun so some holes are filled.
+
 
 ## Credits
 
