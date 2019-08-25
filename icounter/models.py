@@ -129,7 +129,7 @@ class Gamma(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.5
+        self.mu_intercept = 0.0
         self.sigma_intercept = 1.0
         self.mu_slope = 0.0
         self.sigma_slope = 1.0
@@ -157,7 +157,7 @@ class Gamma(object):
 
         with model:
 
-            alpha = pm.Beta("alpha", alpha=2, beta=2)
+            alpha = pm.Lognormal("alpha", mu=0.0,sigma=0.5)
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
             intercept = pm.Normal(
                 "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept

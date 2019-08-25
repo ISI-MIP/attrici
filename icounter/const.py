@@ -105,19 +105,19 @@ def scale_offset_and_mask(data, variable):
     return scaled_data, data.min(), scale
 
 
-def scale_and_mask_precip(data, variable):
+# def scale_and_mask_precip(data, variable):
 
-    pr_thresh = 0.000001157407  # 0.1 mm per day
+#     pr_thresh = 0.000001157407  # 0.1 mm per day
 
-    # get scale and datamin before masking
-    scale = data.max() - data.min()
-    datamin = data.min()
-    masked_data = data.copy()
-    masked_data[masked_data < pr_thresh] = np.nan
-    # do not use datamin to shift data to avoid zero
-    scaled_data = masked_data / scale
+#     # get scale and datamin before masking
+#     scale = data.max() - data.min()
+#     datamin = data.min()
+#     masked_data = data.copy()
+#     masked_data[masked_data < pr_thresh] = np.nan
+#     # do not use datamin to shift data to avoid zero
+#     scaled_data = masked_data / scale
 
-    return scaled_data, datamin, scale
+#     return scaled_data, datamin, scale
 
 
 def refill_and_rescale(scaled_data, datamin, scale):
@@ -138,5 +138,5 @@ mask_and_scale = {
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
-    "pr": [scale_and_mask_precip, refill_and_rescale],
+    "pr": [scale_and_mask, refill_and_rescale],
 }
