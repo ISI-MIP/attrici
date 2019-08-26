@@ -21,6 +21,8 @@ input_dir = Path(data_dir) / "input"
 # make output dir same as cwd. Helps if running more than one job.
 output_dir = Path(data_dir) / "output" / Path.cwd().name
 
+# max time in sec for sampler for a single grid cell.
+timeout = 20 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "pr"  # select variable to detrend
 subset = 10  # only use every subset datapoint for bayes estimation for speedup
