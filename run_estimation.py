@@ -46,14 +46,14 @@ args = parser.parse_args()
 
 dh.create_output_dirs(s.output_dir)
 
-gmt_file = os.path.join(s.input_dir, s.gmt_file)
+gmt_file = s.input_dir / s.dataset / s.gmt_file
 ncg = nc.Dataset(gmt_file, "r")
 gmt = np.squeeze(ncg.variables["tas"][:])
 ncg.close()
 
 # get data to detrend
-to_detrend_file = os.path.join(s.input_dir, s.source_file)
-obs_data = nc.Dataset(to_detrend_file, "r")
+input_file = s.input_dir / s.dataset / s.source_file.lower()
+obs_data = nc.Dataset(input_file, "r")
 nct = obs_data.variables["time"]
 lats = obs_data.variables["lat"][:]
 lons = obs_data.variables["lon"][:]
@@ -89,7 +89,7 @@ estimator = est.estimator(s)
 
 TIME0 = datetime.now()
 
-for n in run_numbers[11:]:
+for n in run_numbers[:]:
     i = int(n % len(lats))
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
