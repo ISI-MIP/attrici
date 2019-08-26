@@ -21,13 +21,9 @@ input_dir = Path(data_dir) / "input"
 # make output dir same as cwd. Helps if running more than one job.
 output_dir = Path(data_dir) / "output" / Path.cwd().name
 
-# number of parallel jobs through jobarray
-# used through submit.sh, needs to be divisor of number of grid cells
-njobarray = 64
-
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "pr"  # select variable to detrend
-subset = 1  # only use every subset datapoint for bayes estimation for speedup
+subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 5
@@ -43,11 +39,7 @@ trend_file = variable + "_" + dataset + "_trend.nc4"
 # .h5 or .csv
 storage_format = ".h5"
 
-# length of the gregorian year, as used in GSWP3 and ERA5 data.
-days_of_year = 365.25
-
 # model run settings
-init = "jitter+adapt_diag"  # init method for nuts sampler
 tune = 1000  # number of draws to tune model
 draws = 2000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
@@ -57,8 +49,12 @@ chains = 2  # number of chains to calculate (min 2 to check for convergence)
 ncores_per_job = 2
 # automatically set to 1 for mpi (last line)
 progressbar = True  # print progress in output (.err file for mpi)
-live_plot = False  # show live plot (does not work yet)
 
 # # number of fourier modes
 # FIXME: should be custom per variable.
 modes = 3  # number of modes for fourier series of model
+
+#### settings for create_submit.py
+# number of parallel jobs through jobarray
+# needs to be divisor of number of grid cells
+njobarray = 64

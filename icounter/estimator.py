@@ -27,7 +27,6 @@ class estimator(object):
     def __init__(self, cfg):
 
         self.output_dir = cfg.output_dir
-        self.init = cfg.init
         self.draws = cfg.draws
         self.cores = cfg.ncores_per_job
         self.chains = cfg.chains
@@ -89,7 +88,6 @@ class estimator(object):
         with self.model:
             trace = pm.sample(
                 draws=self.draws,
-                init=self.init,
                 cores=self.cores,
                 chains=self.chains,
                 tune=self.tune,
@@ -113,5 +111,9 @@ class estimator(object):
         cfact_scaled = self.statmodel.quantile_mapping(
             trace[-subtrace:], regressor, x_fourier, df["ds"], df["y_scaled"]
         )
+        if (cfact_scaled == np.inf).sum() > 0:
+            print("There are", (cfact_scaled == np.inf).sum(),
+                  "values out of range for quantile mapping. Keep original values." )
+            cfact_scaled[cfact_scaled == np.inf] = df.loc[cfact_scaled == np.inf,"y_scaled"]
 
         return cfact_scaled
