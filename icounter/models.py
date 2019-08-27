@@ -157,7 +157,8 @@ class Gamma(object):
 
         with model:
 
-            alpha = pm.Lognormal("alpha", mu=0.0,sigma=0.5)
+            # sigma = pm.Lognormal("sigma", mu=0.0,sigma=0.5)
+            sigma = pm.Uniform("sigma",lower=.001,upper=1.)
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
             intercept = pm.Normal(
                 "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
@@ -177,7 +178,7 @@ class Gamma(object):
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Gamma("obs", alpha=alpha, beta=log_param_gmt, observed=observed)
+            pm.Gamma("obs", mu=log_param_gmt, sigma=sigma, observed=observed)
             return model
 
     def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
@@ -189,11 +190,15 @@ class Gamma(object):
 
         df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
 
-        alpha = trace["alpha"].mean()
+        sigma = trace["sigma"].mean()
 
-        quantile = stats.gamma.cdf(x, alpha, scale=1.0 / np.exp(df_log["param_gmt"]))
+        # scipy gamma works with alpha and scale parameter
+        # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
+        quantile = stats.gamma.cdf(x, np.exp(df_log["param_gmt"])**2./sigma**2.,
+            scale=sigma**2./np.exp(df_log["param_gmt"]))
         x_mapped = stats.gamma.ppf(
-            quantile, alpha, scale=1.0 / np.exp(df_log["param_gmt_ref"])
+            quantile, np.exp(df_log["param_gmt_ref"])**2./sigma**2.,
+            scale=sigma**2./np.exp(df_log["param_gmt_ref"])
         )
 
         return x_mapped
