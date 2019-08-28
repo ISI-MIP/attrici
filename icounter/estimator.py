@@ -34,12 +34,11 @@ class estimator(object):
         self.subset = cfg.subset
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
-        # FIXME: make this variable-dependent -> move to models.py
         self.modes = cfg.modes
         self.save_trace = True
 
         try:
-            self.statmodel = model_for_var[self.variable]()
+            self.statmodel = model_for_var[self.variable](self.modes)
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."

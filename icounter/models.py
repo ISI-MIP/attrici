@@ -125,11 +125,11 @@ class Gamma(object):
     of a Beta distribution. Beta parameter is assumed free of a trend.
     Example: precipitation """
 
-    def __init__(self, modes=3):
+    def __init__(self, modes=1):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.0
+        self.mu_intercept = -1.0
         self.sigma_intercept = 1.0
         self.mu_slope = 0.0
         self.sigma_slope = 1.0
@@ -149,7 +149,7 @@ class Gamma(object):
             "beta_trend",
         ]
 
-        print("Using Gamma distribution model.")
+        print("Using Gamma distribution model. Fourier modes:",modes)
 
     def setup(self, regressor, x_fourier, observed):
 

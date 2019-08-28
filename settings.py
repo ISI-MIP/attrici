@@ -25,12 +25,14 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 timeout = 20 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "pr"  # select variable to detrend
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+# number of modes for fourier series of model
+modes = 1
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 5
 
-dataset = "GSWP3+ERA5"  # select dataset to run on
+dataset = "GSWP3"  # select dataset to run on
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 # source_file = variable + "_" + dataset + "_sub.nc4"
@@ -49,12 +51,8 @@ chains = 2  # number of chains to calculate (min 2 to check for convergence)
 # number of cores to use for one gridpoint
 # submitted jobs will have ncores_per_job=1 always.
 ncores_per_job = 2
-# automatically set to 1 for mpi (last line)
 progressbar = True  # print progress in output (.err file for mpi)
 
-# # number of fourier modes
-# FIXME: should be custom per variable.
-modes = 3  # number of modes for fourier series of model
 
 #### settings for create_submit.py
 # number of parallel jobs through jobarray
