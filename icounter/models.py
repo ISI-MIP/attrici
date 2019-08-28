@@ -129,14 +129,14 @@ class Gamma(object):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = -1.0
+        self.mu_intercept = -2.0
         self.sigma_intercept = 1.0
         self.mu_slope = 0.0
         self.sigma_slope = 1.0
         self.smu = 0
-        self.sps = 1.0
+        self.sps = .5
         self.stmu = 0
-        self.stps = 1.0
+        self.stps = .5
 
         # reference for quantile mapping
         self.reference_time = 5 * 365

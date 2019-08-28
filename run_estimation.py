@@ -3,6 +3,7 @@ import numpy as np
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
+import time
 from func_timeout import func_timeout, FunctionTimedOut
 import icounter.estimator as est
 import icounter.datahandler as dh
@@ -51,6 +52,7 @@ end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 run_numbers = np.arange(start_num, end_num + 1, 1, dtype=np.int)
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
+time.sleep((njobarray-1)*2)
 estimator = est.estimator(s)
 
 TIME0 = datetime.now()
@@ -59,6 +61,8 @@ for n in run_numbers[:]:
     i = int(n % len(lats))
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
+
+    # if lat == 89.75: continue
     print("This is SLURM task", task_id, "run number", n, "lat,lon", lat, lon)
 
     data = obs_data.variables[s.variable][:, i, j]
