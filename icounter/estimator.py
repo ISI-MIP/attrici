@@ -35,10 +35,12 @@ class estimator(object):
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
+        self.scale_sigma_with_gmt = cfg.scale_sigma_with_gmt
         self.save_trace = True
 
         try:
-            self.statmodel = model_for_var[self.variable](self.modes)
+            self.statmodel = model_for_var[self.variable](self.modes,
+                self.scale_sigma_with_gmt)
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."

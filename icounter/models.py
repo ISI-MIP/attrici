@@ -149,10 +149,11 @@ class Gamma(object):
     of a Beta distribution. Beta parameter is assumed free of a trend.
     Example: precipitation """
 
-    def __init__(self, modes=1):
+    def __init__(self, modes=1, scale_sigma_with_gmt=True):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
+        self.scale_sigma_with_gmt = scale_sigma_with_gmt
         self.mu_intercept = -2.0
         self.sigma_intercept = 1.0
         self.mu_slope = 0.0
@@ -222,7 +223,9 @@ class Gamma(object):
         mu = np.exp(df_log["param_gmt"])
         mu_ref = np.exp(df_log["param_gmt_ref"])
         sigma = np.exp(df_sigma_log["sigma_gmt"])
-        sigma_ref = np.exp(df_sigma_log["sigma_gmt_ref"])
+        sigma_ref = sigma
+        if self.scale_sigma_with_gmt:
+            sigma_ref = np.exp(df_sigma_log["sigma_gmt_ref"])
 
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu

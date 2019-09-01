@@ -68,7 +68,7 @@ We use the jobarray feature of slurm to run many jobs in parallel. We use the in
 
 `conda create -n isi-cfact pymc3==3.7 python==3.7`
 `conda activate isi-cfact`
-`conda install netCDF4 pytables`
+`conda install netCDF4 pytables matplotlib arviz`
 `pip install func_timeout`
 
 You may optionally
