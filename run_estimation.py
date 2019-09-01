@@ -52,7 +52,6 @@ end_num = int((task_id + 1) * calls_per_arrayjob - 1)
 run_numbers = np.arange(start_num, end_num + 1, 1, dtype=np.int)
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
-time.sleep((njobarray-1)*2)
 estimator = est.estimator(s)
 
 TIME0 = datetime.now()
@@ -76,8 +75,9 @@ for n in run_numbers[:]:
             trace = func_timeout(
                 s.timeout, estimator.estimate_parameters, args=(df, lat, lon)
             )
-        except FunctionTimedOut:
-            print("Sampling at", lat, lon, " timed out.")
+        except (FunctionTimedOut, ValueError) as error:
+            print("Sampling at", lat, lon, " timed out or failed.")
+            print(error)
             continue
 
         cfact_scaled = estimator.estimate_timeseries(df, trace, datamin, scale)
