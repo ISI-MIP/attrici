@@ -69,12 +69,14 @@ class estimator(object):
         try:
             for var in self.statmodel.vars_to_estimate:
                 if var not in trace.varnames:
-                    raise IndexError("Sample data not completely saved. Rerun.")
+                    print(var, "is not in trace, rerun sampling.")
+                    raise IndexError
             if trace.nchains != self.chains:
                 raise IndexError("Sample data not completely saved. Rerun.")
             print("Successfully loaded sampled data. Skip this for sampling.")
         except IndexError:
             trace = self.sample()
+            print(pm.summary(trace))
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 

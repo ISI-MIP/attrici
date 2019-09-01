@@ -8,8 +8,7 @@ user = getpass.getuser()
 if user == "mengel":
     conda_path = "/home/mengel/anaconda3/envs/pymc3/"
     data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
-    # data_dir = "/p/projects/tumble/mengel/isimip/20190612_Isicfact_TestData/"
-    data_dir = "/p/tmp/mengel/isimip/isi-cfact"
+    # data_dir = "/p/tmp/mengel/isimip/isi-cfact"
     log_dir = "./log"
 
 elif user == "bschmidt":
@@ -30,7 +29,7 @@ modes = 1
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 5
+lateral_sub = 80
 
 dataset = "GSWP3"  # select dataset to run on
 

@@ -15,7 +15,7 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def get_reference_parameter(trace, regressor, x_fourier, date_index):
+def get_gmt_parameter(trace, regressor, x_fourier, date_index):
 
     # FIXME: bring this to settings.py
     ref_start_date = "1901-01-01"
@@ -44,6 +44,34 @@ def get_reference_parameter(trace, regressor, x_fourier, date_index):
     return df_param
 
 
+def get_sigma_parameter(trace, regressor, date_index):
+
+    # FIXME: bring this to settings.py
+    ref_start_date = "1901-01-01"
+    ref_end_date = "1910-12-31"
+
+    param_gmt = (
+        trace["sigma_intercept"]
+        + regressor[:, None] * trace["sigma_slope"]
+        ).mean(axis=1)
+
+    df_param = pd.DataFrame({"sigma_gmt": param_gmt}, index=date_index)
+    # restrict data to the reference period
+    df_param_ref = df_param.loc[ref_start_date:ref_end_date]
+    # mean over each day in the year
+    df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
+
+    # write the average values for the reference period to each day of the
+    # whole timeseries
+    for day in df_param_ref.index:
+        df_param.loc[
+            df_param.index.dayofyear == day, "sigma_gmt_ref"
+        ] = df_param_ref.loc[day].values[0]
+
+    return df_param
+
+
+
 class Normal(object):
 
     """ Influence of GMT is modelled through a shift of
@@ -62,10 +90,6 @@ class Normal(object):
         self.sps = 2
         self.stmu = 0
         self.stps = 2
-
-        # reference for quantile mapping
-        # FIXME: move to settings
-        self.reference_time = 5 * 365
 
         self.vars_to_estimate = [
             "slope",
@@ -109,7 +133,7 @@ class Normal(object):
         specific for normally distributed variables. Mapping done for each day.
         """
 
-        df_param = get_reference_parameter(trace, regressor, x_fourier, date_index)
+        df_param = get_gmt_parameter(trace, regressor, x_fourier, date_index)
 
         sigma = trace["sigma"].mean()
 
@@ -138,15 +162,13 @@ class Gamma(object):
         self.stmu = 0
         self.stps = .5
 
-        # reference for quantile mapping
-        self.reference_time = 5 * 365
-
         self.vars_to_estimate = [
             "slope",
             "intercept",
-            "alpha",
             "beta_yearly",
             "beta_trend",
+            "sigma_slope",
+            "sigma_intercept",
         ]
 
         print("Using Gamma distribution model. Fourier modes:",modes)
@@ -158,7 +180,7 @@ class Gamma(object):
         with model:
 
             # sigma = pm.Lognormal("sigma", mu=0.0,sigma=0.5)
-            sigma = pm.Uniform("sigma",lower=.001,upper=1.)
+            # sigma = pm.Uniform("sigma",lower=.001,upper=1.)
             slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
             intercept = pm.Normal(
                 "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
@@ -178,7 +200,13 @@ class Gamma(object):
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            pm.Gamma("obs", mu=log_param_gmt, sigma=sigma, observed=observed)
+            sigma_slope = pm.Normal("sigma_slope", mu=0., sigma=0.5)
+            sigma_intercept = pm.Normal("sigma_intercept", mu=0., sigma=0.5)
+            # log_sigma = pm.Deterministic("log_sigma",
+            #     tt.exp(sigma_slope*regressor + sigma_intercept))
+            log_sigma = tt.exp(sigma_slope*regressor + sigma_intercept)
+
+            pm.Gamma("obs", mu=log_param_gmt, sigma=log_sigma, observed=observed)
             return model
 
     def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
@@ -188,18 +216,20 @@ class Gamma(object):
         we diagnose shift in beta parameter through GMT.
         """
 
-        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
+        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
 
-        sigma = trace["sigma"].mean()
+        df_sigma_log = get_sigma_parameter(trace, regressor, date_index)
+
+        mu = np.exp(df_log["param_gmt"])
+        mu_ref = np.exp(df_log["param_gmt_ref"])
+        sigma = np.exp(df_sigma_log["sigma_gmt"])
+        sigma_ref = np.exp(df_sigma_log["sigma_gmt_ref"])
 
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        quantile = stats.gamma.cdf(x, np.exp(df_log["param_gmt"])**2./sigma**2.,
-            scale=sigma**2./np.exp(df_log["param_gmt"]))
-        x_mapped = stats.gamma.ppf(
-            quantile, np.exp(df_log["param_gmt_ref"])**2./sigma**2.,
-            scale=sigma**2./np.exp(df_log["param_gmt_ref"])
-        )
+        quantile = stats.gamma.cdf(x, mu**2./sigma**2., scale=sigma**2./mu)
+        x_mapped = stats.gamma.ppf(quantile, mu_ref**2./sigma_ref**2.,
+            scale=sigma_ref**2./mu_ref)
 
         return x_mapped
 
@@ -268,7 +298,7 @@ class Beta(object):
         beta distribution. Mapping done for each day.
         """
 
-        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
+        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
 
         beta = trace["beta"].mean()
 
@@ -295,9 +325,6 @@ class Weibull(object):
         self.sps = 1.0
         self.stmu = 0
         self.stps = 1.0
-
-        # reference for quantile mapping
-        self.reference_time = 5 * 365
 
         self.vars_to_estimate = [
             "slope",
@@ -345,7 +372,7 @@ class Weibull(object):
         Weibull distribution.
         """
 
-        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
+        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
 
         beta = trace["beta"].mean()
 
@@ -376,9 +403,6 @@ class Rice(object):
         self.sps = 1.0
         self.stmu = 0
         self.stps = 1.0
-
-        # reference for quantile mapping
-        self.reference_time = 5 * 365
 
         self.vars_to_estimate = [
             "slope",
@@ -427,7 +451,7 @@ class Rice(object):
         Rice distribution.
         """
 
-        df_log = get_reference_parameter(trace, regressor, x_fourier, date_index)
+        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
 
         sigma = trace["sigma"].mean()
 
