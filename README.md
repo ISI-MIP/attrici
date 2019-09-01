@@ -63,51 +63,16 @@ for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular 
 
 We use the jobarray feature of slurm to run many jobs in parallel. We use the intel-optimized python libraries for performance. The configuration is very much tailored to the PIK supercomputer at the moment. Please do
 
+`conda config --add channels conda-forge`
 `conda config --add channels intel`
 
-`conda env create --name yourenv -f config/environment.yml`
+`conda create -n isi-cfact pymc3==3.7 python==3.7`
+`conda activate isi-cfact`
+`conda install netCDF4 pytables`
+`pip install func_timeout`
 
-You may also optionally
-
+You may optionally
 `cp config/theanorc ~/.theanorc`
-
-Optional: to enable parallel netCDF output, you need a netCDF4-python module, compiled against a mpi-enabled netcdf-c as well as hdf5 library. To this date, there is no such module available on conda's well known channels, this should be compiled as follows:
-
-1. Download a version from Unidata: https://github.com/Unidata/netcdf4-python/releases <br />
-  In this case, 1.5.1.2, and unpack.<br />
-
-2. Create a conda environment (or install into an environment that does not have netcdf4 module installed yet), based on Intel, with mpi4py and numpy<br />
-
-   `module load anaconda/5.0.0_py3` <br />
-   `conda create -n yourenv -c intel mpi4py numpy`<br />
-
-3. activate: `source activate yourenv`<br />
-
-4. load an Intel module (for the compiler)<br />
-   `module load intel/2019.4`
-
-5. load a recent parallel NetCDF4 module and HDF5 module<br />
-
-   `module load netcdf-c/4.6.2/intel/parallel`<br />
-   `module load hdf5/1.10.2/intel/parallel`
-
-6. in the unpacked netcdf4-parallel directory from step 1:<br />
-
-   `CC=mpiicc python setup.py install`<br />
-
-7. confirm module installed:<br />
-
-   `conda list | grep netcdf4` should output:<br />
-
-   netcdf4            1.5.1.2           pypi_0    pypi
-
-To use:<br />
-`module load anaconda/5.0.0_py3`<br />
-`source activate your_parallel_netcdf_python`<br />
-
-To test:<br />
-`export I_MPI_FABRICS=shm:shm` # only to be set for testing on login nodes, not for submitted jobs <br />
-`python -c "from netCDF4 import Dataset; Dataset('test.nc', 'w', parallel=True)"`<br />
 
 ## Comments for each variable
 

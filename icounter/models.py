@@ -217,7 +217,6 @@ class Gamma(object):
         """
 
         df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-
         df_sigma_log = get_sigma_parameter(trace, regressor, date_index)
 
         mu = np.exp(df_log["param_gmt"])

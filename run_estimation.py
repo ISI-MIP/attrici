@@ -21,7 +21,6 @@ except KeyError:
     task_id = 0
     s.progressbar = True
 
-
 dh.create_output_dirs(s.output_dir)
 
 gmt_file = s.input_dir / s.dataset / s.gmt_file
