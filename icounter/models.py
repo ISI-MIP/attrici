@@ -15,17 +15,28 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def get_gmt_parameter(trace, regressor, x_fourier, date_index):
+def get_gmt_parameter(
+    trace,
+    regressor,
+    x_fourier,
+    date_index,
+    nd={
+        "intercept": "intercept",
+        "slope": "slope",
+        "f_yearly": "beta_yearly",
+        "f_trend": "beta_trend",
+    },
+):
 
     # FIXME: bring this to settings.py
     ref_start_date = "1901-01-01"
     ref_end_date = "1910-12-31"
 
     param_gmt = (
-        trace["intercept"]
-        + np.dot(x_fourier, trace["beta_yearly"].T)
+        trace[nd["intercept"]]
+        + np.dot(x_fourier, trace[nd["f_yearly"]].T)
         + regressor[:, None]
-        * (trace["slope"] + np.dot(x_fourier, trace["beta_trend"].T))
+        * (trace[nd["slope"]] + np.dot(x_fourier, trace[nd["f_trend"]].T))
     ).mean(axis=1)
 
     df_param = pd.DataFrame({"param_gmt": param_gmt}, index=date_index)
@@ -51,9 +62,8 @@ def get_sigma_parameter(trace, regressor, date_index):
     ref_end_date = "1910-12-31"
 
     param_gmt = (
-        trace["sigma_intercept"]
-        + regressor[:, None] * trace["sigma_slope"]
-        ).mean(axis=1)
+        trace["sigma_intercept"] + regressor[:, None] * trace["sigma_slope"]
+    ).mean(axis=1)
 
     df_param = pd.DataFrame({"sigma_gmt": param_gmt}, index=date_index)
     # restrict data to the reference period
@@ -69,7 +79,6 @@ def get_sigma_parameter(trace, regressor, date_index):
         ] = df_param_ref.loc[day].values[0]
 
     return df_param
-
 
 
 class Normal(object):
@@ -159,9 +168,9 @@ class Gamma(object):
         self.mu_slope = 0.0
         self.sigma_slope = 1.0
         self.smu = 0
-        self.sps = .5
+        self.sps = 0.5
         self.stmu = 0
-        self.stps = .5
+        self.stps = 0.5
 
         self.vars_to_estimate = [
             "slope",
@@ -172,7 +181,7 @@ class Gamma(object):
             "sigma_intercept",
         ]
 
-        print("Using Gamma distribution model. Fourier modes:",modes)
+        print("Using Gamma distribution model. Fourier modes:", modes)
 
     def setup(self, regressor, x_fourier, observed):
 
@@ -201,11 +210,22 @@ class Gamma(object):
                 + (regressor * det_dot(x_fourier, beta_trend))
             )
 
-            sigma_slope = pm.Normal("sigma_slope", mu=0., sigma=0.5)
-            sigma_intercept = pm.Normal("sigma_intercept", mu=0., sigma=0.5)
+            sigma_slope = pm.Normal("sigma_slope", mu=0.0, sigma=0.5)
+            sigma_intercept = pm.Normal("sigma_intercept", mu=0.0, sigma=0.5)
+
+            sigma_yearly = pm.Normal(
+                "sigma_yearly", mu=0.0, sd=0.5, shape=2 * self.modes
+            )
+            sigma_trend = pm.Normal("sigma_trend", mu=0.5, sd=0.5, shape=2 * self.modes)
+
             # log_sigma = pm.Deterministic("log_sigma",
             #     tt.exp(sigma_slope*regressor + sigma_intercept))
-            log_sigma = tt.exp(sigma_slope*regressor + sigma_intercept)
+            log_sigma = tt.exp(
+                sigma_intercept
+                + sigma_slope * regressor
+                + det_dot(x_fourier, sigma_yearly)
+                + regressor * det_dot(x_fourier, sigma_trend)
+            )
 
             pm.Gamma("obs", mu=log_param_gmt, sigma=log_sigma, observed=observed)
             return model
@@ -218,20 +238,32 @@ class Gamma(object):
         """
 
         df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-        df_sigma_log = get_sigma_parameter(trace, regressor, date_index)
+        df_sigma_log = get_gmt_parameter(
+            trace,
+            regressor,
+            x_fourier,
+            date_index,
+            nd={
+                "intercept": "sigma_intercept",
+                "slope": "sigma_slope",
+                "f_yearly": "sigma_yearly",
+                "f_trend": "sigma_trend",
+            },
+        )
 
         mu = np.exp(df_log["param_gmt"])
         mu_ref = np.exp(df_log["param_gmt_ref"])
-        sigma = np.exp(df_sigma_log["sigma_gmt"])
+        sigma = np.exp(df_sigma_log["param_gmt"])
         sigma_ref = sigma
         if self.scale_sigma_with_gmt:
-            sigma_ref = np.exp(df_sigma_log["sigma_gmt_ref"])
+            sigma_ref = np.exp(df_sigma_log["param_gmt_ref"])
 
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        quantile = stats.gamma.cdf(x, mu**2./sigma**2., scale=sigma**2./mu)
-        x_mapped = stats.gamma.ppf(quantile, mu_ref**2./sigma_ref**2.,
-            scale=sigma_ref**2./mu_ref)
+        quantile = stats.gamma.cdf(x, mu ** 2.0 / sigma ** 2.0, scale=sigma ** 2.0 / mu)
+        x_mapped = stats.gamma.ppf(
+            quantile, mu_ref ** 2.0 / sigma_ref ** 2.0, scale=sigma_ref ** 2.0 / mu_ref
+        )
 
         return x_mapped
 
