@@ -164,8 +164,8 @@ class Gamma(object):
         self.modes = modes
         self.scale_sigma_with_gmt = scale_sigma_with_gmt
         self.mu_intercept = -2.0
+        self.mu_slope = -2.0
         self.sigma_intercept = 1.0
-        self.mu_slope = 0.0
         self.sigma_slope = 1.0
         self.smu = 0
         self.sps = 0.5
@@ -203,7 +203,7 @@ class Gamma(object):
                 "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
             )
 
-            log_param_gmt = tt.exp(
+            mu = tt.exp(
                 intercept
                 + slope * regressor
                 + det_dot(x_fourier, beta_yearly)
@@ -220,14 +220,14 @@ class Gamma(object):
 
             # log_sigma = pm.Deterministic("log_sigma",
             #     tt.exp(sigma_slope*regressor + sigma_intercept))
-            log_sigma = tt.exp(
+            sigma = tt.exp(
                 sigma_intercept
                 + sigma_slope * regressor
                 + det_dot(x_fourier, sigma_yearly)
                 + regressor * det_dot(x_fourier, sigma_trend)
             )
 
-            pm.Gamma("obs", mu=log_param_gmt, sigma=log_sigma, observed=observed)
+            pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
 
     def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
