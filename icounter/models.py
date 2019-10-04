@@ -15,18 +15,15 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def get_gmt_parameter(
+def get_mu_sigma(
     trace,
     regressor,
     x_fourier,
     date_index,
-    nd={
-        "intercept": "intercept",
-        "slope": "slope",
-        "f_yearly": "beta_yearly",
-        "f_trend": "beta_trend",
-    },
+    nd
 ):
+
+    """ TODO: rename variables in here. """
 
     # FIXME: bring this to settings.py
     ref_start_date = "1901-01-01"
@@ -34,15 +31,15 @@ def get_gmt_parameter(
 
     param_gmt = (
         trace[nd["intercept"]]
-        + np.dot(x_fourier, trace[nd["f_yearly"]].T)
+        + np.dot(x_fourier, trace[nd["yearly"]].T)
         + regressor[:, None]
-        * (trace[nd["slope"]] + np.dot(x_fourier, trace[nd["f_trend"]].T))
+        * (trace[nd["slope"]] + np.dot(x_fourier, trace[nd["trend"]].T))
     ).mean(axis=1)
 
     df_param = pd.DataFrame({"param_gmt": param_gmt}, index=date_index)
     # restrict data to the reference period
     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
-    # mean over each day in the year
+    # mean over all years for each day
     df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
 
     # write the average values for the reference period to each day of the
@@ -163,22 +160,24 @@ class Gamma(object):
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
         self.scale_sigma_with_gmt = scale_sigma_with_gmt
-        self.mu_intercept = -2.0
-        self.mu_slope = -2.0
-        self.sigma_intercept = 1.0
-        self.sigma_slope = 1.0
+        # self.mu_intercept = 0.0
+        # self.mu_slope = 0
+        # self.sigma_intercept = 0.5
+        # self.sigma_slope = 1.0
         self.smu = 0
         self.sps = 0.5
         self.stmu = 0
         self.stps = 0.5
 
         self.vars_to_estimate = [
-            "slope",
-            "intercept",
-            "beta_yearly",
-            "beta_trend",
-            "sigma_slope",
-            "sigma_intercept",
+            "mu_slope",
+            "mu_intercept",
+            "mu_yearly",
+            "mu_trend",
+            "sg_slope",
+            "sg_intercept",
+            "sg_yearly",
+            "sg_trend",
         ]
 
         print("Using Gamma distribution model. Fourier modes:", modes)
@@ -189,42 +188,32 @@ class Gamma(object):
 
         with model:
 
-            # sigma = pm.Lognormal("sigma", mu=0.0,sigma=0.5)
-            # sigma = pm.Uniform("sigma",lower=.001,upper=1.)
-            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal(
-                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.)
+            mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
+            mu_yearly = pm.Normal(
+                "mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes
+            )
+            mu_trend = pm.Normal(
+                "mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes
+            )
+            mu = mu_intercept/(1+tt.exp(-1*(
+                mu_slope * regressor
+                + det_dot(x_fourier, mu_yearly)
+                + regressor * det_dot(x_fourier, mu_trend)))
             )
 
-            beta_yearly = pm.Normal(
-                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.)
+            sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
+            sg_yearly = pm.Normal(
+                "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes
             )
-            beta_trend = pm.Normal(
-                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            sg_trend = pm.Normal(
+                "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
-
-            mu = tt.exp(
-                intercept
-                + slope * regressor
-                + det_dot(x_fourier, beta_yearly)
-                + (regressor * det_dot(x_fourier, beta_trend))
-            )
-
-            sigma_slope = pm.Normal("sigma_slope", mu=0.0, sigma=0.5)
-            sigma_intercept = pm.Normal("sigma_intercept", mu=0.0, sigma=0.5)
-
-            sigma_yearly = pm.Normal(
-                "sigma_yearly", mu=0.0, sd=0.5, shape=2 * self.modes
-            )
-            sigma_trend = pm.Normal("sigma_trend", mu=0.5, sd=0.5, shape=2 * self.modes)
-
-            # log_sigma = pm.Deterministic("log_sigma",
-            #     tt.exp(sigma_slope*regressor + sigma_intercept))
-            sigma = tt.exp(
-                sigma_intercept
-                + sigma_slope * regressor
-                + det_dot(x_fourier, sigma_yearly)
-                + regressor * det_dot(x_fourier, sigma_trend)
+            sigma = sg_intercept/(1+tt.exp(-1*(
+                sg_slope * regressor
+                + det_dot(x_fourier, sg_yearly)
+                + regressor * det_dot(x_fourier, sg_trend)))
             )
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
@@ -237,26 +226,32 @@ class Gamma(object):
         we diagnose shift in beta parameter through GMT.
         """
 
-        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-        df_sigma_log = get_gmt_parameter(
+        df_mu = get_mu_sigma(trace, regressor, x_fourier, date_index, nd={
+                "intercept": "mu_intercept",
+                "slope": "mu_slope",
+                "yearly": "mu_yearly",
+                "trend": "mu_trend",
+            })
+
+        df_sigma = get_mu_sigma(
             trace,
             regressor,
             x_fourier,
             date_index,
             nd={
-                "intercept": "sigma_intercept",
-                "slope": "sigma_slope",
-                "f_yearly": "sigma_yearly",
-                "f_trend": "sigma_trend",
+                "intercept": "sg_intercept",
+                "slope": "sg_slope",
+                "yearly": "sg_yearly",
+                "trend": "sg_trend",
             },
         )
 
-        mu = np.exp(df_log["param_gmt"])
-        mu_ref = np.exp(df_log["param_gmt_ref"])
-        sigma = np.exp(df_sigma_log["param_gmt"])
+        mu = df_mu["param_gmt"]
+        mu_ref = df_mu["param_gmt_ref"]
+        sigma = df_sigma["param_gmt"]
         sigma_ref = sigma
         if self.scale_sigma_with_gmt:
-            sigma_ref = np.exp(df_sigma_log["param_gmt_ref"])
+            sigma_ref = df_sigma["param_gmt_ref"]
 
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
