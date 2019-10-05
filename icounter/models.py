@@ -196,11 +196,11 @@ class Gamma(object):
             mu_trend = pm.Normal(
                 "mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
-            mu = mu_intercept/(1+tt.exp(-1*(
+            mu = pm.Deterministic("mu", mu_intercept/(1+tt.exp(-1*(
                 mu_slope * regressor
                 + det_dot(x_fourier, mu_yearly)
                 + regressor * det_dot(x_fourier, mu_trend)))
-            )
+            ))
 
             sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.)
             sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
@@ -210,11 +210,11 @@ class Gamma(object):
             sg_trend = pm.Normal(
                 "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
-            sigma = sg_intercept/(1+tt.exp(-1*(
+            sigma = pm.Deterministic("sigma",sg_intercept/(1+tt.exp(-1*(
                 sg_slope * regressor
                 + det_dot(x_fourier, sg_yearly)
                 + regressor * det_dot(x_fourier, sg_trend)))
-            )
+            ))
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
@@ -226,38 +226,60 @@ class Gamma(object):
         we diagnose shift in beta parameter through GMT.
         """
 
-        df_mu = get_mu_sigma(trace, regressor, x_fourier, date_index, nd={
-                "intercept": "mu_intercept",
-                "slope": "mu_slope",
-                "yearly": "mu_yearly",
-                "trend": "mu_trend",
-            })
+        # df_mu = get_mu_sigma(trace, regressor, x_fourier, date_index, nd={
+        #         "intercept": "mu_intercept",
+        #         "slope": "mu_slope",
+        #         "yearly": "mu_yearly",
+        #         "trend": "mu_trend",
+        #     })
 
-        df_sigma = get_mu_sigma(
-            trace,
-            regressor,
-            x_fourier,
-            date_index,
-            nd={
-                "intercept": "sg_intercept",
-                "slope": "sg_slope",
-                "yearly": "sg_yearly",
-                "trend": "sg_trend",
-            },
-        )
+        # df_sigma = get_mu_sigma(
+        #     trace,
+        #     regressor,
+        #     x_fourier,
+        #     date_index,
+        #     nd={
+        #         "intercept": "sg_intercept",
+        #         "slope": "sg_slope",
+        #         "yearly": "sg_yearly",
+        #         "trend": "sg_trend",
+        #     },
+        # )
 
-        mu = df_mu["param_gmt"]
-        mu_ref = df_mu["param_gmt_ref"]
-        sigma = df_sigma["param_gmt"]
-        sigma_ref = sigma
-        if self.scale_sigma_with_gmt:
-            sigma_ref = df_sigma["param_gmt_ref"]
+        # mu = df_mu["param_gmt"]
+        # mu_ref = df_mu["param_gmt_ref"]
+        # sigma = df_sigma["param_gmt"]
+        # sigma_ref = sigma
+        # if self.scale_sigma_with_gmt:
+        #     sigma_ref = df_sigma["param_gmt_ref"]
 
+        ref_start_date = "1901-01-01"
+        ref_end_date = "1910-12-31"
+
+        df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),"sigma": trace["sigma"].mean(axis=0) },
+                                   index=date_index)
+        df_mu_sigma_ref = df_mu_sigma.loc[ref_start_date:ref_end_date]
+        # mean over all years for each day
+        df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+
+        # case of not scaling sigma
+        df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
+        # write the average values for the reference period to each day of the
+        # whole timeseries
+        for day in df_mu_sigma_ref.index:
+            df_mu_sigma.loc[
+                df_mu_sigma.index.dayofyear == day, "mu_ref"] = df_mu_sigma_ref.loc[day, "mu"]
+            # case of scaling sigma
+            if self.scale_sigma_with_gmt:
+                df_mu_sigma.loc[
+                    df_mu_sigma.index.dayofyear == day, "sigma_ref"] = df_mu_sigma_ref.loc[day, "sigma"]
+
+        d = df_mu_sigma
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        quantile = stats.gamma.cdf(x, mu ** 2.0 / sigma ** 2.0, scale=sigma ** 2.0 / mu)
+        quantile = stats.gamma.cdf(x, d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
         x_mapped = stats.gamma.ppf(
-            quantile, mu_ref ** 2.0 / sigma_ref ** 2.0, scale=sigma_ref ** 2.0 / mu_ref
+            quantile, d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0, scale=d["sigma_ref"] ** 2.0 / d["mu_ref"]
         )
 
         return x_mapped
