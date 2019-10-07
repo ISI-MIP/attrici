@@ -262,35 +262,6 @@ class Gamma(object):
         return x_mapped
 
 
-        # df_mu = get_mu_sigma(trace, regressor, x_fourier, date_index, nd={
-        #         "intercept": "mu_intercept",
-        #         "slope": "mu_slope",
-        #         "yearly": "mu_yearly",
-        #         "trend": "mu_trend",
-        #     })
-
-        # df_sigma = get_mu_sigma(
-        #     trace,
-        #     regressor,
-        #     x_fourier,
-        #     date_index,
-        #     nd={
-        #         "intercept": "sg_intercept",
-        #         "slope": "sg_slope",
-        #         "yearly": "sg_yearly",
-        #         "trend": "sg_trend",
-        #     },
-        # )
-
-        # mu = df_mu["param_gmt"]
-        # mu_ref = df_mu["param_gmt_ref"]
-        # sigma = df_sigma["param_gmt"]
-        # sigma_ref = sigma
-        # if self.scale_sigma_with_gmt:
-        #     sigma_ref = df_sigma["param_gmt_ref"]
-
-
-
 class Beta(object):
 
     """ Influence of GMT is modelled through the influence of on the alpha parameter
