@@ -36,6 +36,8 @@ class estimator(object):
         self.variable = cfg.variable
         self.modes = cfg.modes
         self.scale_sigma_with_gmt = cfg.scale_sigma_with_gmt
+        self.f_rescale = c.mask_and_scale[cfg.variable][1]
+
         self.save_trace = True
 
         try:
@@ -82,6 +84,8 @@ class estimator(object):
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
+        self.df_valid = df_valid
+        self.x_fourier_valid = x_fourier_valid
         return trace
 
     def sample(self):
@@ -108,15 +112,25 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-        regressor = df["gmt_scaled"].values
-        x_fourier = fourier.rescale(df, self.modes)
+        # regressor = df["gmt_scaled"].values
+        # x_fourier = fourier.rescale(df, self.modes)
 
-        cfact_scaled = self.statmodel.quantile_mapping(
-            trace[-subtrace:], regressor, x_fourier, df["ds"], df["y_scaled"]
+        cfact_scaled_valid = self.statmodel.quantile_mapping(
+            trace[-subtrace:], self.df_valid
         )
-        if (cfact_scaled == np.inf).sum() > 0:
+
+        valid_index = self.df_valid.dropna().index
+        df.loc[valid_index, "cfact_scaled"] = cfact_scaled_valid
+
+        if (cfact_scaled_valid == np.inf).sum() > 0:
             print("There are", (cfact_scaled == np.inf).sum(),
                   "values out of range for quantile mapping. Keep original values." )
-            cfact_scaled[cfact_scaled == np.inf] = df.loc[cfact_scaled == np.inf,"y_scaled"]
+            df.loc[cfact_scaled_valid == np.inf, "cfact_scaled"] = df.loc[cfact_scaled_valid == np.inf,"y_scaled"]
 
-        return cfact_scaled
+        # populate cfact with original values
+        df["cfact"] = df["y"]
+        # overwrite only values adjusted through cfact calculation
+        df.loc[valid_index, "cfact"] = self.f_rescale(cfact_scaled_valid, datamin, scale)
+
+
+        return df

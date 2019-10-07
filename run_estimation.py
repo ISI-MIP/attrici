@@ -79,8 +79,8 @@ for n in run_numbers[:]:
             print(error)
             continue
 
-        cfact_scaled = estimator.estimate_timeseries(df, trace, datamin, scale)
-        df_with_cfact = dh.add_cfact_to_df(df, cfact_scaled, datamin, scale, s.variable)
+        df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
+        # df_with_cfact = dh.add_cfact_to_df(df, cfact_scaled, datamin, scale, s.variable)
         dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()

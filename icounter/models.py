@@ -219,7 +219,7 @@ class Gamma(object):
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
+    def quantile_mapping(self, trace, df_valid):
 
         """
         specific for Gamma distributed variables where
@@ -257,7 +257,7 @@ class Gamma(object):
         ref_end_date = "1910-12-31"
 
         df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),"sigma": trace["sigma"].mean(axis=0) },
-                                   index=date_index)
+                                   index=df_valid["ds"])
         df_mu_sigma_ref = df_mu_sigma.loc[ref_start_date:ref_end_date]
         # mean over all years for each day
         df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
@@ -277,6 +277,7 @@ class Gamma(object):
         d = df_mu_sigma
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
+        x = df_valid["y_scaled"]
         quantile = stats.gamma.cdf(x, d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
         x_mapped = stats.gamma.ppf(
             quantile, d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0, scale=d["sigma_ref"] ** 2.0 / d["mu_ref"]
