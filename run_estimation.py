@@ -80,6 +80,7 @@ for n in run_numbers[:]:
             continue
 
         df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
+        print(df.head(10))
         # df_with_cfact = dh.add_cfact_to_df(df, cfact_scaled, datamin, scale, s.variable)
         dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
