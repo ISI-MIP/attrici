@@ -15,67 +15,67 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def get_mu_sigma(
-    trace,
-    regressor,
-    x_fourier,
-    date_index,
-    nd
-):
+# def get_mu_sigma(
+#     trace,
+#     regressor,
+#     x_fourier,
+#     date_index,
+#     nd
+# ):
 
-    """ TODO: rename variables in here. """
+#     """ TODO: rename variables in here. """
 
-    # FIXME: bring this to settings.py
-    ref_start_date = "1901-01-01"
-    ref_end_date = "1910-12-31"
+#     # FIXME: bring this to settings.py
+#     ref_start_date = "1901-01-01"
+#     ref_end_date = "1910-12-31"
 
-    param_gmt = (
-        trace[nd["intercept"]]
-        + np.dot(x_fourier, trace[nd["yearly"]].T)
-        + regressor[:, None]
-        * (trace[nd["slope"]] + np.dot(x_fourier, trace[nd["trend"]].T))
-    ).mean(axis=1)
+#     param_gmt = (
+#         trace[nd["intercept"]]
+#         + np.dot(x_fourier, trace[nd["yearly"]].T)
+#         + regressor[:, None]
+#         * (trace[nd["slope"]] + np.dot(x_fourier, trace[nd["trend"]].T))
+#     ).mean(axis=1)
 
-    df_param = pd.DataFrame({"param_gmt": param_gmt}, index=date_index)
-    # restrict data to the reference period
-    df_param_ref = df_param.loc[ref_start_date:ref_end_date]
-    # mean over all years for each day
-    df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
+#     df_param = pd.DataFrame({"param_gmt": param_gmt}, index=date_index)
+#     # restrict data to the reference period
+#     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
+#     # mean over all years for each day
+#     df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
 
-    # write the average values for the reference period to each day of the
-    # whole timeseries
-    for day in df_param_ref.index:
-        df_param.loc[
-            df_param.index.dayofyear == day, "param_gmt_ref"
-        ] = df_param_ref.loc[day].values[0]
+#     # write the average values for the reference period to each day of the
+#     # whole timeseries
+#     for day in df_param_ref.index:
+#         df_param.loc[
+#             df_param.index.dayofyear == day, "param_gmt_ref"
+#         ] = df_param_ref.loc[day].values[0]
 
-    return df_param
+#     return df_param
 
 
-def get_sigma_parameter(trace, regressor, date_index):
+# def get_sigma_parameter(trace, regressor, date_index):
 
-    # FIXME: bring this to settings.py
-    ref_start_date = "1901-01-01"
-    ref_end_date = "1910-12-31"
+#     # FIXME: bring this to settings.py
+#     ref_start_date = "1901-01-01"
+#     ref_end_date = "1910-12-31"
 
-    param_gmt = (
-        trace["sigma_intercept"] + regressor[:, None] * trace["sigma_slope"]
-    ).mean(axis=1)
+#     param_gmt = (
+#         trace["sigma_intercept"] + regressor[:, None] * trace["sigma_slope"]
+#     ).mean(axis=1)
 
-    df_param = pd.DataFrame({"sigma_gmt": param_gmt}, index=date_index)
-    # restrict data to the reference period
-    df_param_ref = df_param.loc[ref_start_date:ref_end_date]
-    # mean over each day in the year
-    df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
+#     df_param = pd.DataFrame({"sigma_gmt": param_gmt}, index=date_index)
+#     # restrict data to the reference period
+#     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
+#     # mean over each day in the year
+#     df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
 
-    # write the average values for the reference period to each day of the
-    # whole timeseries
-    for day in df_param_ref.index:
-        df_param.loc[
-            df_param.index.dayofyear == day, "sigma_gmt_ref"
-        ] = df_param_ref.loc[day].values[0]
+#     # write the average values for the reference period to each day of the
+#     # whole timeseries
+#     for day in df_param_ref.index:
+#         df_param.loc[
+#             df_param.index.dayofyear == day, "sigma_gmt_ref"
+#         ] = df_param_ref.loc[day].values[0]
 
-    return df_param
+#     return df_param
 
 
 class Normal(object):
@@ -157,18 +157,8 @@ class Gamma(object):
 
     def __init__(self, modes=1, scale_sigma_with_gmt=True):
 
-        # TODO: allow this to be changed by argument to __init__
         self.modes = modes
         self.scale_sigma_with_gmt = scale_sigma_with_gmt
-        # self.mu_intercept = 0.0
-        # self.mu_slope = 0
-        # self.sigma_intercept = 0.5
-        # self.sigma_slope = 1.0
-        self.smu = 0
-        self.sps = 0.5
-        self.stmu = 0
-        self.stps = 0.5
-
         self.vars_to_estimate = [
             "mu_slope",
             "mu_intercept",
@@ -198,6 +188,7 @@ class Gamma(object):
             mu_trend = pm.Normal(
                 "mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
+            # mu_intercept * logistic(gmt,yearly_cycle), strictly positive
             mu = pm.Deterministic("mu", mu_intercept/(1+tt.exp(-1*(
                 mu_slope * gmt
                 + det_dot(xf, mu_yearly)
@@ -212,6 +203,7 @@ class Gamma(object):
             sg_trend = pm.Normal(
                 "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
+            # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
             sigma = pm.Deterministic("sigma",sg_intercept/(1+tt.exp(-1*(
                 sg_slope * gmt
                 + det_dot(xf, sg_yearly)

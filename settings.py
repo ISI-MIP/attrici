@@ -26,7 +26,7 @@ timeout = 20 * 60
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = 1
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
 scale_sigma_with_gmt = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing

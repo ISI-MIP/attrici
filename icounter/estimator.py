@@ -51,12 +51,12 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        df_valid, x_fourier_valid, regressor = dh.get_valid_subset(
+        df_valid, x_fourier_valid, gmt_valid = dh.get_valid_subset(
             df, self.modes, self.subset
         )
 
         self.model = self.statmodel.setup(
-            regressor, x_fourier_valid, df_valid["y_scaled"]
+            gmt_valid, x_fourier_valid, df_valid["y_scaled"]
         )
 
         outdir_for_cell = dh.make_cell_output_dir(
@@ -114,26 +114,30 @@ class estimator(object):
 
         if self.subset == 1:
             # we can infer parameters directly from the trace
+            df_valid = self.df_valid
             trace_for_qm = trace[-subtrace:]
         else:
             # we need to predict through posterior sampling
             print("Posterior-predict deterministic parameters for quantile mapping.")
-            x_fourier = fourier.rescale(df, self.modes)
+            # subset fixed to one
+            df_valid, x_fourier_valid, gmt_valid = dh.get_valid_subset(
+                df, self.modes, 1)
 
             with self.model:
-                pm.set_data({'xf': x_fourier})
-                pm.set_data({'gmt': df["gmt_scaled"].values})
+                pm.set_data({'xf': x_fourier_valid})
+                pm.set_data({'gmt': gmt_valid})
 
                 trace_for_qm = pm.sample_posterior_predictive(
-                    trace, samples=subtrace, var_names=["obs", "mu", "sigma"])
+                    trace[-subtrace:], samples=subtrace,
+                    var_names=["obs", "mu", "sigma"])
 
 
         cfact_scaled = self.statmodel.quantile_mapping(
-            trace_for_qm, df
+            trace_for_qm, df_valid
         )
 
-        # valid_index = self.df_valid.dropna().index
-        df.loc[:, "cfact_scaled"] = cfact_scaled
+        valid_index = df_valid.dropna().index
+        df.loc[valid_index, "cfact_scaled"] = cfact_scaled
 
         if (cfact_scaled == np.inf).sum() > 0:
             print("There are", (cfact_scaled == np.inf).sum(),
@@ -141,9 +145,9 @@ class estimator(object):
             df.loc[cfact_scaled == np.inf, "cfact_scaled"] = df.loc[cfact_scaled == np.inf,"y_scaled"]
 
         # # populate cfact with original values
-        # df["cfact"] = df["y"]
+        df.loc[:,"cfact"] = df.loc[:,"y"]
         # # overwrite only values adjusted through cfact calculation
-        # df.loc[:, "cfact"] = self.f_rescale(cfact_scaled, datamin, scale)
+        df.loc[valid_index, "cfact"] = self.f_rescale(cfact_scaled, datamin, scale)
 
 
         return df
