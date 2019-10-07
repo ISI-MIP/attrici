@@ -182,12 +182,14 @@ class Gamma(object):
 
         print("Using Gamma distribution model. Fourier modes:", modes)
 
-    def setup(self, regressor, x_fourier, observed):
+    def setup(self, gmt_valid, x_fourier, observed):
 
         model = pm.Model()
 
         with model:
 
+            gmt = pm.Data('gmt', gmt_valid)
+            xf = pm.Data('xf', x_fourier)
             mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.)
             mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
             mu_yearly = pm.Normal(
@@ -197,9 +199,9 @@ class Gamma(object):
                 "mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
             mu = pm.Deterministic("mu", mu_intercept/(1+tt.exp(-1*(
-                mu_slope * regressor
-                + det_dot(x_fourier, mu_yearly)
-                + regressor * det_dot(x_fourier, mu_trend)))
+                mu_slope * gmt
+                + det_dot(xf, mu_yearly)
+                + gmt * det_dot(xf, mu_trend)))
             ))
 
             sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.)
@@ -211,20 +213,54 @@ class Gamma(object):
                 "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes
             )
             sigma = pm.Deterministic("sigma",sg_intercept/(1+tt.exp(-1*(
-                sg_slope * regressor
-                + det_dot(x_fourier, sg_yearly)
-                + regressor * det_dot(x_fourier, sg_trend)))
+                sg_slope * gmt
+                + det_dot(xf, sg_yearly)
+                + gmt * det_dot(xf, sg_trend)))
             ))
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
 
-    def quantile_mapping(self, trace, df_valid):
+    def quantile_mapping(self, trace, df):
 
         """
         specific for Gamma distributed variables where
         we diagnose shift in beta parameter through GMT.
         """
+
+        ref_start_date = "1901-01-01"
+        ref_end_date = "1910-12-31"
+
+        df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),
+            "sigma": trace["sigma"].mean(axis=0) },
+                                   index=df["ds"])
+        df_mu_sigma_ref = df_mu_sigma.loc[ref_start_date:ref_end_date]
+        # mean over all years for each day
+        df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+
+        # case of not scaling sigma
+        df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
+        # write the average values for the reference period to each day of the
+        # whole timeseries
+        for day in df_mu_sigma_ref.index:
+            df_mu_sigma.loc[
+                df_mu_sigma.index.dayofyear == day, "mu_ref"] = df_mu_sigma_ref.loc[day, "mu"]
+            # case of scaling sigma
+            if self.scale_sigma_with_gmt:
+                df_mu_sigma.loc[
+                    df_mu_sigma.index.dayofyear == day, "sigma_ref"] = df_mu_sigma_ref.loc[day, "sigma"]
+
+        d = df_mu_sigma
+        # scipy gamma works with alpha and scale parameter
+        # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
+        x = df["y_scaled"]
+        quantile = stats.gamma.cdf(x, d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
+        x_mapped = stats.gamma.ppf(
+            quantile, d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0, scale=d["sigma_ref"] ** 2.0 / d["mu_ref"]
+        )
+
+        return x_mapped
+
 
         # df_mu = get_mu_sigma(trace, regressor, x_fourier, date_index, nd={
         #         "intercept": "mu_intercept",
@@ -253,37 +289,6 @@ class Gamma(object):
         # if self.scale_sigma_with_gmt:
         #     sigma_ref = df_sigma["param_gmt_ref"]
 
-        ref_start_date = "1901-01-01"
-        ref_end_date = "1910-12-31"
-
-        df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),"sigma": trace["sigma"].mean(axis=0) },
-                                   index=df_valid["ds"])
-        df_mu_sigma_ref = df_mu_sigma.loc[ref_start_date:ref_end_date]
-        # mean over all years for each day
-        df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
-
-        # case of not scaling sigma
-        df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
-        # write the average values for the reference period to each day of the
-        # whole timeseries
-        for day in df_mu_sigma_ref.index:
-            df_mu_sigma.loc[
-                df_mu_sigma.index.dayofyear == day, "mu_ref"] = df_mu_sigma_ref.loc[day, "mu"]
-            # case of scaling sigma
-            if self.scale_sigma_with_gmt:
-                df_mu_sigma.loc[
-                    df_mu_sigma.index.dayofyear == day, "sigma_ref"] = df_mu_sigma_ref.loc[day, "sigma"]
-
-        d = df_mu_sigma
-        # scipy gamma works with alpha and scale parameter
-        # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        x = df_valid["y_scaled"]
-        quantile = stats.gamma.cdf(x, d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
-        x_mapped = stats.gamma.ppf(
-            quantile, d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0, scale=d["sigma_ref"] ** 2.0 / d["mu_ref"]
-        )
-
-        return x_mapped
 
 
 class Beta(object):

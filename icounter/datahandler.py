@@ -42,9 +42,7 @@ def get_valid_subset(df, modes, subset):
 
     print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
 
-    regressor = df_valid["gmt_scaled"].values
-
-    return df_valid, x_fourier[df_valid.index, :], regressor
+    return df_valid, x_fourier[df_valid.index, :], df_valid["gmt_scaled"].values
 
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
@@ -72,7 +70,7 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
             "is not implement (yet). Please check if part of the ISIMIP set.",
         )
         raise error
-    # print(data_to_detrend)
+
     y_scaled, datamin, scale = f_scale(pd.Series(data_to_detrend), variable)
 
     tdf = pd.DataFrame(

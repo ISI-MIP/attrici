@@ -112,25 +112,38 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-        # regressor = df["gmt_scaled"].values
-        # x_fourier = fourier.rescale(df, self.modes)
+        if self.subset == 1:
+            # we can infer parameters directly from the trace
+            trace_for_qm = trace[-subtrace:]
+        else:
+            # we need to predict through posterior sampling
+            print("Posterior-predict deterministic parameters for quantile mapping.")
+            x_fourier = fourier.rescale(df, self.modes)
 
-        cfact_scaled_valid = self.statmodel.quantile_mapping(
-            trace[-subtrace:], self.df_valid
+            with self.model:
+                pm.set_data({'xf': x_fourier})
+                pm.set_data({'gmt': df["gmt_scaled"].values})
+
+                trace_for_qm = pm.sample_posterior_predictive(
+                    trace, samples=subtrace, var_names=["obs", "mu", "sigma"])
+
+
+        cfact_scaled = self.statmodel.quantile_mapping(
+            trace_for_qm, df
         )
 
-        valid_index = self.df_valid.dropna().index
-        df.loc[valid_index, "cfact_scaled"] = cfact_scaled_valid
+        # valid_index = self.df_valid.dropna().index
+        df.loc[:, "cfact_scaled"] = cfact_scaled
 
-        if (cfact_scaled_valid == np.inf).sum() > 0:
+        if (cfact_scaled == np.inf).sum() > 0:
             print("There are", (cfact_scaled == np.inf).sum(),
                   "values out of range for quantile mapping. Keep original values." )
-            df.loc[cfact_scaled_valid == np.inf, "cfact_scaled"] = df.loc[cfact_scaled_valid == np.inf,"y_scaled"]
+            df.loc[cfact_scaled == np.inf, "cfact_scaled"] = df.loc[cfact_scaled == np.inf,"y_scaled"]
 
-        # populate cfact with original values
-        df["cfact"] = df["y"]
-        # overwrite only values adjusted through cfact calculation
-        df.loc[valid_index, "cfact"] = self.f_rescale(cfact_scaled_valid, datamin, scale)
+        # # populate cfact with original values
+        # df["cfact"] = df["y"]
+        # # overwrite only values adjusted through cfact calculation
+        # df.loc[:, "cfact"] = self.f_rescale(cfact_scaled, datamin, scale)
 
 
         return df
