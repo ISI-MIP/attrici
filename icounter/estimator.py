@@ -132,22 +132,23 @@ class estimator(object):
                     var_names=["obs", "mu", "sigma"])
 
 
-        cfact_scaled = self.statmodel.quantile_mapping(
+        cfact_scaled_valid = self.statmodel.quantile_mapping(
             trace_for_qm, df_valid
         )
 
         valid_index = df_valid.dropna().index
-        df.loc[valid_index, "cfact_scaled"] = cfact_scaled
+        df.loc[valid_index, "cfact_scaled"] = cfact_scaled_valid
 
-        if (cfact_scaled == np.inf).sum() > 0:
-            print("There are", (cfact_scaled == np.inf).sum(),
+        if (cfact_scaled_valid == np.inf).sum() > 0:
+            print("There are", (cfact_scaled_valid == np.inf).sum(),
                   "values out of range for quantile mapping. Keep original values." )
-            df.loc[cfact_scaled == np.inf, "cfact_scaled"] = df.loc[cfact_scaled == np.inf,"y_scaled"]
+            df.loc[valid_index[cfact_scaled_valid == np.inf], "cfact_scaled"] = df.loc[
+            valid_index[cfact_scaled_valid == np.inf],"y_scaled"]
 
         # # populate cfact with original values
         df.loc[:,"cfact"] = df.loc[:,"y"]
         # # overwrite only values adjusted through cfact calculation
-        df.loc[valid_index, "cfact"] = self.f_rescale(cfact_scaled, datamin, scale)
+        df.loc[valid_index, "cfact"] = self.f_rescale(cfact_scaled_valid, datamin, scale)
 
 
         return df

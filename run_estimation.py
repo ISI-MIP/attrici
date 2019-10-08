@@ -60,7 +60,7 @@ for n in run_numbers[:]:
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
 
-    if lat == 89.75: continue
+    # if lat >10: continue
     print("This is SLURM task", task_id, "run number", n, "lat,lon", lat, lon)
 
     data = obs_data.variables[s.variable][:, i, j]
@@ -80,8 +80,7 @@ for n in run_numbers[:]:
             continue
 
         df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
-        print(df.head(10))
-        # df_with_cfact = dh.add_cfact_to_df(df, cfact_scaled, datamin, scale, s.variable)
+        # print(df.head(10))
         dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()
