@@ -137,6 +137,8 @@ class estimator(object):
         )
 
         valid_index = df_valid.dropna().index
+        # populate cfact with original values
+        # df.loc[:,"cfact_scaled"] = df.loc[:,"y_scaled"]
         df.loc[valid_index, "cfact_scaled"] = cfact_scaled_valid
 
         if (cfact_scaled_valid == np.inf).sum() > 0:
@@ -148,7 +150,7 @@ class estimator(object):
         # # populate cfact with original values
         df.loc[:,"cfact"] = df.loc[:,"y"]
         # # overwrite only values adjusted through cfact calculation
-        df.loc[valid_index, "cfact"] = self.f_rescale(cfact_scaled_valid, datamin, scale)
-
+        df.loc[valid_index, "cfact"] = self.f_rescale(df.loc[
+            valid_index, "cfact_scaled"], datamin, scale)
 
         return df
