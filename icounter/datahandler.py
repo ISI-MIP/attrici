@@ -87,17 +87,17 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
-def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+# def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
 
-    valid_index = df.dropna().index
-    df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
-    f_rescale = c.mask_and_scale[variable][1]
-    # populate cfact with original values
-    df["cfact"] = df["y"]
-    # overwrite only values adjusted through cfact calculation
-    df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
+#     valid_index = df.dropna().index
+#     df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
+#     f_rescale = c.mask_and_scale[variable][1]
+#     # populate cfact with original values
+#     df["cfact"] = df["y"]
+#     # overwrite only values adjusted through cfact calculation
+#     df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
 
-    return df
+#     return df
 
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
@@ -147,7 +147,7 @@ def form_global_nc(ds, time, lat, lon, vnames, torigin):
             "f4",
             ("time", "lat", "lon"),
             chunksizes=(time.shape[0], 1, 1),
-            fill_value=np.nan,
+            fill_value=1e20,
         )
     times.units = torigin
     latitudes.units = "degree_north"
