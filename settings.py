@@ -34,6 +34,13 @@ lateral_sub = 80
 
 dataset = "GSWP3"  # select dataset to run on
 
+
+# start and end date are the time period used to construct
+# the reference distribution for quantile mapping.
+# take care that period encompasses a leap year
+qm_ref_period = ["1901-01-01", "1904-12-31"]
+
+
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 # source_file = variable + "_" + dataset + "_sub.nc4"
 source_file = variable + "_" + dataset + "_sub"+str(lateral_sub)+".nc4"

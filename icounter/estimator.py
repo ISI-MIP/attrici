@@ -37,7 +37,7 @@ class estimator(object):
         self.modes = cfg.modes
         self.scale_sigma_with_gmt = cfg.scale_sigma_with_gmt
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
-
+        self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = True
 
         try:
@@ -133,7 +133,7 @@ class estimator(object):
                     var_names=["obs", "mu", "sigma"])
 
 
-        cfact_scaled_valid = self.statmodel.quantile_mapping(
+        cfact_scaled_valid = self.statmodel.quantile_mapping(self.qm_ref_period,
             trace_for_qm, df_valid
         )
 

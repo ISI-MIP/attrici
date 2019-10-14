@@ -213,20 +213,17 @@ class Gamma(object):
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
 
-    def quantile_mapping(self, trace, df):
+    def quantile_mapping(self, qm_ref_period, trace, df):
 
         """
         specific for Gamma distributed variables where
         we diagnose shift in beta parameter through GMT.
         """
-        # the shortest time period that encompasses a leap year
-        ref_start_date = "1901-01-01"
-        ref_end_date = "1904-12-31"
 
         df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),
             "sigma": trace["sigma"].mean(axis=0) },
                                    index=df["ds"])
-        df_mu_sigma_ref = df_mu_sigma.loc[ref_start_date:ref_end_date]
+        df_mu_sigma_ref = df_mu_sigma.loc[qm_ref_period[0]:qm_ref_period[1]]
         # mean over all years for each day
         df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
 
