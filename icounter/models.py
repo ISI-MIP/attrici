@@ -219,9 +219,9 @@ class Gamma(object):
         specific for Gamma distributed variables where
         we diagnose shift in beta parameter through GMT.
         """
-
+        # the shortest time period that encompasses a leap year
         ref_start_date = "1901-01-01"
-        ref_end_date = "1910-12-31"
+        ref_end_date = "1904-12-31"
 
         df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),
             "sigma": trace["sigma"].mean(axis=0) },
@@ -245,8 +245,7 @@ class Gamma(object):
         d = df_mu_sigma
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        x = df["y_scaled"]
-        quantile = stats.gamma.cdf(x, d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
+        quantile = stats.gamma.cdf(df["y_scaled"], d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
         x_mapped = stats.gamma.ppf(
             quantile, d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0, scale=d["sigma_ref"] ** 2.0 / d["mu_ref"]
         )

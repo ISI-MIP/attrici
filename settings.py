@@ -21,12 +21,12 @@ input_dir = Path(data_dir) / "input"
 output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 # max time in sec for sampler for a single grid cell.
-timeout = 20 * 60
+timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = 1
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
 scale_sigma_with_gmt = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing

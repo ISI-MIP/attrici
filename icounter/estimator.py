@@ -80,7 +80,7 @@ class estimator(object):
             print("Successfully loaded sampled data. Skip this for sampling.")
         except IndexError:
             trace = self.sample()
-            print(pm.summary(trace))
+            # print(pm.summary(trace)) # takes too much memory
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
@@ -109,6 +109,7 @@ class estimator(object):
         )
 
         return trace
+
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
