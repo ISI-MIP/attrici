@@ -15,69 +15,6 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-# def get_mu_sigma(
-#     trace,
-#     regressor,
-#     x_fourier,
-#     date_index,
-#     nd
-# ):
-
-#     """ TODO: rename variables in here. """
-
-#     # FIXME: bring this to settings.py
-#     ref_start_date = "1901-01-01"
-#     ref_end_date = "1910-12-31"
-
-#     param_gmt = (
-#         trace[nd["intercept"]]
-#         + np.dot(x_fourier, trace[nd["yearly"]].T)
-#         + regressor[:, None]
-#         * (trace[nd["slope"]] + np.dot(x_fourier, trace[nd["trend"]].T))
-#     ).mean(axis=1)
-
-#     df_param = pd.DataFrame({"param_gmt": param_gmt}, index=date_index)
-#     # restrict data to the reference period
-#     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
-#     # mean over all years for each day
-#     df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
-
-#     # write the average values for the reference period to each day of the
-#     # whole timeseries
-#     for day in df_param_ref.index:
-#         df_param.loc[
-#             df_param.index.dayofyear == day, "param_gmt_ref"
-#         ] = df_param_ref.loc[day].values[0]
-
-#     return df_param
-
-
-# def get_sigma_parameter(trace, regressor, date_index):
-
-#     # FIXME: bring this to settings.py
-#     ref_start_date = "1901-01-01"
-#     ref_end_date = "1910-12-31"
-
-#     param_gmt = (
-#         trace["sigma_intercept"] + regressor[:, None] * trace["sigma_slope"]
-#     ).mean(axis=1)
-
-#     df_param = pd.DataFrame({"sigma_gmt": param_gmt}, index=date_index)
-#     # restrict data to the reference period
-#     df_param_ref = df_param.loc[ref_start_date:ref_end_date]
-#     # mean over each day in the year
-#     df_param_ref = df_param_ref.groupby(df_param_ref.index.dayofyear).mean()
-
-#     # write the average values for the reference period to each day of the
-#     # whole timeseries
-#     for day in df_param_ref.index:
-#         df_param.loc[
-#             df_param.index.dayofyear == day, "sigma_gmt_ref"
-#         ] = df_param_ref.loc[day].values[0]
-
-#     return df_param
-
-
 class Normal(object):
 
     """ Influence of GMT is modelled through a shift of
@@ -178,37 +115,49 @@ class Gamma(object):
 
         with model:
 
-            gmt = pm.Data('gmt', gmt_valid)
-            xf = pm.Data('xf', x_fourier)
-            mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.)
+            gmt = pm.Data("gmt", gmt_valid)
+            xf = pm.Data("xf", x_fourier)
+            mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
             mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
-            mu_yearly = pm.Normal(
-                "mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes
-            )
-            mu_trend = pm.Normal(
-                "mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes
-            )
+            mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes)
+            mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
             # mu_intercept * logistic(gmt,yearly_cycle), strictly positive
-            mu = pm.Deterministic("mu", mu_intercept/(1+tt.exp(-1*(
-                mu_slope * gmt
-                + det_dot(xf, mu_yearly)
-                + gmt * det_dot(xf, mu_trend)))
-            ))
+            mu = pm.Deterministic(
+                "mu",
+                mu_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            mu_slope * gmt
+                            + det_dot(xf, mu_yearly)
+                            + gmt * det_dot(xf, mu_trend)
+                        )
+                    )
+                ),
+            )
 
-            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.)
+            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
             sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
-            sg_yearly = pm.Normal(
-                "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes
-            )
-            sg_trend = pm.Normal(
-                "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes
-            )
+            sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes)
+            sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
             # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
-            sigma = pm.Deterministic("sigma",sg_intercept/(1+tt.exp(-1*(
-                sg_slope * gmt
-                + det_dot(xf, sg_yearly)
-                + gmt * det_dot(xf, sg_trend)))
-            ))
+            sigma = pm.Deterministic(
+                "sigma",
+                sg_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            sg_slope * gmt
+                            + det_dot(xf, sg_yearly)
+                            + gmt * det_dot(xf, sg_trend)
+                        )
+                    )
+                ),
+            )
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
@@ -220,12 +169,15 @@ class Gamma(object):
         we diagnose shift in beta parameter through GMT.
         """
 
-        df_mu_sigma = pd.DataFrame({"mu": trace["mu"].mean(axis=0),
-            "sigma": trace["sigma"].mean(axis=0) },
-                                   index=df["ds"])
-        df_mu_sigma_ref = df_mu_sigma.loc[qm_ref_period[0]:qm_ref_period[1]]
+        df_mu_sigma = pd.DataFrame(
+            {"mu": trace["mu"].mean(axis=0), "sigma": trace["sigma"].mean(axis=0)},
+            index=df["ds"],
+        )
+        df_mu_sigma_ref = df_mu_sigma.loc[qm_ref_period[0] : qm_ref_period[1]]
         # mean over all years for each day
-        df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+        df_mu_sigma_ref = df_mu_sigma_ref.groupby(
+            df_mu_sigma_ref.index.dayofyear
+        ).mean()
 
         # case of not scaling sigma
         df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
@@ -233,18 +185,26 @@ class Gamma(object):
         # whole timeseries
         for day in df_mu_sigma_ref.index:
             df_mu_sigma.loc[
-                df_mu_sigma.index.dayofyear == day, "mu_ref"] = df_mu_sigma_ref.loc[day, "mu"]
+                df_mu_sigma.index.dayofyear == day, "mu_ref"
+            ] = df_mu_sigma_ref.loc[day, "mu"]
             # case of scaling sigma
             if self.scale_sigma_with_gmt:
                 df_mu_sigma.loc[
-                    df_mu_sigma.index.dayofyear == day, "sigma_ref"] = df_mu_sigma_ref.loc[day, "sigma"]
+                    df_mu_sigma.index.dayofyear == day, "sigma_ref"
+                ] = df_mu_sigma_ref.loc[day, "sigma"]
 
         d = df_mu_sigma
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        quantile = stats.gamma.cdf(df["y_scaled"], d["mu"] ** 2.0 / d["sigma"] ** 2.0, scale=d["sigma"] ** 2.0 / d["mu"])
+        quantile = stats.gamma.cdf(
+            df["y_scaled"],
+            d["mu"] ** 2.0 / d["sigma"] ** 2.0,
+            scale=d["sigma"] ** 2.0 / d["mu"],
+        )
         x_mapped = stats.gamma.ppf(
-            quantile, d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0, scale=d["sigma_ref"] ** 2.0 / d["mu_ref"]
+            quantile,
+            d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
+            scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
         )
 
         return x_mapped

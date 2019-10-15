@@ -41,8 +41,9 @@ class estimator(object):
         self.save_trace = True
 
         try:
-            self.statmodel = model_for_var[self.variable](self.modes,
-                self.scale_sigma_with_gmt)
+            self.statmodel = model_for_var[self.variable](
+                self.modes, self.scale_sigma_with_gmt
+            )
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."
@@ -110,7 +111,6 @@ class estimator(object):
 
         return trace
 
-
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
         if self.subset == 1:
@@ -122,19 +122,21 @@ class estimator(object):
             print("Posterior-predict deterministic parameters for quantile mapping.")
             # subset fixed to one
             df_valid, x_fourier_valid, gmt_valid = dh.get_valid_subset(
-                df, self.modes, 1)
+                df, self.modes, 1
+            )
 
             with self.model:
-                pm.set_data({'xf': x_fourier_valid})
-                pm.set_data({'gmt': gmt_valid})
+                pm.set_data({"xf": x_fourier_valid})
+                pm.set_data({"gmt": gmt_valid})
 
                 trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:], samples=subtrace,
-                    var_names=["obs", "mu", "sigma"])
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=["obs", "mu", "sigma"],
+                )
 
-
-        cfact_scaled_valid = self.statmodel.quantile_mapping(self.qm_ref_period,
-            trace_for_qm, df_valid
+        cfact_scaled_valid = self.statmodel.quantile_mapping(
+            self.qm_ref_period, trace_for_qm, df_valid
         )
 
         valid_index = df_valid.dropna().index
@@ -143,15 +145,20 @@ class estimator(object):
         df.loc[valid_index, "cfact_scaled"] = cfact_scaled_valid
 
         if (cfact_scaled_valid == np.inf).sum() > 0:
-            print("There are", (cfact_scaled_valid == np.inf).sum(),
-                  "values out of range for quantile mapping. Keep original values." )
+            print(
+                "There are",
+                (cfact_scaled_valid == np.inf).sum(),
+                "values out of range for quantile mapping. Keep original values.",
+            )
             df.loc[valid_index[cfact_scaled_valid == np.inf], "cfact_scaled"] = df.loc[
-            valid_index[cfact_scaled_valid == np.inf],"y_scaled"]
+                valid_index[cfact_scaled_valid == np.inf], "y_scaled"
+            ]
 
         # # populate cfact with original values
-        df.loc[:,"cfact"] = df.loc[:,"y"]
+        df.loc[:, "cfact"] = df.loc[:, "y"]
         # # overwrite only values adjusted through cfact calculation
-        df.loc[valid_index, "cfact"] = self.f_rescale(df.loc[
-            valid_index, "cfact_scaled"], datamin, scale)
+        df.loc[valid_index, "cfact"] = self.f_rescale(
+            df.loc[valid_index, "cfact_scaled"], datamin, scale
+        )
 
         return df

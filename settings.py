@@ -43,7 +43,7 @@ qm_ref_period = ["1901-01-01", "1904-12-31"]
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 # source_file = variable + "_" + dataset + "_sub.nc4"
-source_file = variable + "_" + dataset + "_sub"+str(lateral_sub)+".nc4"
+source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"

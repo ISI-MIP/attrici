@@ -65,19 +65,28 @@ out.close()
 print("Successfully wrote", cfact_file, "file. Took")
 print("It took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
 
-cfact_rechunked = str(cfact_file).rstrip(".nc4")+"_rechunked.nc4"
-cmd = "ncks -4 -O -L 0 --cnk_plc=g3d --cnk_dmn=time,1024 --cnk_dmn=lat,64 --cnk_dmn=lon,128 "+\
-        str(cfact_file)+" "+cfact_rechunked
+cfact_rechunked = str(cfact_file).rstrip(".nc4") + "_rechunked.nc4"
+cmd = (
+    "ncks -4 -O -L 0 --cnk_plc=g3d --cnk_dmn=time,1024 --cnk_dmn=lat,64 --cnk_dmn=lon,128 "
+    + str(cfact_file)
+    + " "
+    + cfact_rechunked
+)
 
 print(cmd)
 subprocess.check_call(cmd, shell=True)
 
-cfact_monmean = str(cfact_file).rstrip(".nc4")+"_monmean.nc4"
+cfact_monmean = str(cfact_file).rstrip(".nc4") + "_monmean.nc4"
 try:
-    cmd = "cdo monmean -selvar,cfact,y "+cfact_rechunked+" "+cfact_monmean
+    cmd = "cdo monmean -selvar,cfact,y " + cfact_rechunked + " " + cfact_monmean
     print(cmd)
     subprocess.check_call(cmd, shell=True)
 except subprocess.CalledProcessError:
-    cmd = "module load cdo && cdo monmean -selvar,cfact,y "+cfact_rechunked+" "+cfact_monmean
+    cmd = (
+        "module load cdo && cdo monmean -selvar,cfact,y "
+        + cfact_rechunked
+        + " "
+        + cfact_monmean
+    )
     print(cmd)
     subprocess.check_call(cmd, shell=True)
