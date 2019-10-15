@@ -21,22 +21,30 @@ input_dir = Path(data_dir) / "input"
 output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 # max time in sec for sampler for a single grid cell.
-timeout = 20 * 60
+timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = 1
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
-scale_sigma_with_gmt = True
+# use the estimated variability in qm
+scale_variability = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 80
 
 dataset = "GSWP3"  # select dataset to run on
 
+
+# start and end date are the time period used to construct
+# the reference distribution for quantile mapping.
+# take care that period encompasses a leap year
+qm_ref_period = ["1901-01-01", "1904-12-31"]
+report_mu_sigma = True
+
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 # source_file = variable + "_" + dataset + "_sub.nc4"
-source_file = variable + "_" + dataset + "_sub"+str(lateral_sub)+".nc4"
+source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 params_file = variable + "_" + dataset + "_parameters.nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 trend_file = variable + "_" + dataset + "_trend.nc4"

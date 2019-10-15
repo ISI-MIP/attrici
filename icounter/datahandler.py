@@ -42,9 +42,7 @@ def get_valid_subset(df, modes, subset):
 
     print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
 
-    regressor = df_valid["gmt_scaled"].values
-
-    return df_valid, x_fourier[df_valid.index, :], regressor
+    return df_valid, x_fourier[df_valid.index, :], df_valid["gmt_scaled"].values
 
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
@@ -72,7 +70,7 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
             "is not implement (yet). Please check if part of the ISIMIP set.",
         )
         raise error
-    # print(data_to_detrend)
+
     y_scaled, datamin, scale = f_scale(pd.Series(data_to_detrend), variable)
 
     tdf = pd.DataFrame(
@@ -89,17 +87,45 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
-def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+def create_ref_df(df, trace_for_qm, ref_period, scale_variability):
 
-    valid_index = df.dropna().index
-    df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
-    f_rescale = c.mask_and_scale[variable][1]
-    # populate cfact with original values
-    df["cfact"] = df["y"]
-    # overwrite only values adjusted through cfact calculation
-    df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
+    df_mu_sigma = pd.DataFrame(index=df.index)
+    df_mu_sigma.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
+    df_mu_sigma.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
+    df_mu_sigma.index = df["ds"]
 
-    return df
+    df_mu_sigma_ref = df_mu_sigma.loc[ref_period[0] : ref_period[1]]
+    # mean over all years for each day
+    df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+
+    # case of not scaling variability
+    df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
+    # write the average values for the reference period to each day of the
+    # whole timeseries
+    for day in df_mu_sigma_ref.index:
+        df_mu_sigma.loc[
+            df_mu_sigma.index.dayofyear == day, "mu_ref"
+        ] = df_mu_sigma_ref.loc[day, "mu"]
+        # case of scaling sigma
+        if scale_variability:
+            df_mu_sigma.loc[
+                df_mu_sigma.index.dayofyear == day, "sigma_ref"
+            ] = df_mu_sigma_ref.loc[day, "sigma"]
+
+    return df_mu_sigma
+
+
+# def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+
+#     valid_index = df.dropna().index
+#     df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
+#     f_rescale = c.mask_and_scale[variable][1]
+#     # populate cfact with original values
+#     df["cfact"] = df["y"]
+#     # overwrite only values adjusted through cfact calculation
+#     df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
+
+#     return df
 
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
@@ -149,7 +175,7 @@ def form_global_nc(ds, time, lat, lon, vnames, torigin):
             "f4",
             ("time", "lat", "lon"),
             chunksizes=(time.shape[0], 1, 1),
-            fill_value=np.nan,
+            fill_value=1e20,
         )
     times.units = torigin
     latitudes.units = "degree_north"
