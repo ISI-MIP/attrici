@@ -35,7 +35,6 @@ lateral_sub = 80
 
 dataset = "GSWP3"  # select dataset to run on
 
-
 # start and end date are the time period used to construct
 # the reference distribution for quantile mapping.
 # take care that period encompasses a leap year

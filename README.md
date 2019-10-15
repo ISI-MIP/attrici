@@ -23,11 +23,15 @@ See [here](examples/tas_example.ipynb) for a notebook leading you through the ba
 
 ## Usage
 
-This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work.
+This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work. We use the GNU compiler as the many parallel compile jobs through jobarrays and JIT compilation conflict with the few Intel licenses.
 
-`module load intel/2019.4`
+`module purge`
+
+`module load compiler/gnu/7.3.0`
 
 `conda activate yourenv`
+
+Override the conda setting with: `export CXX=g++`
 
 Adjust `settings.py`
 
@@ -56,15 +60,15 @@ In the root package directory.
 
 `pip install -e .`
 
-Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` `submit.sh` to a separate directory,
+Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
 for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
 ## Install
 
-We use the jobarray feature of slurm to run many jobs in parallel. We use the intel-optimized python libraries for performance. The configuration is very much tailored to the PIK supercomputer at the moment. Please do
+We use the jobarray feature of slurm to run many jobs in parallel.
+The configuration is very much tailored to the PIK supercomputer at the moment. Please do
 
 `conda config --add channels conda-forge`
-`conda config --add channels intel`
 
 `conda create -n isi-cfact pymc3==3.7 python==3.7`
 
