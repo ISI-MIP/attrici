@@ -97,12 +97,14 @@ class Gamma(object):
         self.modes = modes
         self.scale_variability = scale_variability
         self.vars_to_estimate = [
-            "mu_slope",
             "mu_intercept",
+            "mu_slope",
             "mu_yearly",
             "mu_trend",
             "sg_intercept",
+            "sg_slope",
             "sg_yearly",
+            "sg_trend",
         ]
 
         print("Using Gamma distribution model. Fourier modes:", modes)
@@ -137,12 +139,24 @@ class Gamma(object):
             )
 
             sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
-            # sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
+            sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
             sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes)
-            # sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
+            sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
             # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
             sigma = pm.Deterministic(
-                "sigma", sg_intercept / (1 + tt.exp(-1 * det_dot(xf, sg_yearly)))
+                "sigma",
+                sg_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            sg_slope * gmt
+                            + det_dot(xf, sg_yearly)
+                            + gmt * det_dot(xf, sg_trend)
+                        )
+                    )
+                ),
             )
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
