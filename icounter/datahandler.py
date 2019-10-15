@@ -87,6 +87,34 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
+def create_ref_df(df, trace_for_qm, ref_period, scale_variability):
+
+    df_mu_sigma = pd.DataFrame(index=df.index)
+    df_mu_sigma.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
+    df_mu_sigma.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
+    df_mu_sigma.index = df["ds"]
+
+    df_mu_sigma_ref = df_mu_sigma.loc[ref_period[0] : ref_period[1]]
+    # mean over all years for each day
+    df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+
+    # case of not scaling variability
+    df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
+    # write the average values for the reference period to each day of the
+    # whole timeseries
+    for day in df_mu_sigma_ref.index:
+        df_mu_sigma.loc[
+            df_mu_sigma.index.dayofyear == day, "mu_ref"
+        ] = df_mu_sigma_ref.loc[day, "mu"]
+        # case of scaling sigma
+        if scale_variability:
+            df_mu_sigma.loc[
+                df_mu_sigma.index.dayofyear == day, "sigma_ref"
+            ] = df_mu_sigma_ref.loc[day, "sigma"]
+
+    return df_mu_sigma
+
+
 # def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
 
 #     valid_index = df.dropna().index

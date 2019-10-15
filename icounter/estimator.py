@@ -39,6 +39,7 @@ class estimator(object):
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = True
+        self.report_mu_sigma = cfg.report_mu_sigma
 
         try:
             self.statmodel = model_for_var[self.variable](
@@ -111,23 +112,21 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
+    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=500):
 
-        if self.subset == 1:
-            # we can infer parameters directly from the trace
-            df_valid = self.df_valid
-            trace_for_qm = trace[-subtrace:]
-        else:
-            # we need to predict through posterior sampling
-            print("Posterior-predict deterministic parameters for quantile mapping.")
-            # subset fixed to one
-            df_valid, x_fourier_valid, gmt_valid = dh.get_valid_subset(
-                df, self.modes, 1
+        trace_for_qm = trace[-subtrace:]
+
+        if trace["mu"].shape[1] < df.shape[0]:
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
             )
 
+            x_fourier = fourier.rescale(df, self.modes)
+
             with self.model:
-                pm.set_data({"xf": x_fourier_valid})
-                pm.set_data({"gmt": gmt_valid})
+                pm.set_data({"xf": x_fourier})
+                pm.set_data({"gmt": df["gmt_scaled"].values})
 
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
@@ -135,30 +134,38 @@ class estimator(object):
                     var_names=["obs", "mu", "sigma"],
                 )
 
-        cfact_scaled_valid = self.statmodel.quantile_mapping(
-            self.qm_ref_period, trace_for_qm, df_valid
+        df_mu_sigma = dh.create_ref_df(
+            df, trace_for_qm, self.qm_ref_period, self.scale_variability
         )
 
-        valid_index = df_valid.dropna().index
-        # populate cfact with original values
-        # df.loc[:,"cfact_scaled"] = df.loc[:,"y_scaled"]
-        df.loc[valid_index, "cfact_scaled"] = cfact_scaled_valid
+        cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
 
-        if (cfact_scaled_valid == np.inf).sum() > 0:
+        # drops indices that were masked as out of range before
+        valid_index = df.dropna().index
+        # populate cfact with original values
+        df.loc[:, "cfact_scaled"] = df.loc[:, "y_scaled"]
+        df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
+
+        if (cfact_scaled == np.inf).sum() > 0:
             print(
                 "There are",
-                (cfact_scaled_valid == np.inf).sum(),
+                (cfact_scaled == np.inf).sum(),
                 "values out of range for quantile mapping. Keep original values.",
             )
-            df.loc[valid_index[cfact_scaled_valid == np.inf], "cfact_scaled"] = df.loc[
-                valid_index[cfact_scaled_valid == np.inf], "y_scaled"
+            df.loc[valid_index[cfact_scaled == np.inf], "cfact_scaled"] = df.loc[
+                valid_index[cfact_scaled == np.inf], "y_scaled"
             ]
 
-        # # populate cfact with original values
+        # populate cfact with original values
         df.loc[:, "cfact"] = df.loc[:, "y"]
-        # # overwrite only values adjusted through cfact calculation
+        # overwrite only values adjusted through cfact calculation
         df.loc[valid_index, "cfact"] = self.f_rescale(
             df.loc[valid_index, "cfact_scaled"], datamin, scale
         )
+
+        if self.report_mu_sigma:
+            # todo: unifiy indexes so .values can be dropped
+            for v in ["mu", "sigma", "mu_ref", "sigma_ref"]:
+                df.loc[:, v] = df_mu_sigma.loc[:, v].values
 
         return df

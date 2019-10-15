@@ -148,42 +148,18 @@ class Gamma(object):
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
 
-    def quantile_mapping(self, qm_ref_period, trace, df):
+    def quantile_mapping(self, d, y_scaled):
 
         """
         specific for Gamma distributed variables where
         we diagnose shift in beta parameter through GMT.
-        """
 
-        df_mu_sigma = pd.DataFrame(
-            {"mu": trace["mu"].mean(axis=0), "sigma": trace["sigma"].mean(axis=0)},
-            index=df["ds"],
-        )
-        df_mu_sigma_ref = df_mu_sigma.loc[qm_ref_period[0] : qm_ref_period[1]]
-        # mean over all years for each day
-        df_mu_sigma_ref = df_mu_sigma_ref.groupby(
-            df_mu_sigma_ref.index.dayofyear
-        ).mean()
-
-        # case of not scaling sigma
-        df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
-        # write the average values for the reference period to each day of the
-        # whole timeseries
-        for day in df_mu_sigma_ref.index:
-            df_mu_sigma.loc[
-                df_mu_sigma.index.dayofyear == day, "mu_ref"
-            ] = df_mu_sigma_ref.loc[day, "mu"]
-            # case of scaling sigma
-            if self.scale_variability:
-                df_mu_sigma.loc[
-                    df_mu_sigma.index.dayofyear == day, "sigma_ref"
-                ] = df_mu_sigma_ref.loc[day, "sigma"]
-
-        d = df_mu_sigma
         # scipy gamma works with alpha and scale parameter
         # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
+        """
+
         quantile = stats.gamma.cdf(
-            df["y_scaled"],
+            y_scaled,
             d["mu"] ** 2.0 / d["sigma"] ** 2.0,
             scale=d["sigma"] ** 2.0 / d["mu"],
         )
