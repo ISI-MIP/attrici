@@ -92,19 +92,17 @@ class Gamma(object):
     of a Beta distribution. Beta parameter is assumed free of a trend.
     Example: precipitation """
 
-    def __init__(self, modes=1, scale_sigma_with_gmt=True):
+    def __init__(self, modes, scale_variability):
 
         self.modes = modes
-        self.scale_sigma_with_gmt = scale_sigma_with_gmt
+        self.scale_variability = scale_variability
         self.vars_to_estimate = [
             "mu_slope",
             "mu_intercept",
             "mu_yearly",
             "mu_trend",
-            "sg_slope",
             "sg_intercept",
             "sg_yearly",
-            "sg_trend",
         ]
 
         print("Using Gamma distribution model. Fourier modes:", modes)
@@ -139,24 +137,12 @@ class Gamma(object):
             )
 
             sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
-            sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
+            # sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
             sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes)
-            sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
+            # sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
             # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
             sigma = pm.Deterministic(
-                "sigma",
-                sg_intercept
-                / (
-                    1
-                    + tt.exp(
-                        -1
-                        * (
-                            sg_slope * gmt
-                            + det_dot(xf, sg_yearly)
-                            + gmt * det_dot(xf, sg_trend)
-                        )
-                    )
-                ),
+                "sigma", sg_intercept / (1 + tt.exp(-1 * det_dot(xf, sg_yearly)))
             )
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
@@ -188,7 +174,7 @@ class Gamma(object):
                 df_mu_sigma.index.dayofyear == day, "mu_ref"
             ] = df_mu_sigma_ref.loc[day, "mu"]
             # case of scaling sigma
-            if self.scale_sigma_with_gmt:
+            if self.scale_variability:
                 df_mu_sigma.loc[
                     df_mu_sigma.index.dayofyear == day, "sigma_ref"
                 ] = df_mu_sigma_ref.loc[day, "sigma"]

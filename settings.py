@@ -27,7 +27,8 @@ variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = 1
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
-scale_sigma_with_gmt = True
+# use the estimated variability in qm
+scale_variability = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 80

@@ -35,14 +35,14 @@ class estimator(object):
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
-        self.scale_sigma_with_gmt = cfg.scale_sigma_with_gmt
+        self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = True
 
         try:
             self.statmodel = model_for_var[self.variable](
-                self.modes, self.scale_sigma_with_gmt
+                self.modes, self.scale_variability
             )
         except KeyError as error:
             print(
