@@ -92,10 +92,11 @@ class Gamma(object):
     of a Beta distribution. Beta parameter is assumed free of a trend.
     Example: precipitation """
 
-    def __init__(self, modes, scale_variability):
+    def __init__(self, modes, scale_variability, sigma_model):
 
         self.modes = modes
         self.scale_variability = scale_variability
+        self.sigma_model = sigma_model
         self.vars_to_estimate = [
             "mu_intercept",
             "mu_slope",
@@ -140,30 +141,75 @@ class Gamma(object):
                     )
                 ),
             )
+            if self.sigma_model == "full":
+                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+                sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
+                sg_yearly = pm.Normal(
+                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+                )
+                sg_trend = pm.Normal(
+                    "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
+                )
+                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
+                sigma = pm.Deterministic(
+                    "sigma",
+                    self.pm_sigma0(
+                        sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend
+                    ),
+                )
+            elif self.sigma_model == "no_gmt_trend":
+                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+                sg_yearly = pm.Normal(
+                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+                )
+                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
+                sigma = pm.Deterministic(
+                    "sigma", self.pm_sigma1(sg_intercept, xf2, sg_yearly)
+                )
+                self.vars_to_estimate.remove("sg_slope")
+                self.vars_to_estimate.remove("sg_trend")
 
-            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
-            sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
-            sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2])
-            sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3])
-            # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
-            sigma = pm.Deterministic(
-                "sigma",
-                sg_intercept
-                / (
-                    1
-                    + tt.exp(
-                        -1
-                        * (
-                            sg_slope * gmt
-                            + det_dot(xf2, sg_yearly)
-                            + gmt * det_dot(xf3, sg_trend)
-                        )
-                    )
-                ),
-            )
+            elif self.sigma_model == "no_gmt_cycle_trend":
+                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+                sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
+                sg_yearly = pm.Normal(
+                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+                )
+                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
+                sigma = pm.Deterministic(
+                    "sigma", self.pm_sigma2(sg_intercept, sg_slope, gmt, xf2, sg_yearly)
+                )
+                self.vars_to_estimate.remove("sg_trend")
+
+            else:
+                raise NotImplemented
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
+
+    def pm_sigma0(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend):
+
+        return sg_intercept / (
+            1
+            + tt.exp(
+                -1
+                * (
+                    sg_slope * gmt
+                    + det_dot(xf2, sg_yearly)
+                    + gmt * det_dot(xf3, sg_trend)
+                )
+            )
+        )
+
+    def pm_sigma1(self, sg_intercept, xf2, sg_yearly):
+
+        return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
+
+    def pm_sigma2(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly):
+
+        return sg_intercept / (
+            1 + tt.exp(-1 * (sg_slope * gmt + det_dot(xf2, sg_yearly)))
+        )
 
     def quantile_mapping(self, d, y_scaled):
 

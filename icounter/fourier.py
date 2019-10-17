@@ -25,6 +25,7 @@ def rescale(df, modes):
     x = series(df["t"], p, modes)
     return x
 
+
 def get_fourier_valid(df, valid_index, modes):
 
     x_fourier = []

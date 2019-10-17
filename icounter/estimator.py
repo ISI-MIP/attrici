@@ -40,10 +40,11 @@ class estimator(object):
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = True
         self.report_mu_sigma = cfg.report_mu_sigma
+        self.sigma_model = cfg.sigma_model
 
         try:
             self.statmodel = model_for_var[self.variable](
-                self.modes, self.scale_variability
+                self.modes, self.scale_variability, self.sigma_model,
             )
         except KeyError as error:
             print(
@@ -53,15 +54,11 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        df_valid, gmt_valid = dh.get_valid_subset(
-            df, self.subset
-        )
+        df_valid, gmt_valid = dh.get_valid_subset(df, self.subset)
 
         x_fourier = fourier.get_fourier_valid(df, df_valid.index, self.modes)
 
-        self.model = self.statmodel.setup(
-            gmt_valid, x_fourier, df_valid["y_scaled"]
-        )
+        self.model = self.statmodel.setup(gmt_valid, x_fourier, df_valid["y_scaled"])
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, variable=self.variable

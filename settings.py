@@ -26,6 +26,8 @@ timeout = 60 * 60
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = [3,2,2,1]
+# out of full, no_gmt_trend, no_gmt_cycle_trend
+sigma_model = "no_gmt_cycle_trend"
 subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = True
