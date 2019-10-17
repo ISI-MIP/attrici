@@ -89,7 +89,7 @@ class estimator(object):
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
         self.df_valid = df_valid
-        self.x_fourier_valid = x_fourier_valid
+
         return trace
 
     def sample(self):
@@ -124,10 +124,16 @@ class estimator(object):
                 "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
             )
 
-            x_fourier = fourier.rescale(df, self.modes)
+            xf0 = fourier.rescale(df, self.modes[0])
+            xf1 = fourier.rescale(df, self.modes[1])
+            xf2 = fourier.rescale(df, self.modes[2])
+            xf3 = fourier.rescale(df, self.modes[3])
 
             with self.model:
-                pm.set_data({"xf": x_fourier})
+                pm.set_data({"xf0": xf0})
+                pm.set_data({"xf1": xf1})
+                pm.set_data({"xf2": xf2})
+                pm.set_data({"xf3": xf3})
                 pm.set_data({"gmt": df["gmt_scaled"].values})
 
                 trace_for_qm = pm.sample_posterior_predictive(
