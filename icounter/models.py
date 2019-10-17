@@ -116,11 +116,14 @@ class Gamma(object):
         with model:
 
             gmt = pm.Data("gmt", gmt_valid)
-            xf = pm.Data("xf", x_fourier)
+            xf0 = pm.Data("xf0", x_fourier[0])
+            xf1 = pm.Data("xf1", x_fourier[1])
+            xf2 = pm.Data("xf2", x_fourier[2])
+            xf3 = pm.Data("xf3", x_fourier[3])
             mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
             mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
-            mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes)
-            mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
+            mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
+            mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
             # mu_intercept * logistic(gmt,yearly_cycle), strictly positive
             mu = pm.Deterministic(
                 "mu",
@@ -131,8 +134,8 @@ class Gamma(object):
                         -1
                         * (
                             mu_slope * gmt
-                            + det_dot(xf, mu_yearly)
-                            + gmt * det_dot(xf, mu_trend)
+                            + det_dot(xf0, mu_yearly)
+                            + gmt * det_dot(xf1, mu_trend)
                         )
                     )
                 ),
@@ -140,8 +143,8 @@ class Gamma(object):
 
             sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
             sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
-            sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes)
-            sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes)
+            sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2])
+            sg_trend = pm.Normal("sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3])
             # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
             sigma = pm.Deterministic(
                 "sigma",
@@ -152,8 +155,8 @@ class Gamma(object):
                         -1
                         * (
                             sg_slope * gmt
-                            + det_dot(xf, sg_yearly)
-                            + gmt * det_dot(xf, sg_trend)
+                            + det_dot(xf2, sg_yearly)
+                            + gmt * det_dot(xf3, sg_trend)
                         )
                     )
                 ),

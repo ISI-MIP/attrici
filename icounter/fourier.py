@@ -24,3 +24,12 @@ def rescale(df, modes):
     p = 365.25 / (df["ds"].max() - df["ds"].min()).days
     x = series(df["t"], p, modes)
     return x
+
+def get_fourier_valid(df, valid_index, modes):
+
+    x_fourier = []
+    for mode in modes:
+        xf = rescale(df, mode)
+        x_fourier.append(xf[valid_index, :])
+
+    return x_fourier

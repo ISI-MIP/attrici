@@ -29,20 +29,20 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
         return lat_sub_dir
 
 
-def get_valid_subset(df, modes, subset):
+def get_valid_subset(df, subset):
 
     orig_len = len(df)
     df = df.loc[::subset, :].copy()
     # reindex to a [0,1,2, ..] index
     df.reset_index(inplace=True, drop=True)
 
-    x_fourier = fourier.rescale(df, modes)
+    # x_fourier = fourier.rescale(df, modes)
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_valid = df.dropna(axis=0, how="any")
 
     print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
 
-    return df_valid, x_fourier[df_valid.index, :], df_valid["gmt_scaled"].values
+    return df_valid, df_valid["gmt_scaled"].values
 
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):

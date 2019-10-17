@@ -25,7 +25,7 @@ timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
-modes = 1
+modes = [3,2,2,1]
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = True

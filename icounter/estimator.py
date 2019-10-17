@@ -53,12 +53,14 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        df_valid, x_fourier_valid, gmt_valid = dh.get_valid_subset(
-            df, self.modes, self.subset
+        df_valid, gmt_valid = dh.get_valid_subset(
+            df, self.subset
         )
 
+        x_fourier = fourier.get_fourier_valid(df, df_valid.index, self.modes)
+
         self.model = self.statmodel.setup(
-            gmt_valid, x_fourier_valid, df_valid["y_scaled"]
+            gmt_valid, x_fourier, df_valid["y_scaled"]
         )
 
         outdir_for_cell = dh.make_cell_output_dir(
