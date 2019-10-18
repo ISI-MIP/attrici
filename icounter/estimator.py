@@ -109,7 +109,7 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=500):
+    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
         trace_for_qm = trace[-subtrace:]
 

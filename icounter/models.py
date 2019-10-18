@@ -40,7 +40,8 @@ class Normal(object):
             "mu_slope",
             "mu_yearly",
             "mu_trend",
-            "sigma",
+            "sg_intercept",
+            "sg_yearly",
         ]
         print("Using Normal distribution model.")
 
@@ -72,11 +73,35 @@ class Normal(object):
             # intercept = pm.Normal(
             #     "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
             # )
-            sigma = pm.HalfCauchy("sigma", self.sigma, testval=1)
+            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+            sg_yearly = pm.Normal(
+                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+                )
+                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
+            sigma = pm.Deterministic(
+                    "sigma", self.pm_sigma1(sg_intercept, xf2, sg_yearly)
+                )
+            # sigma = pm.HalfCauchy(
+            #         "sigma", beta=self.pm_sigma0(sg_intercept, xf2, sg_yearly),
+            #         shape=(len(gmt_valid),),testval=1
+            #     )
+
+            # sigma = pm.HalfCauchy("sigma", self.sigma, testval=1)
 
             pm.Normal("obs", mu=mu, sigma=sigma, observed=observed)
 
         return model
+
+    def pm_sigma1(self, sg_intercept, xf2, sg_yearly):
+
+        return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
+
+
+    def pm_sigma0(self, sg_intercept, xf2, sg_yearly):
+
+        return tt.exp(sg_intercept +  det_dot(xf2, sg_yearly))
+
+
 
     def quantile_mapping(self, d, y_scaled):
 
