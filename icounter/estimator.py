@@ -43,9 +43,7 @@ class estimator(object):
         self.sigma_model = cfg.sigma_model
 
         try:
-            self.statmodel = model_for_var[self.variable](
-                self.modes, self.scale_variability, self.sigma_model,
-            )
+            self.statmodel = model_for_var[self.variable](self.modes, self.sigma_model)
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."

@@ -20,7 +20,7 @@ class Normal(object):
     """ Influence of GMT is modelled through a shift of
     mu (the mean) of a normally distributed variable. Works for example for tas."""
 
-    def __init__(self, modes=3):
+    def __init__(self, modes, sigma_model):
 
         # TODO: allow this to be changed by argument to __init__
         self.modes = modes
@@ -33,55 +33,58 @@ class Normal(object):
         self.sps = 2
         self.stmu = 0
         self.stps = 2
+        self.sigma_model = sigma_model
 
         self.vars_to_estimate = [
-            "slope",
-            "intercept",
+            "mu_intercept",
+            "mu_slope",
+            "mu_yearly",
+            "mu_trend",
             "sigma",
-            "beta_yearly",
-            "beta_trend",
         ]
-
         print("Using Normal distribution model.")
 
-    def setup(self, regressor, x_fourier, observed):
+    def setup(self, gmt_valid, x_fourier, observed):
 
         model = pm.Model()
 
         with model:
-            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal(
-                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+
+            gmt = pm.Data("gmt", gmt_valid)
+            xf0 = pm.Data("xf0", x_fourier[0])
+            xf1 = pm.Data("xf1", x_fourier[1])
+            xf2 = pm.Data("xf2", x_fourier[2])
+            xf3 = pm.Data("xf3", x_fourier[3])
+            mu_intercept = pm.Normal("mu_intercept", mu=0, sigma=5.0)
+            mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
+            mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
+            mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
+
+            mu = pm.Deterministic(
+                "mu",
+                mu_intercept
+                + mu_slope * gmt
+                + det_dot(xf0, mu_yearly)
+                + gmt * det_dot(xf1, mu_trend),
             )
+
+            # slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            # intercept = pm.Normal(
+            #     "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            # )
             sigma = pm.HalfCauchy("sigma", self.sigma, testval=1)
 
-            beta_yearly = pm.Normal(
-                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
-            )
-            beta_trend = pm.Normal(
-                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
-            )
-            mu = (
-                intercept
-                + det_dot(x_fourier, beta_yearly)
-                + regressor * (slope + det_dot(x_fourier, beta_trend))
-            )
-            pm.Normal("obs", mu=mu, sd=sigma, observed=observed)
+            pm.Normal("obs", mu=mu, sigma=sigma, observed=observed)
 
         return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
+    def quantile_mapping(self, d, y_scaled):
 
         """
         specific for normally distributed variables. Mapping done for each day.
         """
-
-        df_param = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-
-        sigma = trace["sigma"].mean()
-
-        quantile = stats.norm.cdf(x, loc=df_param["param_gmt"], scale=sigma)
-        x_mapped = stats.norm.ppf(quantile, loc=df_param["param_gmt_ref"], scale=sigma)
+        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
+        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
 
         return x_mapped
 
@@ -92,10 +95,9 @@ class Gamma(object):
     of a Beta distribution. Beta parameter is assumed free of a trend.
     Example: precipitation """
 
-    def __init__(self, modes, scale_variability, sigma_model):
+    def __init__(self, modes, sigma_model):
 
         self.modes = modes
-        self.scale_variability = scale_variability
         self.sigma_model = sigma_model
         self.vars_to_estimate = [
             "mu_intercept",
