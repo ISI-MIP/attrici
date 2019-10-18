@@ -20,7 +20,7 @@ plt.rcParams["figure.figsize"] = 18,12
 
 variable="pr"
 dataset="gswp3"
-runid="isicf014_gswp3_pr_flexmode_3211"
+runid="isicf014_gswp3_pr_flexmode_1111"
 
 
 def get_path(data_dir, var, dataset, runid):
