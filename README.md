@@ -85,7 +85,37 @@ You may optionally
 
 #### tas
 data checked
-Works using normal distribution
+Works using Normal distribution
+
+#### rlds
+data checked
+Works using Normal distribution
+Needs a restart to finish some hanging runs
+
+#### psl / ps
+data checked
+Works using Normal distribution
+
+#### rsds
+Deviationg approach from Lange et al. 2019, using Normal distribution
+This is because the yearly cycle is handled inherently here, so no need for specific treatment.
+FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
+
+#### hurs (relative humidity)
+data checked
+With Beta distribution, working
+Needs to be rerun so some holes are filled.
+
+#### tasskew
+data checked
+Works using Beta distribution
+
+#### prsnratio
+Works using beta distribution
+
+#### tasrange
+With Rice distribution
+FIXME: does not seem to find and remove trend. A lot of grid cells fail.
 
 #### tasmin
 Constructed from tas, tasskew and tasrange
@@ -95,24 +125,6 @@ To do in postprocessing
 Constructed from tas, tasskew and tasrange
 To do in postprocessing
 
-#### tasrange
-With Rice distribution
-FIXME: does not seem to find and remove trend. A lot of grid cells fail.
-
-#### tasskew
-data checked
-Works using Beta distribution
-
-#### rsds
-Deviationg approach from Lange et al. 2019, using Normal distribution
-This is because the yearly cycle is handled inherently here, so no need for specific treatment.
-FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
-
-#### rlds
-data checked
-Works using Normal distribution
-Needs a restart to finish some hanging runs
-
 #### pr
 Works with Gamma distribution
 FIXME: Needs checks as current version is not working at low latitudes
@@ -120,18 +132,6 @@ FIXME: Needs checks as current version is not working at low latitudes
 #### wind
 Works using Weibull distribution
 FIXME: does not seem to detrend. Seems we rather chose the parameter that adjusted the variability range
-
-#### psl / ps
-data checked
-Works using Normal distribution
-
-#### prsnratio
-Works using beta distribution
-
-#### hurs (relative humidity)
-data checked
-With Beta distribution, working
-Needs to be rerun so some holes are filled.
 
 
 ## Credits

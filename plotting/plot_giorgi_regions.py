@@ -18,9 +18,9 @@ warnings.simplefilter("ignore")
 plt.rcParams["figure.figsize"] = 18,12
 
 
-variable="pr"
+variable="ps"
 dataset="gswp3"
-runid="isicf014_gswp3_pr_flexmode_1111"
+runid="isicf014_gswp3_ps_sub20_mode21XX_nosgimascale"
 
 
 def get_path(data_dir, var, dataset, runid):
