@@ -20,7 +20,7 @@ bound = {
     "tasskew": (0.0, 1.0),
     "pr": (0.0, None),
     "prsnratio": (0.0, 1.0),
-    "hurs": (0.0, 100.0),
+    "hurs": (0, 100.0),
     "ps": (0, None),
     "rsds": (0, None),
     "rlds": (0, None),
@@ -88,7 +88,7 @@ def mask_and_scale_by_bounds(data, variable):
     scale = bound[variable][1] - bound[variable][0]
     scaled_data = data / scale
     print("Scaling by bounds of variable, scale is ", scale, ".")
-
+    print("Min and max are", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
 
 

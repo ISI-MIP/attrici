@@ -74,13 +74,11 @@ class Normal(object):
             #     "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
             # )
             sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
-            sg_yearly = pm.Normal(
-                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
-                )
-                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
+            sg_yearly = pm.Normal("sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2])
+            # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
             sigma = pm.Deterministic(
-                    "sigma", self.pm_sigma1(sg_intercept, xf2, sg_yearly)
-                )
+                "sigma", self.pm_sigma1(sg_intercept, xf2, sg_yearly)
+            )
             # sigma = pm.HalfCauchy(
             #         "sigma", beta=self.pm_sigma0(sg_intercept, xf2, sg_yearly),
             #         shape=(len(gmt_valid),),testval=1
@@ -96,12 +94,9 @@ class Normal(object):
 
         return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
 
-
     def pm_sigma0(self, sg_intercept, xf2, sg_yearly):
 
-        return tt.exp(sg_intercept +  det_dot(xf2, sg_yearly))
-
-
+        return tt.exp(sg_intercept + det_dot(xf2, sg_yearly))
 
     def quantile_mapping(self, d, y_scaled):
 
@@ -267,73 +262,140 @@ class Beta(object):
     """ Influence of GMT is modelled through the influence of on the alpha parameter
     of a Beta distribution. Beta parameter is assumed free of a trend. """
 
-    def __init__(self, modes=3):
+    def __init__(self, modes, sigma_model):
 
-        # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.5
-        self.sigma_intercept = 1.0
-        self.mu_slope = 0.0
-        self.sigma_slope = 1.0
-        self.smu = 0
-        self.sps = 1.0
-        self.stmu = 0
-        self.stps = 1.0
-
+        self.sigma_model = sigma_model
         self.vars_to_estimate = [
-            "slope",
-            "intercept",
-            "beta",
+            "alpha_intercept",
+            "alpha_slope",
+            "alpha_yearly",
+            "alpha_trend",
+            "beta_intercept",
+            "beta_slope",
             "beta_yearly",
             "beta_trend",
         ]
 
         print("Using Beta distribution model.")
 
-    def setup(self, regressor, x_fourier, observed):
+    def setup(self, gmt_valid, x_fourier, observed):
 
         model = pm.Model()
 
         with model:
-            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal(
-                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
-            )
-            beta = pm.Lognormal("beta", mu=2, sigma=1)
 
+            gmt = pm.Data("gmt", gmt_valid)
+            xf0 = pm.Data("xf0", x_fourier[0])
+            xf1 = pm.Data("xf1", x_fourier[1])
+            xf2 = pm.Data("xf2", x_fourier[2])
+            xf3 = pm.Data("xf3", x_fourier[3])
+            alpha_intercept = pm.Lognormal("alpha_intercept", mu=0, sigma=1.0)
+            alpha_slope = pm.Normal("alpha_slope", mu=0, sigma=2.0)
+            alpha_yearly = pm.Normal(
+                "alpha_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0]
+            )
+            alpha_trend = pm.Normal(
+                "alpha_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1]
+            )
+            # alpha_intercept * logistic(gmt,yearly_cycle), strictly positive
+            alpha = pm.Deterministic(
+                "alpha",
+                alpha_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            alpha_slope * gmt
+                            + det_dot(xf0, alpha_yearly)
+                            + gmt * det_dot(xf1, alpha_trend)
+                        )
+                    )
+                ),
+            )
+
+            beta_intercept = pm.Lognormal("beta_intercept", mu=0, sigma=1.0)
+            beta_slope = pm.Normal("beta_slope", mu=0, sigma=2.0)
             beta_yearly = pm.Normal(
-                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+                "beta_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
             )
             beta_trend = pm.Normal(
-                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+                "beta_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
+            )
+            # beta_intercept * logistic(gmt,yearly_cycle), strictly positive
+            beta = pm.Deterministic(
+                "beta",
+                beta_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            beta_slope * gmt
+                            + det_dot(xf2, beta_yearly)
+                            + gmt * det_dot(xf3, beta_trend)
+                        )
+                    )
+                ),
             )
 
-            log_param_gmt = tt.exp(
-                intercept
-                + slope * regressor
-                + det_dot(x_fourier, beta_yearly)
-                + (regressor * det_dot(x_fourier, beta_trend))
+            # sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+            # sg_yearly = pm.Normal(
+            #         "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+            #     )
+            # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
+            # sigma = pm.Beta("sigma", mu=0.5, sigma=0.2)
+            # mu = pm.Beta("mu", mu=0.5, sigma=0.2)
+
+            # kappa = mu * (1 - mu) / sigma**2. - 1.
+
+            # alpha = pm.Deterministic("alpha",mu*kappa)
+            # beta = pm.Deterministic("beta",(1.-mu)*kappa)
+            mu = pm.Deterministic("mu", alpha / (alpha + beta))
+            sigma = pm.Deterministic(
+                "sigma", (alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1)))**0.5
             )
 
-            pm.Beta("obs", alpha=log_param_gmt, beta=beta, observed=observed)
+            pm.Beta("obs", alpha=alpha, beta=beta, observed=observed)
 
-            return model
+        return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
+    def pm_sigma1(self, sg_intercept, xf2, sg_yearly):
+
+        return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
+
+    def quantile_mapping(self, d, y_scaled):
 
         """
-        specific for variables with two bounds, approximately following a
-        beta distribution. Mapping done for each day.
+        specific for normally distributed variables. Mapping done for each day.
         """
+        alpha = d["mu"]**2 * ((1 - d["mu"]) / d["sigma"]**2 - 1 / d["mu"])
+        alpha_ref = d["mu_ref"]**2 * ((1 - d["mu_ref"]) / d["sigma_ref"]**2 - 1 / d["mu_ref"])
 
-        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
+        beta = alpha * (1 / d["mu"] - 1)
+        beta_ref = alpha_ref * (1 / d["mu_ref"] - 1)
 
-        beta = trace["beta"].mean()
-
-        quantile = stats.beta.cdf(x, np.exp(df_log["param_gmt"]), beta)
-        x_mapped = stats.beta.ppf(quantile, np.exp(df_log["param_gmt_ref"]), beta)
+        quantile = stats.beta.cdf(y_scaled, alpha, beta)
+        x_mapped = stats.beta.ppf(quantile, alpha_ref, beta_ref)
 
         return x_mapped
+
+    # def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
+
+    #     """
+    #     specific for variables with two bounds, approximately following a
+    #     beta distribution. Mapping done for each day.
+    #     """
+
+    #     df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
+
+    #     beta = trace["beta"].mean()
+
+    #     quantile = stats.beta.cdf(x, np.exp(df_log["param_gmt"]), beta)
+    #     x_mapped = stats.beta.ppf(quantile, np.exp(df_log["param_gmt_ref"]), beta)
+
+    #     return x_mapped
 
 
 class Weibull(object):
