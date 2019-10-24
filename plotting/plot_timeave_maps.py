@@ -19,9 +19,9 @@ def get_path(data_dir, var, dataset, runid):
     return data_dir/Path(runid)/"cfact"/var/Path(
         var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
 
-variable="ps"
+variable="hurs"
 dataset="gswp3"
-runid="isicf014_gswp3_ps_sub20_mode21XX_nosgimascale"
+runid="isicf014_gswp3_hurs_sub20_mode21XX"
 
 figure_dir = data_dir/"figures"/runid/"maps"
 figure_dir.mkdir(parents=True, exist_ok=True)
@@ -34,8 +34,8 @@ data = ncd.variables["y"][:]
 trend = (data[-30*12:,::sb,::sb].mean(axis=0) -
          data[0:30*12:,::sb,::sb].mean(axis=0))
 
-vmin=-200
-vmax=200
+vmax=5
+vmin= -vmax
 ax1 = plt.subplot(211)
 # last minus first 30 years
 plt.imshow(trend,vmin=vmin,vmax=vmax)

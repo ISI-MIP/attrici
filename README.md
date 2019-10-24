@@ -106,6 +106,14 @@ data checked
 With Beta distribution, working
 Needs to be rerun so some holes are filled.
 
+GSWP: needs preprocessing to rename from rhs to hurs, and mask invalid values below zero:
+
+```
+ncrename -O -v rhs,hurs fname1.nc fname2.nc
+
+cdo setrtomiss,-1e20,0 fname2.nc fname3.nc
+```
+
 #### tasskew
 data checked
 Works using Beta distribution

@@ -53,6 +53,7 @@ class estimator(object):
     def estimate_parameters(self, df, lat, lon):
 
         df_valid, gmt_valid = dh.get_valid_subset(df, self.subset)
+        self.df_valid = df_valid
 
         x_fourier = fourier.get_fourier_valid(df, df_valid.index, self.modes)
 
@@ -64,12 +65,11 @@ class estimator(object):
 
         # TODO: isolate loading trace function
         print("Search for trace in\n", outdir_for_cell)
-        trace = pm.load_trace(outdir_for_cell, model=self.model)
-
         # As load_trace does not throw an error when no saved data exists, we here
         # test this manually. FIXME: Could be improved, as we check for existence
         # of names and number of chains only, but not that the data is not corrupted.
         try:
+            trace = pm.load_trace(outdir_for_cell, model=self.model)
             for var in self.statmodel.vars_to_estimate:
                 if var not in trace.varnames:
                     print(var, "is not in trace, rerun sampling.")
@@ -77,13 +77,12 @@ class estimator(object):
             if trace.nchains != self.chains:
                 raise IndexError("Sample data not completely saved. Rerun.")
             print("Successfully loaded sampled data. Skip this for sampling.")
-        except IndexError:
+        except Exception as e:
+            print("Error with saved trace:",e, "Redo parameter estimation.")
             trace = self.sample()
             # print(pm.summary(trace)) # takes too much memory
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
-
-        self.df_valid = df_valid
 
         return trace
 
@@ -135,6 +134,7 @@ class estimator(object):
                     trace[-subtrace:],
                     samples=subtrace,
                     var_names=["obs", "mu", "sigma"],
+                    progressbar = self.progressbar,
                 )
 
         df_mu_sigma = dh.create_ref_df(

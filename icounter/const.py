@@ -87,7 +87,7 @@ def mask_and_scale_by_bounds(data, variable):
 
     scale = bound[variable][1] - bound[variable][0]
     scaled_data = data / scale
-    print("Scaling by bounds of variable, scale is ", scale, ".")
+    print("Scaling by bounds of variable, divide data by", scale)
     print("Min and max are", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
 
@@ -105,27 +105,11 @@ def scale_offset_and_mask(data, variable):
     return scaled_data, data.min(), scale
 
 
-# def scale_and_mask_precip(data, variable):
-
-#     pr_thresh = 0.000001157407  # 0.1 mm per day
-
-#     # get scale and datamin before masking
-#     scale = data.max() - data.min()
-#     datamin = data.min()
-#     masked_data = data.copy()
-#     masked_data[masked_data < pr_thresh] = np.nan
-#     # do not use datamin to shift data to avoid zero
-#     scaled_data = masked_data / scale
-
-#     return scaled_data, datamin, scale
-
-
 def refill_and_rescale(scaled_data, datamin, scale):
 
     # TODO: implement refilling of values that have been masked before.
 
     return scaled_data * scale
-
 
 mask_and_scale = {
     "gmt": [scale_to_unity, rescale_to_original],

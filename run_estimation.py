@@ -60,7 +60,7 @@ for n in run_numbers[:]:
     j = int(n / len(lats))
     lat, lon = lats[i], lons[j]
 
-    # if lat >20: continue
+    if lat >10: continue
     print("This is SLURM task", task_id, "run number", n, "lat,lon", lat, lon)
 
     data = obs_data.variables[s.variable][:, i, j]
