@@ -78,7 +78,7 @@ class estimator(object):
                 raise IndexError("Sample data not completely saved. Rerun.")
             print("Successfully loaded sampled data. Skip this for sampling.")
         except Exception as e:
-            print("Error with saved trace:",e, "Redo parameter estimation.")
+            print("Problem with saved trace:",e, ". Redo parameter estimation.")
             trace = self.sample()
             # print(pm.summary(trace)) # takes too much memory
             if self.save_trace:
