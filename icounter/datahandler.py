@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import sys
-
+import netCDF4 as nc
 import icounter.const as c
 import icounter.fourier as fourier
 
@@ -115,18 +115,25 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability):
     return df_mu_sigma
 
 
-# def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
 
-#     valid_index = df.dropna().index
-#     df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
-#     f_rescale = c.mask_and_scale[variable][1]
-#     # populate cfact with original values
-#     df["cfact"] = df["y"]
-#     # overwrite only values adjusted through cfact calculation
-#     df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
-
-#     return df
-
+    input_file = data_dir / dataset / pathlib.Path(
+        variable + "_" + dataset.lower() + "_" + qualifier + ".nc4"
+    )
+    obs_data = nc.Dataset(input_file, "r")
+    nct = obs_data.variables["time"]
+    lats = obs_data.variables["lat"][:]
+    lons = obs_data.variables["lon"][:]
+    i = np.where(lats == lat)[0][0]
+    j = np.where(lons == lon)[0][0]
+    data = obs_data.variables[variable][:, i, j]
+    tm = pd.to_datetime(
+        nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
+    )
+    df = pd.DataFrame(data, index=tm, columns=[variable])
+    df.index.name = "Time"
+    obs_data.close()
+    return df
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 
@@ -146,6 +153,7 @@ def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
         raise NotImplementedError("choose storage format .h5 or csv.")
 
     print("Saved timeseries to ", fname)
+
 
 
 def read_from_disk(data_path):

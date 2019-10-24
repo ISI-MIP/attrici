@@ -354,7 +354,8 @@ class Beta(object):
             # beta = pm.Deterministic("beta",(1.-mu)*kappa)
             mu = pm.Deterministic("mu", alpha / (alpha + beta))
             sigma = pm.Deterministic(
-                "sigma", (alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1)))**0.5
+                "sigma",
+                (alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))) ** 0.5,
             )
 
             pm.Beta("obs", alpha=alpha, beta=beta, observed=observed)
@@ -370,8 +371,10 @@ class Beta(object):
         """
         specific for normally distributed variables. Mapping done for each day.
         """
-        alpha = d["mu"]**2 * ((1 - d["mu"]) / d["sigma"]**2 - 1 / d["mu"])
-        alpha_ref = d["mu_ref"]**2 * ((1 - d["mu_ref"]) / d["sigma_ref"]**2 - 1 / d["mu_ref"])
+        alpha = d["mu"] ** 2 * ((1 - d["mu"]) / d["sigma"] ** 2 - 1 / d["mu"])
+        alpha_ref = d["mu_ref"] ** 2 * (
+            (1 - d["mu_ref"]) / d["sigma_ref"] ** 2 - 1 / d["mu_ref"]
+        )
 
         beta = alpha * (1 / d["mu"] - 1)
         beta_ref = alpha_ref * (1 / d["mu_ref"] - 1)

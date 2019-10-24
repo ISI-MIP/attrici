@@ -23,9 +23,9 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "hurs"  # select variable to detrend
+variable = "tasskew"  # select variable to detrend
 # number of modes for fourier series of model
-modes = [2,1,1,1]
+modes = [1,1,1,1]
 # out of full, no_gmt_trend, no_gmt_cycle_trend
 sigma_model = "no_gmt_cycle_trend"
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
@@ -53,8 +53,8 @@ trend_file = variable + "_" + dataset + "_trend.nc4"
 storage_format = ".h5"
 
 # model run settings
-tune = 1000  # number of draws to tune model
-draws = 1000  # number of sampling draws per chain
+tune = 10  # number of draws to tune model
+draws = 100  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
 
 # number of cores to use for one gridpoint
