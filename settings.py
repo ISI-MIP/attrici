@@ -53,8 +53,8 @@ trend_file = variable + "_" + dataset + "_trend.nc4"
 storage_format = ".h5"
 
 # model run settings
-tune = 10  # number of draws to tune model
-draws = 100  # number of sampling draws per chain
+tune = 100  # number of draws to tune model
+draws = 1000  # number of sampling draws per chain
 chains = 2  # number of chains to calculate (min 2 to check for convergence)
 
 # number of cores to use for one gridpoint

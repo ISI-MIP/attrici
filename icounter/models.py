@@ -290,7 +290,7 @@ class Beta(object):
             xf1 = pm.Data("xf1", x_fourier[1])
             xf2 = pm.Data("xf2", x_fourier[2])
             xf3 = pm.Data("xf3", x_fourier[3])
-            alpha_intercept = pm.Lognormal("alpha_intercept", mu=0, sigma=1.0)
+            alpha_intercept = pm.Lognormal("alpha_intercept", mu=4, sigma=1.6)
             alpha_slope = pm.Normal("alpha_slope", mu=0, sigma=2.0)
             alpha_yearly = pm.Normal(
                 "alpha_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0]
@@ -315,7 +315,7 @@ class Beta(object):
                 ),
             )
 
-            beta_intercept = pm.Lognormal("beta_intercept", mu=0, sigma=1.0)
+            beta_intercept = pm.Lognormal("beta_intercept", mu=4, sigma=1.6)
             beta_slope = pm.Normal("beta_slope", mu=0, sigma=2.0)
             beta_yearly = pm.Normal(
                 "beta_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
