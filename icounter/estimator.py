@@ -90,14 +90,20 @@ class estimator(object):
 
         TIME0 = datetime.now()
 
+        # with self.model:
+        #     trace = pm.sample(
+        #         draws=self.draws,
+        #         cores=self.cores,
+        #         chains=self.chains,
+        #         tune=self.tune,
+        #         progressbar=self.progressbar,
+        #     )
+
         with self.model:
-            trace = pm.sample(
-                draws=self.draws,
-                cores=self.cores,
-                chains=self.chains,
-                tune=self.tune,
-                progressbar=self.progressbar,
+            mean_field = pm.fit(method='fullrank_advi',
+             progressbar=self.progressbar,
             )
+            trace = mean_field.sample(1000)
 
         TIME1 = datetime.now()
         print(

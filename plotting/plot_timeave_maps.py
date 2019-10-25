@@ -21,7 +21,7 @@ def get_path(data_dir, var, dataset, runid):
 
 variable="hurs"
 dataset="gswp3"
-runid="isicf014_gswp3_hurs_sub20_mode21XX"
+runid="isicf014_gswp3_hurs_sub20_mode1111_fi_every2"
 
 figure_dir = data_dir/"figures"/runid/"maps"
 figure_dir.mkdir(parents=True, exist_ok=True)
