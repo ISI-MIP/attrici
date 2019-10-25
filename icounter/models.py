@@ -384,22 +384,6 @@ class Beta(object):
 
         return x_mapped
 
-    # def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
-
-    #     """
-    #     specific for variables with two bounds, approximately following a
-    #     beta distribution. Mapping done for each day.
-    #     """
-
-    #     df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-
-    #     beta = trace["beta"].mean()
-
-    #     quantile = stats.beta.cdf(x, np.exp(df_log["param_gmt"]), beta)
-    #     x_mapped = stats.beta.ppf(quantile, np.exp(df_log["param_gmt_ref"]), beta)
-
-    #     return x_mapped
-
 
 class Weibull(object):
 
@@ -456,7 +440,7 @@ class Weibull(object):
 
             pm.Weibull("obs", alpha=log_param_gmt, beta=beta, observed=observed)
 
-            return model
+        return model
 
     def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
 
@@ -484,73 +468,143 @@ class Rice(object):
     This is useful for normally distributed variables with a lower boundary ot x=0.
     Sigma parameter is assumed free of a trend. """
 
-    def __init__(self, modes=3):
+    def __init__(self, modes, sigma_model):
 
-        # TODO: allow this to be changed by argument to __init__
         self.modes = modes
-        self.mu_intercept = 0.0
-        self.sigma_intercept = 1.0
-        self.mu_slope = 0.0
-        self.sigma_slope = 1.0
-        self.smu = 0
-        self.sps = 1.0
-        self.stmu = 0
-        self.stps = 1.0
-
+        self.sigma_model = sigma_model
         self.vars_to_estimate = [
-            "slope",
-            "intercept",
-            "sigma",
+            "alpha_intercept",
+            "alpha_slope",
+            "alpha_yearly",
+            "alpha_trend",
+            "beta_intercept",
+            "beta_slope",
             "beta_yearly",
             "beta_trend",
         ]
 
         print("Using Rice distribution model.")
 
-    def setup(self, regressor, x_fourier, observed):
+    def setup(self, gmt_valid, x_fourier, observed):
 
         model = pm.Model()
 
         with model:
 
-            slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            intercept = pm.Normal(
-                "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            # slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
+            # intercept = pm.Normal(
+            #     "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
+            # )
+            # sigma = pm.Lognormal("sigma", mu=2, sigma=1)
+
+            # beta_yearly = pm.Normal(
+            #     "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            # )
+            # beta_trend = pm.Normal(
+            #     "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            # )
+
+            # log_param_gmt = tt.exp(
+            #     intercept
+            #     + slope * regressor
+            #     + det_dot(x_fourier, beta_yearly)
+            #     + (regressor * det_dot(x_fourier, beta_trend))
+            # )
+
+            # pm.Rice("obs", nu=nu, sigma=sigma, observed=observed)
+
+            # mu = pm.Deterministic("mu", alpha / (alpha + beta))
+            # sigma = pm.Deterministic(
+            #     "sigma",
+            #     (alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))) ** 0.5,
+            # )
+
+            # return model
+
+
+            gmt = pm.Data("gmt", gmt_valid)
+            xf0 = pm.Data("xf0", x_fourier[0])
+            xf1 = pm.Data("xf1", x_fourier[1])
+            xf2 = pm.Data("xf2", x_fourier[2])
+            xf3 = pm.Data("xf3", x_fourier[3])
+            nu_intercept = pm.Lognormal("nu_intercept", mu=4, sigma=1.6)
+            nu_slope = pm.Normal("nu_slope", mu=0, sigma=2.0)
+            nu_yearly = pm.Normal(
+                "nu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0]
             )
-            sigma = pm.Lognormal("sigma", mu=2, sigma=1)
-
-            beta_yearly = pm.Normal(
-                "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
+            nu_trend = pm.Normal(
+                "nu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1]
             )
-            beta_trend = pm.Normal(
-                "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
+            # alpha_intercept * logistic(gmt,yearly_cycle), strictly positive
+            nu = pm.Deterministic(
+                "mu",
+                nu_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            nu_slope * gmt
+                            + det_dot(xf0, nu_yearly)
+                            + gmt * det_dot(xf1, nu_trend)
+                        )
+                    )
+                ),
             )
 
-            log_param_gmt = tt.exp(
-                intercept
-                + slope * regressor
-                + det_dot(x_fourier, beta_yearly)
-                + (regressor * det_dot(x_fourier, beta_trend))
+            sigma_intercept = pm.Lognormal("sigma_intercept", mu=4, sigma=1.6)
+            sigma_slope = pm.Normal("sigma_slope", mu=0, sigma=2.0)
+            sigma_yearly = pm.Normal(
+                "sigma_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+            )
+            sigma_trend = pm.Normal(
+                "sigma_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
+            )
+            # sigma_intercept * logistic(gmt,yearly_cycle), strictly positive
+            sigma = pm.Deterministic(
+                "sigma",
+                sigma_intercept
+                / (
+                    1
+                    + tt.exp(
+                        -1
+                        * (
+                            sigma_slope * gmt
+                            + det_dot(xf2, sigma_yearly)
+                            + gmt * det_dot(xf3, sigma_trend)
+                        )
+                    )
+                ),
             )
 
-            pm.Rice("obs", nu=log_param_gmt, sigma=sigma, observed=observed)
+            pm.Rice("obs", nu=nu, sigma=sigma, observed=observed)
 
-            return model
+        return model
 
-    def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
+    # def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
+
+    #     """
+    #     specific for variables with two bounds, approximately following a
+    #     Rice distribution.
+    #     """
+
+    #     df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
+
+    #     sigma = trace["sigma"].mean()
+
+    #     quantile = stats.rice.cdf(x, np.exp(df_log["param_gmt"]), scale=sigma)
+    #     x_mapped = stats.rice.ppf(
+    #         quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma
+    #     )
+
+    #     return x_mapped
+
+    def quantile_mapping(self, d, y_scaled):
 
         """
-        specific for variables with two bounds, approximately following a
-        Rice distribution.
+        specific for normally distributed variables. Mapping done for each day.
         """
-
-        df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-
-        sigma = trace["sigma"].mean()
-
-        quantile = stats.rice.cdf(x, np.exp(df_log["param_gmt"]), scale=sigma)
-        x_mapped = stats.rice.ppf(
-            quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma
-        )
+        quantile = stats.rice.cdf(y_scaled, b=d["mu"]/d["sigma"], scale=d["sigma"])
+        x_mapped = stats.rice.ppf(quantile, b=d["mu_ref"]/d["sigma_ref"], scale=d["sigma_ref"])
 
         return x_mapped

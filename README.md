@@ -119,7 +119,7 @@ data checked
 Works using Beta distribution
 
 #### prsnratio
-Works using beta distribution
+Snow included in GSWP3
 
 #### tasrange
 With Rice distribution

@@ -41,6 +41,7 @@ class estimator(object):
         self.save_trace = True
         self.report_mu_sigma = cfg.report_mu_sigma
         self.sigma_model = cfg.sigma_model
+        self.prior_type = cfg.prior_type
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes, self.sigma_model)
@@ -100,7 +101,7 @@ class estimator(object):
         #     )
 
         with self.model:
-            mean_field = pm.fit(method='fullrank_advi',
+            mean_field = pm.fit(n=5000,method='fullrank_advi',
              progressbar=self.progressbar,
             )
             trace = mean_field.sample(1000)
