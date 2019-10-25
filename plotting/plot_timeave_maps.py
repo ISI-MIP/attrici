@@ -6,6 +6,8 @@ import numpy as np
 import netCDF4 as nc
 from pathlib import Path
 import arviz as az
+import argparse
+
 import icounter.models as models
 import icounter.fourier as fourier
 import icounter.datahandler as dh
@@ -21,8 +23,12 @@ def get_path(data_dir, var, dataset, runid):
 
 variable="hurs"
 dataset="gswp3"
-runid="isicf014_gswp3_hurs_sub20_mode1111_fi_every2"
 
+parser = argparse.ArgumentParser()
+parser.add_argument('runid', nargs='*', help='provide name of the experiment.')
+o = parser.parse_args()
+runid=o.runid[0]
+# print(runid)
 figure_dir = data_dir/"figures"/runid/"maps"
 figure_dir.mkdir(parents=True, exist_ok=True)
 print(figure_dir)
@@ -34,7 +40,7 @@ data = ncd.variables["y"][:]
 trend = (data[-30*12:,::sb,::sb].mean(axis=0) -
          data[0:30*12:,::sb,::sb].mean(axis=0))
 
-vmax=5
+vmax=1
 vmin= -vmax
 ax1 = plt.subplot(211)
 # last minus first 30 years
