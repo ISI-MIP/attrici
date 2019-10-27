@@ -25,9 +25,9 @@ timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
 variable = "tasrange"  # select variable to detrend
 # number of modes for fourier series of model
-modes = [1,1,1,1]
+modes = [2,2,2,2]
 # out of full, no_gmt_trend, no_gmt_cycle_trend
-sigma_model = "no_gmt_cycle_trend"
+sigma_model = "full"
 prior_type = ["full","long_term"]
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm

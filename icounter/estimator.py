@@ -101,8 +101,8 @@ class estimator(object):
         #     )
 
         with self.model:
-            mean_field = pm.fit(n=5000,method='fullrank_advi',
-             progressbar=self.progressbar,
+            mean_field = pm.fit(
+                n=10000, method="fullrank_advi", progressbar=self.progressbar
             )
             trace = mean_field.sample(1000)
 

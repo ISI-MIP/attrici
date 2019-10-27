@@ -491,37 +491,6 @@ class Rice(object):
 
         with model:
 
-            # slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            # intercept = pm.Normal(
-            #     "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
-            # )
-            # sigma = pm.Lognormal("sigma", mu=2, sigma=1)
-
-            # beta_yearly = pm.Normal(
-            #     "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
-            # )
-            # beta_trend = pm.Normal(
-            #     "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
-            # )
-
-            # log_param_gmt = tt.exp(
-            #     intercept
-            #     + slope * regressor
-            #     + det_dot(x_fourier, beta_yearly)
-            #     + (regressor * det_dot(x_fourier, beta_trend))
-            # )
-
-            # pm.Rice("obs", nu=nu, sigma=sigma, observed=observed)
-
-            # mu = pm.Deterministic("mu", alpha / (alpha + beta))
-            # sigma = pm.Deterministic(
-            #     "sigma",
-            #     (alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))) ** 0.5,
-            # )
-
-            # return model
-
-
             gmt = pm.Data("gmt", gmt_valid)
             xf0 = pm.Data("xf0", x_fourier[0])
             xf1 = pm.Data("xf1", x_fourier[1])
@@ -529,12 +498,8 @@ class Rice(object):
             xf3 = pm.Data("xf3", x_fourier[3])
             nu_intercept = pm.Lognormal("nu_intercept", mu=4, sigma=1.6)
             nu_slope = pm.Normal("nu_slope", mu=0, sigma=2.0)
-            nu_yearly = pm.Normal(
-                "nu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0]
-            )
-            nu_trend = pm.Normal(
-                "nu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1]
-            )
+            nu_yearly = pm.Normal("nu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
+            nu_trend = pm.Normal("nu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
             # alpha_intercept * logistic(gmt,yearly_cycle), strictly positive
             nu = pm.Deterministic(
                 "mu",
@@ -581,30 +546,14 @@ class Rice(object):
 
         return model
 
-    # def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
-
-    #     """
-    #     specific for variables with two bounds, approximately following a
-    #     Rice distribution.
-    #     """
-
-    #     df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-
-    #     sigma = trace["sigma"].mean()
-
-    #     quantile = stats.rice.cdf(x, np.exp(df_log["param_gmt"]), scale=sigma)
-    #     x_mapped = stats.rice.ppf(
-    #         quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma
-    #     )
-
-    #     return x_mapped
-
     def quantile_mapping(self, d, y_scaled):
 
         """
         specific for normally distributed variables. Mapping done for each day.
         """
-        quantile = stats.rice.cdf(y_scaled, b=d["mu"]/d["sigma"], scale=d["sigma"])
-        x_mapped = stats.rice.ppf(quantile, b=d["mu_ref"]/d["sigma_ref"], scale=d["sigma_ref"])
+        quantile = stats.rice.cdf(y_scaled, b=d["mu"] / d["sigma"], scale=d["sigma"])
+        x_mapped = stats.rice.ppf(
+            quantile, b=d["mu_ref"] / d["sigma_ref"], scale=d["sigma_ref"]
+        )
 
         return x_mapped

@@ -117,8 +117,10 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability):
 
 def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
 
-    input_file = data_dir / dataset / pathlib.Path(
-        variable + "_" + dataset.lower() + "_" + qualifier + ".nc4"
+    input_file = (
+        data_dir
+        / dataset
+        / pathlib.Path(variable + "_" + dataset.lower() + "_" + qualifier + ".nc4")
     )
     obs_data = nc.Dataset(input_file, "r")
     nct = obs_data.variables["time"]
@@ -134,6 +136,7 @@ def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
     df.index.name = "Time"
     obs_data.close()
     return df
+
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
 
@@ -153,7 +156,6 @@ def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
         raise NotImplementedError("choose storage format .h5 or csv.")
 
     print("Saved timeseries to ", fname)
-
 
 
 def read_from_disk(data_path):
