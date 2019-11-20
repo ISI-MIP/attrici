@@ -27,16 +27,19 @@ def get_path(data_dir, var, dataset, runid):
     return data_dir/Path(runid)/"cfact"/var/Path(
         var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
 
+
 def select_giorgi_by_name(ds, name, land_mask):
     """ Select the land pixels belonging to the Giorgi region with name."""
     nregion = rem.defined_regions.giorgi.map_keys(name)
     return ds.where((giorgi_mask==nregion) & land_mask)
+
 
 def get_season_regmean(ds_season, rname):
 
     regy = select_giorgi_by_name(ds_season.y, rname, land_mask)
     regcf = select_giorgi_by_name(ds_season.cfact, rname, land_mask)
     return regy.mean(dim=("lat","lon")), regcf.mean(dim=("lat","lon"))
+
 
 def get_seasonal_dataset(ds,season):
     ds_season = ds.where(ds['time.season'] == season)
@@ -46,16 +49,18 @@ def get_seasonal_dataset(ds,season):
     # make annual mean
     return ds_season.groupby('time.year').mean('time')
 
+
 def get_ylims(ylim):
     return np.array(ylim)[:,0].min(), np.array(ylim)[:,1].max()
 
 # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
-data_dir = Path("/home/mengel/data/20190306_IsimipDetrend/output/")
+data_dir = Path("/home/sitreu/Documents/PIK/Counter Factuals/isi-cfact/output")
 
 
-ncfl = get_path(data_dir, variable, dataset, runid)
 
-ds = xr.open_dataset(ncfl)
+#ncfl = get_path(data_dir)
+
+ds = xr.open_dataset(data_dir/"pr_GSWP3_cfactual_monmean.nc4")
 ds["cfact"] *= 1.e6
 ds["y"] *= 1.e6
 

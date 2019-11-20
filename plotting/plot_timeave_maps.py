@@ -15,33 +15,28 @@ import icounter.const as c
 plt.rcParams["figure.figsize"] = 12,14
 
 # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
-data_dir = Path("/home/mengel/data/20190306_IsimipDetrend/output/")
+data_dir = Path("/home/sitreu/Documents/PIK/Counter Factuals/isi-cfact/output")
 
-def get_path(data_dir, var, dataset, runid):
-    return data_dir/Path(runid)/"cfact"/var/Path(
-        var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
 
-variable="hurs"
-dataset="gswp3"
 
 parser = argparse.ArgumentParser()
 parser.add_argument('runid', nargs='*', help='provide name of the experiment.')
 o = parser.parse_args()
-runid=o.runid[0]
+# runid=o.runid[0]
 # print(runid)
-figure_dir = data_dir/"figures"/runid/"maps"
+figure_dir = data_dir/"figures"/"maps"
 figure_dir.mkdir(parents=True, exist_ok=True)
 print(figure_dir)
 
-ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid),"r")
+ncd = nc.Dataset(data_dir/"pr_GSWP3_cfactual_monmean.nc4","r")
 
 sb = 1
 data = ncd.variables["y"][:]
 trend = (data[-30*12:,::sb,::sb].mean(axis=0) -
          data[0:30*12:,::sb,::sb].mean(axis=0))
 
-vmax=1
-vmin= -vmax
+vmax=4e-5
+vmin=-vmax
 ax1 = plt.subplot(211)
 # last minus first 30 years
 plt.imshow(trend,vmin=vmin,vmax=vmax)
@@ -49,7 +44,8 @@ plt.imshow(trend,vmin=vmin,vmax=vmax)
 plt.colorbar(shrink=0.6)
 # plt.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)
 plt.grid()
-plt.title(runid)
+#plt.title(runid)
+plt.title("runid")
 
 case = "cfact"
 
