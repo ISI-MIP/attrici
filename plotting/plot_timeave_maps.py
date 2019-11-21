@@ -21,7 +21,7 @@ def get_path(data_dir, var, dataset, runid):
     return data_dir/Path(runid)/"cfact"/var/Path(
         var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
 
-variable="pr"
+variable="tasrange"
 dataset="gswp3"
 
 parser = argparse.ArgumentParser()
@@ -40,7 +40,7 @@ data = ncd.variables["y"][:]
 trend = (data[-30*12:,::sb,::sb].mean(axis=0) -
          data[0:30*12:,::sb,::sb].mean(axis=0))
 
-vmax=1e-5
+vmax=2
 vmin = None if vmax==None else -vmax
 ax1 = plt.subplot(211)
 # last minus first 30 years
