@@ -41,7 +41,7 @@ class estimator(object):
         self.save_trace = True
         self.report_mu_sigma = cfg.report_mu_sigma
         self.sigma_model = cfg.sigma_model
-        self.prior_type = cfg.prior_type
+        self.inference = cfg.inference
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes, self.sigma_model)
@@ -91,20 +91,25 @@ class estimator(object):
 
         TIME0 = datetime.now()
 
-        # with self.model:
-        #     trace = pm.sample(
-        #         draws=self.draws,
-        #         cores=self.cores,
-        #         chains=self.chains,
-        #         tune=self.tune,
-        #         progressbar=self.progressbar,
-        #     )
-
-        with self.model:
-            mean_field = pm.fit(
-                n=10000, method="fullrank_advi", progressbar=self.progressbar
-            )
-            trace = mean_field.sample(1000)
+        if self.inference == "NUTS":
+            with self.model:
+                trace = pm.sample(
+                    draws=self.draws,
+                    cores=self.cores,
+                    chains=self.chains,
+                    tune=self.tune,
+                    progressbar=self.progressbar,
+                )
+        elif self.inference == "ADVI":
+            with self.model:
+                mean_field = pm.fit(
+                    n=10000, method="fullrank_advi", progressbar=self.progressbar
+                )
+                # TODO: trace is just a workaround here so the rest of the code understands
+                # ADVI. We could communicate parameters from mean_fied directly.
+                trace = mean_field.sample(1000)
+        else:
+            raise NotImplementedError
 
         TIME1 = datetime.now()
         print(

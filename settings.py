@@ -23,12 +23,14 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "tasrange"  # select variable to detrend
+variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = [2,2,2,2]
 # out of full, no_gmt_trend, no_gmt_cycle_trend
 sigma_model = "full"
-prior_type = ["full","long_term"]
+# NUTS or ADVI
+inference = "NUTS"
+
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = False
