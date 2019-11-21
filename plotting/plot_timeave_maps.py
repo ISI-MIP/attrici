@@ -18,8 +18,7 @@ print(figure_dir)
 ncd = nc.Dataset(data_dir/"pr_GSWP3_cfactual_monmean.nc4","r")
 
 # Plotting
-sb = 1
-vmax=4e-5
+vmax=1e-5
 vmin=-vmax
 lati = 8
 loni = 4
@@ -27,16 +26,15 @@ loni = 4
 for i,case in enumerate(["y", "cfact"]):
     data = ncd.variables[case][:]
     # last minus first 30 years
-    trend = (data[-30 * 12:, ::sb, ::sb].mean(axis=0) -
-             data[0:30 * 12:, ::sb, ::sb].mean(axis=0))
-    # -+5 in the extent account for she cell size of 10
+    trend = (data[-30 * 12:, ::-1, ::1].mean(axis=0) -
+             data[0:30 * 12:, ::-1, ::1].mean(axis=0))
+
     ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
     ax.coastlines()
-    img = ax.imshow(trend,vmin=vmin,vmax=vmax,
-                       extent=[ncd.variables['lon'][:].min() - 5,
-                               ncd.variables['lon'][:].max() + 5,
-                               ncd.variables['lat'][:].min() - 5,
-                               ncd.variables['lat'][:].max() + 5])
+    img = ax.imshow(trend
+                    , vmin=vmin, vmax=vmax
+                    , extent=[-180, 180, -90, 90]
+                    , cmap='RdBu')
     plt.colorbar(img, ax=ax, shrink=0.6)
     ax.grid()
     ax.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)
