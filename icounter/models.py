@@ -1,18 +1,9 @@
 import numpy as np
 import pymc3 as pm
 from scipy import stats
-import theano.tensor as tt
+# import theano.tensor as tt
 import pandas as pd
-
-
-def det_dot(a, b):
-    """
-    The theano dot product and NUTS sampler don't work with large matrices?
-
-    :param a: (np matrix)
-    :param b: (theano vector)
-    """
-    return (a * b[None, :]).sum(axis=-1)
+import icounter.logistic as l
 
 
 class Normal(object):
@@ -119,16 +110,16 @@ class Gamma(object):
 
         self.modes = modes
         self.sigma_model = sigma_model
-        self.vars_to_estimate = [
-            "mu_intercept",
-            "mu_slope",
-            "mu_yearly",
-            "mu_trend",
-            "sg_intercept",
-            "sg_slope",
-            "sg_yearly",
-            "sg_trend",
-        ]
+        # self.vars_to_estimate = [
+        #     "mu_intercept",
+        #     "mu_slope",
+        #     "mu_yearly",
+        #     "mu_trend",
+        #     "sg_intercept",
+        #     "sg_slope",
+        #     "sg_yearly",
+        #     "sg_trend",
+        # ]
 
         print("Using Gamma distribution model. Fourier modes:", modes)
 
@@ -150,21 +141,12 @@ class Gamma(object):
             # mu_intercept * logistic(gmt,yearly_cycle), strictly positive
             mu = pm.Deterministic(
                 "mu",
-                mu_intercept
-                / (
-                    1
-                    + tt.exp(
-                        -1
-                        * (
-                            mu_slope * gmt
-                            + det_dot(xf0, mu_yearly)
-                            + gmt * det_dot(xf1, mu_trend)
-                        )
-                    )
-                ),
+                l.full(gmt, mu_intercept, mu_slope, mu_yearly, mu_trend, xf0, xf1)
             )
+
+            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+
             if self.sigma_model == "full":
-                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
                 sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
                 sg_yearly = pm.Normal(
                     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
@@ -175,33 +157,30 @@ class Gamma(object):
                 # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
                 sigma = pm.Deterministic(
                     "sigma",
-                    self.pm_sigma0(
-                        sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend
-                    ),
+                    l.full(gmt, sg_intercept, sg_slope, sg_yearly, sg_trend, xf2, xf3)
                 )
-            elif self.sigma_model == "no_gmt_trend":
-                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+
+            elif self.sigma_model == "yearlycycle":
                 sg_yearly = pm.Normal(
                     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
                 )
                 # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
                 sigma = pm.Deterministic(
-                    "sigma", self.pm_sigma1(sg_intercept, xf2, sg_yearly)
+                    "sigma", l.yearlycycle(sg_intercept, sg_yearly, xf2)
                 )
-                self.vars_to_estimate.remove("sg_slope")
-                self.vars_to_estimate.remove("sg_trend")
+                # self.vars_to_estimate.remove("sg_slope")
+                # self.vars_to_estimate.remove("sg_trend")
 
-            elif self.sigma_model == "no_gmt_cycle_trend":
-                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+            elif self.sigma_model == "longterm_yearlycycle":
                 sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
                 sg_yearly = pm.Normal(
                     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
                 )
                 # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
                 sigma = pm.Deterministic(
-                    "sigma", self.pm_sigma2(sg_intercept, sg_slope, gmt, xf2, sg_yearly)
+                    "sigma", l.longterm_yearlycycle(gmt, sg_intercept, sg_slope, sg_yearly, xf2)
                 )
-                self.vars_to_estimate.remove("sg_trend")
+                # self.vars_to_estimate.remove("sg_trend")
 
             else:
                 raise NotImplemented
@@ -209,29 +188,29 @@ class Gamma(object):
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
             return model
 
-    def pm_sigma0(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend):
+    # def pm_sigma0(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend):
 
-        return sg_intercept / (
-            1
-            + tt.exp(
-                -1
-                * (
-                    sg_slope * gmt
-                    + det_dot(xf2, sg_yearly)
-                    + gmt * det_dot(xf3, sg_trend)
-                )
-            )
-        )
+    #     return sg_intercept / (
+    #         1
+    #         + tt.exp(
+    #             -1
+    #             * (
+    #                 sg_slope * gmt
+    #                 + det_dot(xf2, sg_yearly)
+    #                 + gmt * det_dot(xf3, sg_trend)
+    #             )
+    #         )
+    #     )
 
-    def pm_sigma1(self, sg_intercept, xf2, sg_yearly):
+    # def pm_sigma1(self, sg_intercept, xf2, sg_yearly):
 
-        return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
+    #     return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
 
-    def pm_sigma2(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly):
+    # def pm_sigma2(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly):
 
-        return sg_intercept / (
-            1 + tt.exp(-1 * (sg_slope * gmt + det_dot(xf2, sg_yearly)))
-        )
+    #     return sg_intercept / (
+    #         1 + tt.exp(-1 * (sg_slope * gmt + det_dot(xf2, sg_yearly)))
+    #     )
 
     def quantile_mapping(self, d, y_scaled):
 

@@ -26,8 +26,8 @@ timeout = 60 * 60
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
 modes = [2,2,2,2]
-# out of full, no_gmt_trend, no_gmt_cycle_trend
-sigma_model = "full"
+# out of full, longterm_yearlycycle, yearlycycle
+sigma_model = "yearlycycle"
 # NUTS or ADVI
 inference = "NUTS"
 
