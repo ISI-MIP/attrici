@@ -63,7 +63,7 @@ print("A total of", len(df_specs), "grid cells to estimate.")
 
 calls_per_arrayjob = np.ones(njobarray) * len(df_specs) // njobarray
 if len(df_specs) % njobarray != 0:
-    calls_per_arrayjob[-1] = ncells % njobarray
+    calls_per_arrayjob[-1] = len(df_specs) % njobarray
 
 
 # calls_per_arrayjob = ncells / njobarray
