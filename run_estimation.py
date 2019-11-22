@@ -53,20 +53,11 @@ df_specs["index_lat"] = igrid[ls_mask==1]
 df_specs["index_lon"] = jgrid[ls_mask==1]
 
 print("A total of", len(df_specs), "grid cells to estimate.")
-# ncells = len(lats) * len(lons)
-
-# if ncells % njobarray:
-#     print("task_id", task_id)
-#     print("njobarray", njobarray)
-#     print("ncells", ncells)
-#     raise ValueError("ncells does not fit into array job, adjust jobarray.")
 
 calls_per_arrayjob = np.ones(njobarray) * len(df_specs) // njobarray
 if len(df_specs) % njobarray != 0:
     calls_per_arrayjob[-1] = len(df_specs) % njobarray
 
-
-# calls_per_arrayjob = ncells / njobarray
 
 # Calculate the starting and ending values for this task based
 # on the SLURM task and the number of runs per task.
@@ -81,9 +72,6 @@ TIME0 = datetime.now()
 
 for n in run_numbers[:]:
     specs = df_specs.loc[n,:]
-    # i = int(n % len(lats))
-    # j = int(n / len(lats))
-    # lat, lon = lats[i], lons[j]
 
     # if lat >20: continue
     print("This is SLURM task", task_id, "run number", n, "lat,lon", specs["lat"], specs["lon"])
@@ -91,10 +79,6 @@ for n in run_numbers[:]:
     data = obs_data.variables[s.variable][:, specs["index_lat"], specs["index_lon"]]
     df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
 
-    # Skipping nan-only cells here saves A LOT of time
-    # if df["y"].size == np.sum(df["y"].isna()):
-    #     print("All data NaN, probably ocean, skip.")
-    # else:
     try:
         trace = func_timeout(
             s.timeout, estimator.estimate_parameters, args=(df, specs["lat"], specs["lon"])
@@ -105,7 +89,6 @@ for n in run_numbers[:]:
         continue
 
     df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
-    # print(df.head(10))
     dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
 
 obs_data.close()
