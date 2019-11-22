@@ -54,13 +54,13 @@ def get_ylims(ylim):
     return np.array(ylim)[:,0].min(), np.array(ylim)[:,1].max()
 
 # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
+# data_dir = Path("/home/mengel/data/20190306_IsimipDetrend/output/")
 data_dir = Path("/home/sitreu/Documents/PIK/Counter Factuals/isi-cfact/output")
 
 
+ncfl = get_path(data_dir, variable, dataset, runid)
 
-#ncfl = get_path(data_dir)
-
-ds = xr.open_dataset(data_dir/"pr_GSWP3_cfactual_monmean.nc4")
+ds = xr.open_dataset(ncfl)
 ds["cfact"] *= 1.e6
 ds["y"] *= 1.e6
 
