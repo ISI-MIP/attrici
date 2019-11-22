@@ -3,11 +3,17 @@ import numpy as np
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
-import time
+# import time
+import git
 from func_timeout import func_timeout, FunctionTimedOut
 import icounter.estimator as est
 import icounter.datahandler as dh
 import settings as s
+
+repo = git.Repo(search_parent_directories=True)
+print("Time started:",datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+print("git branch:", repo.active_branch)
+print("git hash:", repo.head.object.hexsha)
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
