@@ -25,13 +25,13 @@ timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
-modes = [2,2,2,2]
+modes = [2,1,1,1]
 # out of full, longterm_yearlycycle, yearlycycle
-sigma_model = "yearlycycle"
+sigma_model = "full"
 # NUTS or ADVI
 inference = "NUTS"
 
-subset = 1  # only use every subset datapoint for bayes estimation for speedup
+subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = False
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
@@ -47,11 +47,12 @@ qm_ref_period = ["1901-01-01", "1904-12-31"]
 report_mu_sigma = True
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
+landsea_file = "ISIMIP2b_landseamask_generic_sub" + str(lateral_sub) + ".nc4"
 # source_file = variable + "_" + dataset + "_sub.nc4"
 source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 # .h5 or .csv
-save_trace = False
+save_trace = True
 storage_format = ".h5"
 
 # model run settings
