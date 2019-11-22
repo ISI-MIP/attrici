@@ -3,7 +3,6 @@ import numpy as np
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
-# import time
 import git
 from func_timeout import func_timeout, FunctionTimedOut
 import icounter.estimator as est

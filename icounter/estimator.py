@@ -38,7 +38,7 @@ class estimator(object):
         self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
-        self.save_trace = True
+        self.save_trace = cfg.save_trace
         self.report_mu_sigma = cfg.report_mu_sigma
         self.sigma_model = cfg.sigma_model
         self.inference = cfg.inference
