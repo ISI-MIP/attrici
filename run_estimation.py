@@ -71,17 +71,17 @@ estimator = est.estimator(s)
 TIME0 = datetime.now()
 
 for n in run_numbers[:]:
-    specs = df_specs.loc[n,:]
+    sp = df_specs.loc[n,:]
 
     # if lat >20: continue
-    print("This is SLURM task", task_id, "run number", n, "lat,lon", specs["lat"], specs["lon"])
+    print("This is SLURM task", task_id, "run number", n, "lat,lon", sp["lat"], sp["lon"])
 
-    data = obs_data.variables[s.variable][:, specs["index_lat"], specs["index_lon"]]
+    data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
     df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
 
     try:
         trace = func_timeout(
-            s.timeout, estimator.estimate_parameters, args=(df, specs["lat"], specs["lon"])
+            s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
         )
     except (FunctionTimedOut, ValueError) as error:
         print("Sampling at", lat, lon, " timed out or failed.")
@@ -89,7 +89,7 @@ for n in run_numbers[:]:
         continue
 
     df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
-    dh.save_to_disk(df_with_cfact, s, lat, lon, dformat=s.storage_format)
+    dh.save_to_disk(df_with_cfact, s, sp["lat"], sp["lon"], dformat=s.storage_format)
 
 obs_data.close()
 nc_lsmask.close()
