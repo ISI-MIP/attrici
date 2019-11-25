@@ -1,5 +1,5 @@
 import numpy as np
-
+import pandas as pd
 
 def series(t, p, modes):
     # 2 pi n / p
@@ -26,11 +26,22 @@ def rescale(df, modes):
     return x
 
 
-def get_fourier_valid(df, valid_index, modes):
+def get_fourier_valid(df, modes):
 
-    x_fourier = []
-    for mode in modes:
+    """ Create a pandas Dataframe with all fourier series. They are named
+    mode_X_Y with X refering to the position in settings.py modes.
+    For example, for modes = [2,1,1,1],
+    mode_0_3 is the last (fourth) series for the first mode (2) in the list.
+    It is the sine with 2 periods per year.
+    """
+
+    x_fourier = pd.DataFrame()
+    for i,mode in enumerate(modes):
+
         xf = rescale(df, mode)
-        x_fourier.append(xf[valid_index, :])
+        xff = pd.DataFrame(xf,
+                                 columns = ["mode_"+str(i)+"_"+str(j)
+                                         for j in range(mode*2)])
+        x_fourier = pd.concat([x_fourier,xff],axis=1)
 
     return x_fourier

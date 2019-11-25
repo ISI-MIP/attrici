@@ -115,17 +115,18 @@ class Gamma(object):
 
         print("Using Gamma distribution model. Fourier modes:", modes)
 
-    def setup(self, gmt_valid, x_fourier, observed):
+    def setup(self, df_valid):
 
         model = pm.Model()
 
         with model:
 
-            gmt = pm.Data("gmt", gmt_valid)
-            xf0 = pm.Data("xf0", x_fourier[0])
-            xf1 = pm.Data("xf1", x_fourier[1])
-            xf2 = pm.Data("xf2", x_fourier[2])
-            xf3 = pm.Data("xf3", x_fourier[3])
+            gmt = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
+            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
+            xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
+
             mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
             mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
             mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
@@ -170,7 +171,7 @@ class Gamma(object):
             else:
                 raise NotImplemented
 
-            pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
+            pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
             return model
 
     def quantile_mapping(self, d, y_scaled):

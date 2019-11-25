@@ -34,7 +34,7 @@ def get_valid_subset(df, subset):
     orig_len = len(df)
     df = df.loc[::subset, :].copy()
     # reindex to a [0,1,2, ..] index
-    df.reset_index(inplace=True, drop=True)
+    # df.reset_index(inplace=True, drop=True)
 
     # x_fourier = fourier.rescale(df, modes)
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -42,8 +42,14 @@ def get_valid_subset(df, subset):
 
     print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
 
-    return df_valid, df_valid["gmt_scaled"].values
+    return df_valid
 
+
+def get_valid_index(df, subset):
+
+    df = df.loc[::subset, :].copy()
+    df.replace([np.inf, -np.inf], np.nan, inplace=True)
+    return df.dropna(axis=0, how="any").index
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
