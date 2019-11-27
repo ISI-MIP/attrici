@@ -11,9 +11,10 @@ if user == "mengel":
     # data_dir = "/p/tmp/mengel/isimip/isi-cfact"
     log_dir = "./log"
 
-elif user == "bschmidt":
-    conda_path = "/home/bschmidt/.conda/envs/mpi_py3"
-    data_dir = "/home/bschmidt/temp/isi-cfact/"
+elif user == "sitreu":
+    conda_path = "/home/sitreu/.conda/envs/mpi_py3"
+    # data_dir = "/home/sitreu/temp/isi-cfact/"
+    data_dir = "/home/sitreu/Documents/PIK/CounterFactuals/isi-cfact"
     log_dir = "./output"
 
 input_dir = Path(data_dir) / "input"
