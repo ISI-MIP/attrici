@@ -3,17 +3,14 @@ import numpy as np
 import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
-import git
 import pandas as pd
 from func_timeout import func_timeout, FunctionTimedOut
+import icounter
 import icounter.estimator as est
 import icounter.datahandler as dh
 import settings as s
 
-repo = git.Repo(search_parent_directories=True)
-print("Time started:",datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-print("git branch:", repo.active_branch)
-print("git hash:", repo.head.object.hexsha)
+print("Version", icounter.__version__)
 
 try:
     submitted = os.environ["SUBMITTED"] == "1"
