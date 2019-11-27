@@ -32,6 +32,7 @@ class estimator(object):
         self.chains = cfg.chains
         self.tune = cfg.tune
         self.subset = cfg.subset
+        self.seed = cfg.seed
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
@@ -56,7 +57,7 @@ class estimator(object):
         x_fourier = fourier.get_fourier_valid(df, self.modes)
 
         df = pd.concat([df,x_fourier], axis=1)
-        df_valid = dh.get_valid_subset(df, self.subset)
+        df_valid = dh.get_valid_subset(df, self.subset, self.seed)
 
         self.model = self.statmodel.setup(df_valid)
 
