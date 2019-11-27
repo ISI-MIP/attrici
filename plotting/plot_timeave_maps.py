@@ -4,6 +4,8 @@ import cartopy.crs as ccrs
 import numpy as np
 import netCDF4 as nc
 from pathlib import Path
+import settings
+
 plt.rcParams["figure.figsize"] = 12,14
 
 
@@ -14,8 +16,9 @@ def get_path(data_dir, var, dataset, runid):
 
 def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"):
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
-    data_dir = Path("/home/sitreu/Documents/PIK/Counter Factuals/isi-cfact/output")
-
+    data_dir = settings.output_dir
+    variable = settings.variable
+    dataset = settings.dataset.lower()
     figure_dir = data_dir / "figures" / runid / "maps"
     figure_dir.mkdir(parents=True, exist_ok=True)
     print(figure_dir)
