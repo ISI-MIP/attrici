@@ -11,3 +11,5 @@ log/
 backup/
 *.ipynb
 submit_cfact.sh
+.idea/
+myrunscripts/
