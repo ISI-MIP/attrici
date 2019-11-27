@@ -119,11 +119,13 @@ data checked
 Works using Beta distribution
 
 #### prsnratio
+Beta distribution
 Snow included in GSWP3
 
 #### tasrange
 With Rice distribution
-FIXME: does not seem to find and remove trend. A lot of grid cells fail.
+ADVI introduces strong positive trend.
+Possible issue: use real mu, not nu for quantile mapping.
 
 #### tasmin
 Constructed from tas, tasskew and tasrange
@@ -134,8 +136,10 @@ Constructed from tas, tasskew and tasrange
 To do in postprocessing
 
 #### pr
-Works with Gamma distribution
-FIXME: Needs checks as current version is not working at low latitudes
+Gamma distribution
+Does not remove all regional trends with NUTS.
+Fails with ADVI.
+Low latitudes are particularly most difficult.
 
 #### wind
 Works using Weibull distribution

@@ -1,18 +1,10 @@
 import numpy as np
 import pymc3 as pm
 from scipy import stats
-import theano.tensor as tt
+
+# import theano.tensor as tt
 import pandas as pd
-
-
-def det_dot(a, b):
-    """
-    The theano dot product and NUTS sampler don't work with large matrices?
-
-    :param a: (np matrix)
-    :param b: (theano vector)
-    """
-    return (a * b[None, :]).sum(axis=-1)
+import icounter.logistic as l
 
 
 class Normal(object):
@@ -119,52 +111,33 @@ class Gamma(object):
 
         self.modes = modes
         self.sigma_model = sigma_model
-        self.vars_to_estimate = [
-            "mu_intercept",
-            "mu_slope",
-            "mu_yearly",
-            "mu_trend",
-            "sg_intercept",
-            "sg_slope",
-            "sg_yearly",
-            "sg_trend",
-        ]
+
 
         print("Using Gamma distribution model. Fourier modes:", modes)
 
-    def setup(self, gmt_valid, x_fourier, observed):
+    def setup(self, df_valid):
 
         model = pm.Model()
 
         with model:
 
-            gmt = pm.Data("gmt", gmt_valid)
-            xf0 = pm.Data("xf0", x_fourier[0])
-            xf1 = pm.Data("xf1", x_fourier[1])
-            xf2 = pm.Data("xf2", x_fourier[2])
-            xf3 = pm.Data("xf3", x_fourier[3])
+            gmt = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
+            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
+            xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
+
             mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
             mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
             mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
             mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
-            # mu_intercept * logistic(gmt,yearly_cycle), strictly positive
             mu = pm.Deterministic(
-                "mu",
-                mu_intercept
-                / (
-                    1
-                    + tt.exp(
-                        -1
-                        * (
-                            mu_slope * gmt
-                            + det_dot(xf0, mu_yearly)
-                            + gmt * det_dot(xf1, mu_trend)
-                        )
-                    )
-                ),
+                "mu", l.full(gmt, mu_intercept, mu_slope, mu_yearly, mu_trend, xf0, xf1)
             )
+
+            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+
             if self.sigma_model == "full":
-                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
                 sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
                 sg_yearly = pm.Normal(
                     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
@@ -172,66 +145,34 @@ class Gamma(object):
                 sg_trend = pm.Normal(
                     "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
                 )
-                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
                 sigma = pm.Deterministic(
                     "sigma",
-                    self.pm_sigma0(
-                        sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend
-                    ),
+                    l.full(gmt, sg_intercept, sg_slope, sg_yearly, sg_trend, xf2, xf3),
                 )
-            elif self.sigma_model == "no_gmt_trend":
-                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+
+            elif self.sigma_model == "yearlycycle":
                 sg_yearly = pm.Normal(
                     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
                 )
-                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
                 sigma = pm.Deterministic(
-                    "sigma", self.pm_sigma1(sg_intercept, xf2, sg_yearly)
+                    "sigma", l.yearlycycle(sg_intercept, sg_yearly, xf2)
                 )
-                self.vars_to_estimate.remove("sg_slope")
-                self.vars_to_estimate.remove("sg_trend")
 
-            elif self.sigma_model == "no_gmt_cycle_trend":
-                sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+            elif self.sigma_model == "longterm_yearlycycle":
                 sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
                 sg_yearly = pm.Normal(
                     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
                 )
-                # sg_intercept * logistic(gmt,yearly_cycle), strictly positive
                 sigma = pm.Deterministic(
-                    "sigma", self.pm_sigma2(sg_intercept, sg_slope, gmt, xf2, sg_yearly)
+                    "sigma",
+                    l.longterm_yearlycycle(gmt, sg_intercept, sg_slope, sg_yearly, xf2),
                 )
-                self.vars_to_estimate.remove("sg_trend")
 
             else:
                 raise NotImplemented
 
-            pm.Gamma("obs", mu=mu, sigma=sigma, observed=observed)
+            pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
             return model
-
-    def pm_sigma0(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly, xf3, sg_trend):
-
-        return sg_intercept / (
-            1
-            + tt.exp(
-                -1
-                * (
-                    sg_slope * gmt
-                    + det_dot(xf2, sg_yearly)
-                    + gmt * det_dot(xf3, sg_trend)
-                )
-            )
-        )
-
-    def pm_sigma1(self, sg_intercept, xf2, sg_yearly):
-
-        return sg_intercept / (1 + tt.exp(-1 * det_dot(xf2, sg_yearly)))
-
-    def pm_sigma2(self, sg_intercept, sg_slope, gmt, xf2, sg_yearly):
-
-        return sg_intercept / (
-            1 + tt.exp(-1 * (sg_slope * gmt + det_dot(xf2, sg_yearly)))
-        )
 
     def quantile_mapping(self, d, y_scaled):
 
@@ -491,37 +432,6 @@ class Rice(object):
 
         with model:
 
-            # slope = pm.Normal("slope", mu=self.mu_slope, sigma=self.sigma_slope)
-            # intercept = pm.Normal(
-            #     "intercept", mu=self.mu_intercept, sigma=self.sigma_intercept
-            # )
-            # sigma = pm.Lognormal("sigma", mu=2, sigma=1)
-
-            # beta_yearly = pm.Normal(
-            #     "beta_yearly", mu=self.smu, sd=self.sps, shape=2 * self.modes
-            # )
-            # beta_trend = pm.Normal(
-            #     "beta_trend", mu=self.stmu, sd=self.stps, shape=2 * self.modes
-            # )
-
-            # log_param_gmt = tt.exp(
-            #     intercept
-            #     + slope * regressor
-            #     + det_dot(x_fourier, beta_yearly)
-            #     + (regressor * det_dot(x_fourier, beta_trend))
-            # )
-
-            # pm.Rice("obs", nu=nu, sigma=sigma, observed=observed)
-
-            # mu = pm.Deterministic("mu", alpha / (alpha + beta))
-            # sigma = pm.Deterministic(
-            #     "sigma",
-            #     (alpha * beta / ((alpha + beta) ** 2 * (alpha + beta + 1))) ** 0.5,
-            # )
-
-            # return model
-
-
             gmt = pm.Data("gmt", gmt_valid)
             xf0 = pm.Data("xf0", x_fourier[0])
             xf1 = pm.Data("xf1", x_fourier[1])
@@ -529,12 +439,8 @@ class Rice(object):
             xf3 = pm.Data("xf3", x_fourier[3])
             nu_intercept = pm.Lognormal("nu_intercept", mu=4, sigma=1.6)
             nu_slope = pm.Normal("nu_slope", mu=0, sigma=2.0)
-            nu_yearly = pm.Normal(
-                "nu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0]
-            )
-            nu_trend = pm.Normal(
-                "nu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1]
-            )
+            nu_yearly = pm.Normal("nu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
+            nu_trend = pm.Normal("nu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
             # alpha_intercept * logistic(gmt,yearly_cycle), strictly positive
             nu = pm.Deterministic(
                 "mu",
@@ -581,30 +487,14 @@ class Rice(object):
 
         return model
 
-    # def quantile_mapping(self, trace, regressor, x_fourier, date_index, x):
-
-    #     """
-    #     specific for variables with two bounds, approximately following a
-    #     Rice distribution.
-    #     """
-
-    #     df_log = get_gmt_parameter(trace, regressor, x_fourier, date_index)
-
-    #     sigma = trace["sigma"].mean()
-
-    #     quantile = stats.rice.cdf(x, np.exp(df_log["param_gmt"]), scale=sigma)
-    #     x_mapped = stats.rice.ppf(
-    #         quantile, np.exp(df_log["param_gmt_ref"]), scale=sigma
-    #     )
-
-    #     return x_mapped
-
     def quantile_mapping(self, d, y_scaled):
 
         """
         specific for normally distributed variables. Mapping done for each day.
         """
-        quantile = stats.rice.cdf(y_scaled, b=d["mu"]/d["sigma"], scale=d["sigma"])
-        x_mapped = stats.rice.ppf(quantile, b=d["mu_ref"]/d["sigma_ref"], scale=d["sigma_ref"])
+        quantile = stats.rice.cdf(y_scaled, b=d["mu"] / d["sigma"], scale=d["sigma"])
+        x_mapped = stats.rice.ppf(
+            quantile, b=d["mu_ref"] / d["sigma_ref"], scale=d["sigma_ref"]
+        )
 
         return x_mapped

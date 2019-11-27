@@ -38,10 +38,10 @@ class estimator(object):
         self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
-        self.save_trace = True
+        self.save_trace = cfg.save_trace
         self.report_mu_sigma = cfg.report_mu_sigma
         self.sigma_model = cfg.sigma_model
-        self.prior_type = cfg.prior_type
+        self.inference = cfg.inference
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes, self.sigma_model)
@@ -53,12 +53,12 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        df_valid, gmt_valid = dh.get_valid_subset(df, self.subset)
-        self.df_valid = df_valid
+        x_fourier = fourier.get_fourier_valid(df, self.modes)
 
-        x_fourier = fourier.get_fourier_valid(df, df_valid.index, self.modes)
+        df = pd.concat([df,x_fourier], axis=1)
+        df_valid = dh.get_valid_subset(df, self.subset)
 
-        self.model = self.statmodel.setup(gmt_valid, x_fourier, df_valid["y_scaled"])
+        self.model = self.statmodel.setup(df_valid)
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, variable=self.variable
@@ -91,20 +91,25 @@ class estimator(object):
 
         TIME0 = datetime.now()
 
-        # with self.model:
-        #     trace = pm.sample(
-        #         draws=self.draws,
-        #         cores=self.cores,
-        #         chains=self.chains,
-        #         tune=self.tune,
-        #         progressbar=self.progressbar,
-        #     )
-
-        with self.model:
-            mean_field = pm.fit(n=5000,method='fullrank_advi',
-             progressbar=self.progressbar,
-            )
-            trace = mean_field.sample(1000)
+        if self.inference == "NUTS":
+            with self.model:
+                trace = pm.sample(
+                    draws=self.draws,
+                    cores=self.cores,
+                    chains=self.chains,
+                    tune=self.tune,
+                    progressbar=self.progressbar,
+                )
+        elif self.inference == "ADVI":
+            with self.model:
+                mean_field = pm.fit(
+                    n=10000, method="fullrank_advi", progressbar=self.progressbar
+                )
+                # TODO: trace is just a workaround here so the rest of the code understands
+                # ADVI. We could communicate parameters from mean_fied directly.
+                trace = mean_field.sample(1000)
+        else:
+            raise NotImplementedError
 
         TIME1 = datetime.now()
         print(

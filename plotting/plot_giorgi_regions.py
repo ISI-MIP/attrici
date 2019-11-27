@@ -18,9 +18,9 @@ warnings.simplefilter("ignore")
 plt.rcParams["figure.figsize"] = 18,12
 
 
-variable="hurs"
+variable="tasrange"
 dataset="gswp3"
-runid="isicf014_gswp3_hurs_sub20_mode21XX"
+runid="isicf015_gswp3_tasrange_sub20_mode2222_advi_full"
 
 
 def get_path(data_dir, var, dataset, runid):
