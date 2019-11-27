@@ -32,7 +32,8 @@ sigma_model = "full"
 # NUTS or ADVI
 inference = "NUTS"
 
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+seed = 0 # for deterministic randomisation
+subset = 2  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = False
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"

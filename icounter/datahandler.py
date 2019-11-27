@@ -29,14 +29,14 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
         return lat_sub_dir
 
 
-def get_valid_subset(df, subset):
+def get_valid_subset(df, subset, seed):
 
     orig_len = len(df)
-    df = df.loc[::subset, :].copy()
-    # reindex to a [0,1,2, ..] index
-    # df.reset_index(inplace=True, drop=True)
+    if subset > 1:
+        np.random.seed(seed)
+        subselect = np.random.choice(orig_len, np.int(orig_len/subset), replace=False)
+        df = df.loc[np.sort(subselect), :].copy()
 
-    # x_fourier = fourier.rescale(df, modes)
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_valid = df.dropna(axis=0, how="any")
 
