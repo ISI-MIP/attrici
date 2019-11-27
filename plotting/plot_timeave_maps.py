@@ -42,7 +42,7 @@ def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"
                         , cmap='RdBu')
         plt.colorbar(img, ax=ax, shrink=0.6)
         ax.grid()
-        ax.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)
+        # ax.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)
         plt.title(case)
 
     plt.tight_layout()
@@ -51,7 +51,7 @@ def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('runid', nargs='*', help='provide name of the experiment.')
+    parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
     o = parser.parse_args()
     try:
         main(runid=o.runid[0])
