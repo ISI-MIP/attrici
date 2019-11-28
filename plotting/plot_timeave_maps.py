@@ -27,10 +27,11 @@ def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"
 
     # Plotting
     vmax=1e-5
-    vmin=-vmax
+    vmin=None if vmax is None else -vmax
     lati = 8
     loni = 4
     # y are the original observations, cfact the counterfactual
+    fig=plt.figure()
     for i,case in enumerate(["y", "cfact"]):
         data = ncd.variables[case][:]
         # last minus first 30 years
@@ -48,16 +49,17 @@ def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"
         # ax.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)
         plt.title(case)
 
-    plt.tight_layout()
-    plt.savefig(figure_dir/"trend_map.jpg",dpi=80)
+    fig.tight_layout()
+    fig.savefig(figure_dir/"trend_map.jpg",dpi=80)
 
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
     o = parser.parse_args()
-    try:
-        main(runid=o.runid[0])
-    except IndexError:
+    if len(o.runid)>0:
+        for runid in o.runid:
+            main(runid=runid)
+    else:
         print('no runid provided')
         main()

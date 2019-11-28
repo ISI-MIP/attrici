@@ -1,26 +1,22 @@
 import matplotlib.pylab as plt
-from matplotlib import colors
-import pymc3 as pm
 import numpy as np
-import netCDF4 as nc
 from pathlib import Path
-import arviz as az
 import xarray as xr
-import cartopy.crs as ccrs
 import regionmask as rem
 import warnings
-import icounter.models as models
-import icounter.fourier as fourier
-import icounter.datahandler as dh
-import icounter.const as c
+import argparse
+import settings
 
 warnings.simplefilter("ignore")
 plt.rcParams["figure.figsize"] = 18,12
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
+o = parser.parse_args()
 
-variable="tasrange"
-dataset="gswp3"
-runid="isicf015_gswp3_tasrange_sub20_mode2222_advi_full"
+variable=settings.variable
+dataset=settings.dataset
+runid=o.runid[0]
 
 
 def get_path(data_dir, var, dataset, runid):
@@ -55,7 +51,7 @@ def get_ylims(ylim):
 
 # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
 # data_dir = Path("/home/mengel/data/20190306_IsimipDetrend/output/")
-data_dir = Path("/home/sitreu/Documents/PIK/Counter Factuals/isi-cfact/output")
+data_dir = settings.output_dir
 
 
 ncfl = get_path(data_dir, variable, dataset, runid)
