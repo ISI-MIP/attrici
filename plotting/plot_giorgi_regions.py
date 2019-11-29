@@ -5,7 +5,7 @@ import xarray as xr
 import regionmask as rem
 import warnings
 import settings
-from plotting.helper_functions import get_path, get_parser, get_ylims
+from plotting.helper_functions import get_path, get_parser, get_ylims, get_seasonal_dataset
 
 
 def main(runid):
@@ -75,15 +75,6 @@ def get_season_regmean(ds_season, rname, land_mask, giorgi_mask):
     regy = select_giorgi_by_name(ds_season.y, rname, land_mask, giorgi_mask)
     regcf = select_giorgi_by_name(ds_season.cfact, rname, land_mask, giorgi_mask)
     return regy.mean(dim=("lat","lon")), regcf.mean(dim=("lat","lon"))
-
-
-def get_seasonal_dataset(ds,season):
-    ds_season = ds.where(ds['time.season'] == season)
-    # rolling mean -> only Jan is not nan
-    # however, we loose Jan/ Feb in the first year and Dec in the last
-    ds_seas = ds_season.rolling(min_periods=3, center=True, time=3).mean()
-    # make annual mean
-    return ds_season.groupby('time.year').mean('time')
 
 
 if __name__=="__main__":

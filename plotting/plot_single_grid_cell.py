@@ -3,7 +3,7 @@ import warnings
 import matplotlib.pyplot as plt
 from pathlib import Path
 import xarray as xr
-from plotting.helper_functions import get_parser, get_path, get_ylims
+from plotting.helper_functions import get_parser, get_path, get_ylims, get_seasonal_dataset
 
 def main(runid, lat, lon):
     # load variables from settings file
@@ -31,22 +31,21 @@ def main(runid, lat, lon):
     data_year['y'].plot(label="observed")
     data_year['cfact'].plot(alpha=0.6, label="cfactual")
     ylim.append(ax.get_ylim())
-    ax.text(0.05, 0.9, f"lat={lat}, lon={lon} yearly", transform=ax.transAxes, fontsize=16)
-    ax.set_ylabel("precipitation")
+    ax.text(0.05, 0.9, "yearly", transform=ax.transAxes, fontsize=16)
+    ax.set_ylabel(variable)
     plt.legend(loc="upper right", frameon=False)
     axs.append(ax)
-    #
-    #     for i, season in enumerate(["DJF", "MAM", "JJA", "SON"]):
-    #         ds_season = get_seasonal_dataset(ds, season)
-    #         dd = get_season_regmean(ds_season, rname, land_mask, giorgi_mask)
-    #         ax = plt.subplot(3, 2, i + 3)
-    #         dd[0].plot()
-    #         dd[1].plot(alpha=0.6)
-    #         ylim.append(ax.get_ylim())
-    #         ax.text(0.05, 0.9, rname + " " + season, transform=ax.transAxes, fontsize=16)
-    #         axs.append(ax)
-    #         ax.set_ylabel("precipitation")
-    #
+
+    for i, season in enumerate(["DJF", "MAM", "JJA", "SON"]):
+        data_season = get_seasonal_dataset(data, season)
+        ax = plt.subplot(3, 2, i + 3)
+        data_season['y'].plot(label="observed")
+        data_season['cfact'].plot(alpha=0.6, label="cfactual")
+        ylim.append(ax.get_ylim())
+        ax.text(0.05, 0.9, season, transform=ax.transAxes, fontsize=16)
+        axs.append(ax)
+        ax.set_ylabel(variable)
+
     for ax in axs[1:]:
         ax.set_ylim(get_ylims(ylim))
 
