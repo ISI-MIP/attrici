@@ -4,8 +4,8 @@ from pathlib import Path
 import xarray as xr
 import regionmask as rem
 import warnings
-import argparse
 import settings
+from plotting.helper_functions import get_path, get_parser, get_ylims
 
 
 def main(runid):
@@ -65,11 +65,6 @@ def main(runid):
         plt.savefig(figure_dir / Path(rname.replace(" ", "_") + ".jpg"), dpi=80)
 
 
-def get_path(data_dir, var, dataset, runid):
-    return data_dir/Path(runid)/"cfact"/var/Path(
-        var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
-
-
 def select_giorgi_by_name(ds, name, land_mask,giorgi_mask):
     """ Select the land pixels belonging to the Giorgi region with name."""
     nregion = rem.defined_regions.giorgi.map_keys(name)
@@ -91,13 +86,8 @@ def get_seasonal_dataset(ds,season):
     return ds_season.groupby('time.year').mean('time')
 
 
-def get_ylims(ylim):
-    return np.array(ylim)[:,0].min(), np.array(ylim)[:,1].max()
-
-
 if __name__=="__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
+    parser = get_parser()
     o = parser.parse_args()
     if len(o.runid)>0:
         for runid in o.runid:

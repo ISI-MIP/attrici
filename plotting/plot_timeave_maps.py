@@ -1,17 +1,11 @@
-import argparse
 import matplotlib.pylab as plt
 import cartopy.crs as ccrs
 import numpy as np
 import netCDF4 as nc
-from pathlib import Path
 import settings
+from plotting.helper_functions import get_path, get_parser
 
 plt.rcParams["figure.figsize"] = 12,14
-
-
-def get_path(data_dir, var, dataset, runid):
-    return data_dir/Path(runid)/"cfact"/var/Path(
-        var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
 
 
 def main(runid):
@@ -56,8 +50,7 @@ def main(runid):
 
 
 if __name__=='__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
+    parser = get_parser()
     o = parser.parse_args()
     if len(o.runid)>0:
         for runid in o.runid:
