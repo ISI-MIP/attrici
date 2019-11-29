@@ -14,7 +14,7 @@ def get_path(data_dir, var, dataset, runid):
         var+"_"+dataset.upper()+"_cfactual_monmean.nc4")
 
 
-def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"):
+def main(runid):
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
     data_dir = settings.output_dir
     variable = settings.variable
@@ -26,7 +26,7 @@ def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"
     ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid),"r")
 
     # Plotting
-    vmax=1e-5
+    vmax=5e-6
     vmin=None if vmax is None else -vmax
     lati = 8
     loni = 4
@@ -37,6 +37,8 @@ def main(runid="isicf014_gswp3_pr_flexmode_1111", variable="pr", dataset="gswp3"
         # last minus first 30 years
         trend = (data[-30 * 12:, ::-1, ::1].mean(axis=0) -
                  data[0:30 * 12:, ::-1, ::1].mean(axis=0))
+        # trend = (np.median(np.array(data[-30 * 12:, ::-1, ::1]), axis=0) -
+        #          np.median(np.array(data[0:30 * 12:, ::-1, ::1]), axis=0))
 
         ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
         ax.coastlines()
@@ -62,4 +64,3 @@ if __name__=='__main__':
             main(runid=runid)
     else:
         print('no runid provided')
-        main()
