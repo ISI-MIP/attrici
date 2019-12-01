@@ -140,16 +140,15 @@ class Gamma(object):
                 raise NotImplemented
 
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-            return model
+
+        return model
 
     def quantile_mapping(self, d, y_scaled):
 
         """
-        specific for Gamma distributed variables where
-        we diagnose shift in beta parameter through GMT.
-
-        # scipy gamma works with alpha and scale parameter
-        # alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
+        Specific for Gamma distributed variables.
+        scipy Gamma works with alpha and scale parameter
+        alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
         """
 
         quantile = stats.gamma.cdf(
