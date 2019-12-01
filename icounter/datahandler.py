@@ -34,7 +34,7 @@ def get_valid_subset(df, subset, seed):
     orig_len = len(df)
     if subset > 1:
         np.random.seed(seed)
-        subselect = np.random.choice(orig_len, np.int(orig_len/subset), replace=False)
+        subselect = np.random.choice(orig_len, np.int(orig_len / subset), replace=False)
         df = df.loc[np.sort(subselect), :].copy()
 
     df.replace([np.inf, -np.inf], np.nan, inplace=True)

@@ -26,13 +26,13 @@ timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
 variable = "pr"  # select variable to detrend
 # number of modes for fourier series of model
-modes = [2,1,1,1]
+modes = [2, 1, 1, 1]
 # out of full, longterm_yearlycycle, yearlycycle
 sigma_model = "full"
 # NUTS or ADVI
 inference = "NUTS"
 
-seed = 0 # for deterministic randomisation
+seed = 0  # for deterministic randomisation
 subset = 5  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = False

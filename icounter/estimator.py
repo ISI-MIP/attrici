@@ -56,7 +56,7 @@ class estimator(object):
 
         x_fourier = fourier.get_fourier_valid(df, self.modes)
 
-        df = pd.concat([df,x_fourier], axis=1)
+        df = pd.concat([df, x_fourier], axis=1)
         df_valid = dh.get_valid_subset(df, self.subset, self.seed)
 
         self.model = self.statmodel.setup(df_valid)

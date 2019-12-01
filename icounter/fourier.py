@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def series(t, p, modes):
     # 2 pi n / p
     x = 2 * np.pi * np.arange(1, modes + 1) / p
@@ -36,12 +37,12 @@ def get_fourier_valid(df, modes):
     """
 
     x_fourier = pd.DataFrame()
-    for i,mode in enumerate(modes):
+    for i, mode in enumerate(modes):
 
         xf = rescale(df, mode)
-        xff = pd.DataFrame(xf,
-                                 columns = ["mode_"+str(i)+"_"+str(j)
-                                         for j in range(mode*2)])
-        x_fourier = pd.concat([x_fourier,xff],axis=1)
+        xff = pd.DataFrame(
+            xf, columns=["mode_" + str(i) + "_" + str(j) for j in range(mode * 2)]
+        )
+        x_fourier = pd.concat([x_fourier, xff], axis=1)
 
     return x_fourier
