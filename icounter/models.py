@@ -127,29 +127,34 @@ class Gamma(object):
             xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
             xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
 
-            mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
-            mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
-            mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
-            mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
+            # mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
+            # mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
+            # mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
+            # mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
 
-            mu = pm.Deterministic(
-                "mu", l.full(gmt, mu_intercept, mu_slope, mu_yearly, mu_trend, xf0, xf1)
-            )
 
-            sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
+            mu = l.full(model, "mu", gmt, xf0, xf1)
+
+            # mu = pm.Deterministic(
+            #     "mu", l.full(gmt, mu_intercept, mu_slope, mu_yearly, mu_trend, xf0, xf1)
+            # )
+
+            # sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
 
             if self.sigma_model == "full":
-                sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
-                sg_yearly = pm.Normal(
-                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
-                )
-                sg_trend = pm.Normal(
-                    "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
-                )
-                sigma = pm.Deterministic(
-                    "sigma",
-                    l.full(gmt, sg_intercept, sg_slope, sg_yearly, sg_trend, xf2, xf3),
-                )
+                # sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
+                # sg_yearly = pm.Normal(
+                #     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
+                # )
+                # sg_trend = pm.Normal(
+                #     "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
+                # )
+                # sigma = pm.Deterministic(
+                #     "sigma",
+                #     l.full(gmt, sg_intercept, sg_slope, sg_yearly, sg_trend, xf2, xf3),
+                # )
+
+                sigma = l.full(model, "sigma", gmt, xf2, xf3)
 
             elif self.sigma_model == "yearlycycle":
                 sg_yearly = pm.Normal(

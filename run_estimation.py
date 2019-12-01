@@ -80,7 +80,7 @@ for n in run_numbers[:]:
             s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
         )
     except (FunctionTimedOut, ValueError) as error:
-        print("Sampling at", lat, lon, " timed out or failed.")
+        print("Sampling at",  sp["lat"], sp["lon"], " timed out or failed.")
         print(error)
         continue
 
