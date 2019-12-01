@@ -103,15 +103,13 @@ class Normal(object):
 
 class Gamma(object):
 
-    """ Influence of GMT is modelled through the influence of on the alpha parameter
-    of a Beta distribution. Beta parameter is assumed free of a trend.
-    Example: precipitation """
+    """ Influence of GMT is modelled through the parameters of the Gamma
+    distribution. Example: precipitation """
 
     def __init__(self, modes, sigma_model):
 
         self.modes = modes
         self.sigma_model = sigma_model
-
 
         print("Using Gamma distribution model. Fourier modes:", modes)
 
@@ -125,54 +123,18 @@ class Gamma(object):
             xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
             xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
             xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
-            xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
-
-            # mu_intercept = pm.Lognormal("mu_intercept", mu=0, sigma=1.0)
-            # mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
-            # mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
-            # mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
-
 
             mu = l.full(model, "mu", gmt, xf0, xf1)
 
-            # mu = pm.Deterministic(
-            #     "mu", l.full(gmt, mu_intercept, mu_slope, mu_yearly, mu_trend, xf0, xf1)
-            # )
-
-            # sg_intercept = pm.Lognormal("sg_intercept", mu=0, sigma=1.0)
-
             if self.sigma_model == "full":
-                # sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
-                # sg_yearly = pm.Normal(
-                #     "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
-                # )
-                # sg_trend = pm.Normal(
-                #     "sg_trend", mu=0.0, sd=2.0, shape=2 * self.modes[3]
-                # )
-                # sigma = pm.Deterministic(
-                #     "sigma",
-                #     l.full(gmt, sg_intercept, sg_slope, sg_yearly, sg_trend, xf2, xf3),
-                # )
-
-                sigma = l.full(model, "sigma", gmt, xf2, xf3)
+                xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
+                sigma = l.full(model, "sg", gmt, xf2, xf3)
 
             elif self.sigma_model == "yearlycycle":
-                sg_yearly = pm.Normal(
-                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
-                )
-                sigma = pm.Deterministic(
-                    "sigma", l.yearlycycle(sg_intercept, sg_yearly, xf2)
-                )
+                sigma = l.yearlycycle(model, "sg", xf2)
 
             elif self.sigma_model == "longterm_yearlycycle":
-                sg_slope = pm.Normal("sg_slope", mu=0, sigma=1)
-                sg_yearly = pm.Normal(
-                    "sg_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[2]
-                )
-                sigma = pm.Deterministic(
-                    "sigma",
-                    l.longterm_yearlycycle(gmt, sg_intercept, sg_slope, sg_yearly, xf2),
-                )
+                sigma = l.longterm_yearlycycle(model, "sg", gmt, xf2)
 
             else:
                 raise NotImplemented
