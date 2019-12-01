@@ -55,7 +55,6 @@ calls_per_arrayjob = np.ones(njobarray) * len(df_specs) // njobarray
 if len(df_specs) % njobarray != 0:
     calls_per_arrayjob[-1] = len(df_specs) % njobarray
 
-
 # Calculate the starting and ending values for this task based
 # on the SLURM task and the number of runs per task.
 start_num = int(task_id * calls_per_arrayjob[task_id-1])

@@ -131,6 +131,7 @@ class Gamma(object):
             mu_slope = pm.Normal("mu_slope", mu=0, sigma=2.0)
             mu_yearly = pm.Normal("mu_yearly", mu=0.0, sd=5.0, shape=2 * self.modes[0])
             mu_trend = pm.Normal("mu_trend", mu=0.0, sd=2.0, shape=2 * self.modes[1])
+
             mu = pm.Deterministic(
                 "mu", l.full(gmt, mu_intercept, mu_slope, mu_yearly, mu_trend, xf0, xf1)
             )

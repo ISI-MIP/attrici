@@ -45,11 +45,17 @@ def get_valid_subset(df, subset, seed):
     return df_valid
 
 
-def get_valid_index(df, subset):
+# def get_valid_index(df, subset, seed):
 
-    df = df.loc[::subset, :].copy()
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    return df.dropna(axis=0, how="any").index
+#     orig_len = len(df)
+#     if subset > 1:
+#         np.random.seed(seed)
+#         subselect = np.random.choice(orig_len, np.int(orig_len/subset), replace=False)
+#         df = df.loc[np.sort(subselect), :].copy()
+
+#     df.replace([np.inf, -np.inf], np.nan, inplace=True)
+#     return df.dropna(axis=0, how="any").index
+
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
