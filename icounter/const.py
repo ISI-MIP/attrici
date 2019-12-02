@@ -92,16 +92,18 @@ def mask_and_scale_by_bounds(data, variable):
     return scaled_data, data.min(), scale
 
 
+
 def scale_offset_and_mask(data, variable):
 
-    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
-    data[data <= threshold[variable][0]] = np.nan
-    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
-    data[data >= threshold[variable][1]] = np.nan
+    data = data - threshold[variable][0]
+
+    print("Mask", (data <= 0).sum(), "values below lower bound.")
+    data[data <= 0] = np.nan
 
     scale = data.max() - data.min()
-    scaled_data = (data - data.min()) / scale
+    scaled_data = data / scale
 
+    print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
 
 
@@ -110,6 +112,13 @@ def refill_and_rescale(scaled_data, datamin, scale):
     # TODO: implement refilling of values that have been masked before.
 
     return scaled_data * scale
+
+
+def rescale_and_offset_precip(scaled_data, datamin, scale):
+
+    # TODO: implement refilling of values that have been masked before.
+
+    return scaled_data * scale + threshold["pr"][0]
 
 
 mask_and_scale = {
@@ -123,5 +132,5 @@ mask_and_scale = {
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
-    "pr": [scale_and_mask, refill_and_rescale],
+    "pr": [scale_offset_and_mask, rescale_and_offset_precip],
 }
