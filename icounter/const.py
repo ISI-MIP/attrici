@@ -92,24 +92,6 @@ def mask_and_scale_by_bounds(data, variable):
     return scaled_data, data.min(), scale
 
 
-# def scale_offset_and_mask(data, variable):
-
-#     print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
-#     data[data <= threshold[variable][0]] = np.nan
-#     try:
-#         print(
-#             "Mask", (data >= threshold[variable][1]).sum(), "values above upper bound."
-#         )
-#         data[data >= threshold[variable][1]] = np.nan
-#     except IndexError:
-#         pass
-
-#     scale = data.max() - data.min()
-#     scaled_data = (data - data.min()) / scale
-#     print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
-
-#     return scaled_data, data.min(), scale
-
 
 def scale_offset_and_mask(data, variable):
 
