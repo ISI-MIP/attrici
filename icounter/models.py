@@ -1,8 +1,6 @@
 import numpy as np
 import pymc3 as pm
 from scipy import stats
-
-# import theano.tensor as tt
 import pandas as pd
 import icounter.logistic as l
 
@@ -66,9 +64,10 @@ class Gamma(object):
     """ Influence of GMT is modelled through the parameters of the Gamma
     distribution. Example: precipitation """
 
-    def __init__(self, modes, sigma_model):
+    def __init__(self, modes, mu_model, sigma_model):
 
         self.modes = modes
+        self.mu_model = mu_model
         self.sigma_model = sigma_model
 
         print("Using Gamma distribution model. Fourier modes:", modes)
@@ -81,10 +80,25 @@ class Gamma(object):
 
             gmt = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
-            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
+            # mu = l.full(model, "mu", gmt, xf0, xf1)
 
-            mu = l.full(model, "mu", gmt, xf0, xf1)
+            if self.mu_model == "full":
+                xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
+                mu = l.full(model, "mu", gmt, xf0, xf1)
+
+            elif self.mu_model == "yearlycycle":
+                mu = l.yearlycycle(model, "mu", xf0)
+
+            elif self.mu_model == "longterm_yearlycycle":
+                mu = l.longterm_yearlycycle(model, "mu", gmt, xf0)
+
+            elif self.mu_model == "longterm":
+                mu = l.longterm(model, "mu", gmt)
+
+            else:
+                raise NotImplemented
+
+            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
 
             if self.sigma_model == "full":
                 xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
@@ -95,6 +109,9 @@ class Gamma(object):
 
             elif self.sigma_model == "longterm_yearlycycle":
                 sigma = l.longterm_yearlycycle(model, "sigma", gmt, xf2)
+
+            elif self.sigma_model == "longterm":
+                sigma = l.longterm(model, "sigma", gmt)
 
             else:
                 raise NotImplemented

@@ -41,11 +41,12 @@ class estimator(object):
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = cfg.save_trace
         self.report_mu_sigma = cfg.report_mu_sigma
+        self.mu_model = cfg.mu_model
         self.sigma_model = cfg.sigma_model
         self.inference = cfg.inference
 
         try:
-            self.statmodel = model_for_var[self.variable](self.modes, self.sigma_model)
+            self.statmodel = model_for_var[self.variable](self.modes, self.mu_model, self.sigma_model)
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."
@@ -139,9 +140,12 @@ class estimator(object):
 
             with self.model:
                 pm.set_data({"xf0": xf0})
-                pm.set_data({"xf1": xf1})
                 pm.set_data({"xf2": xf2})
                 pm.set_data({"gmt": df["gmt_scaled"].values})
+
+                if self.mu_model == "full":
+                    pm.set_data({"xf1": xf1})
+
                 if self.sigma_model == "full":
                     pm.set_data({"xf3": xf3})
 
