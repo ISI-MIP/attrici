@@ -140,9 +140,12 @@ class estimator(object):
 
             with self.model:
                 pm.set_data({"xf0": xf0})
-                pm.set_data({"xf1": xf1})
                 pm.set_data({"xf2": xf2})
                 pm.set_data({"gmt": df["gmt_scaled"].values})
+
+                if self.mu_model == "full":
+                    pm.set_data({"xf1": xf1})
+
                 if self.sigma_model == "full":
                     pm.set_data({"xf3": xf3})
 

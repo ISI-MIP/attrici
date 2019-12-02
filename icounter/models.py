@@ -92,6 +92,9 @@ class Gamma(object):
             elif self.mu_model == "longterm_yearlycycle":
                 mu = l.longterm_yearlycycle(model, "mu", gmt, xf0)
 
+            elif self.mu_model == "longterm":
+                mu = l.longterm(model, "mu", gmt)
+
             else:
                 raise NotImplemented
 
@@ -106,6 +109,9 @@ class Gamma(object):
 
             elif self.sigma_model == "longterm_yearlycycle":
                 sigma = l.longterm_yearlycycle(model, "sigma", gmt, xf2)
+
+            elif self.sigma_model == "longterm":
+                sigma = l.longterm(model, "sigma", gmt)
 
             else:
                 raise NotImplemented
