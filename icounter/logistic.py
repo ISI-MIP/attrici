@@ -1,3 +1,4 @@
+import pymc3 as pm
 import theano.tensor as tt
 
 
@@ -11,28 +12,60 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def full(gmt, p_intercept, p_slope, p_yearly, p_trend, xf_yearly, xf_trend):
+def full(model, name, gmt, xfa, xfb, ic_mu=0.0, ic_sigma=1.0):
 
-    return p_intercept / (
-        1
-        + tt.exp(
-            -1
-            * (
-                p_slope * gmt
-                + det_dot(xf_yearly, p_yearly)
-                + gmt * det_dot(xf_trend, p_trend)
+    with model:
+
+        intercept = pm.Lognormal(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+
+        slope = pm.Normal(name + "_slope", mu=0, sigma=1)
+        yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])
+        trend = pm.Normal(name + "_trend", mu=0.0, sd=2.0, shape=xfb.dshape[1])
+
+        param = intercept / (
+            1
+            + tt.exp(
+                -1 * (slope * gmt + det_dot(xfa, yearly) + gmt * det_dot(xfb, trend))
             )
         )
-    )
+
+    return pm.Deterministic(name, param)
 
 
-def longterm_yearlycycle(gmt, p_intercept, p_slope, p_yearly, xf_yearly):
+def longterm_yearlycycle(model, name, gmt, xfa, ic_mu=0.0, ic_sigma=1.0):
 
-    return p_intercept / (
-        1 + tt.exp(-1 * (p_slope * gmt + det_dot(xf_yearly, p_yearly)))
-    )
+    with model:
+
+        intercept = pm.Lognormal(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+
+        slope = pm.Normal(name + "_slope", mu=0, sigma=1)
+        yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])
+
+        param = intercept / (1 + tt.exp(-1 * (slope * gmt + det_dot(xfa, yearly))))
+
+    return pm.Deterministic(name, param)
 
 
-def yearlycycle(p_intercept, p_yearly, xf_yearly):
+# def longterm_yearlycycle(gmt, p_intercept, p_slope, p_yearly, xf_yearly):
 
-    return p_intercept / (1 + tt.exp(-1 * det_dot(xf_yearly, p_yearly)))
+#     return p_intercept / (
+#         1 + tt.exp(-1 * (p_slope * gmt + det_dot(xf_yearly, p_yearly)))
+#     )
+
+
+def yearlycycle(model, name, xfa, ic_mu=0.0, ic_sigma=1.0):
+
+    with model:
+
+        intercept = pm.Lognormal(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+
+        yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])
+
+        param = intercept / (1 + tt.exp(-1 * det_dot(xfa, yearly)))
+
+    return pm.Deterministic(name, param)
+
+
+# def yearlycycle(p_intercept, p_yearly, xf_yearly):
+
+#     return p_intercept / (1 + tt.exp(-1 * det_dot(xf_yearly, p_yearly)))

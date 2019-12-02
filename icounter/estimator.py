@@ -56,7 +56,7 @@ class estimator(object):
 
         x_fourier = fourier.get_fourier_valid(df, self.modes)
 
-        df = pd.concat([df,x_fourier], axis=1)
+        df = pd.concat([df, x_fourier], axis=1)
         df_valid = dh.get_valid_subset(df, self.subset, self.seed)
 
         self.model = self.statmodel.setup(df_valid)
@@ -65,26 +65,26 @@ class estimator(object):
             self.output_dir, "traces", lat, lon, variable=self.variable
         )
 
-        # TODO: isolate loading trace function
-        print("Search for trace in\n", outdir_for_cell)
+        # FIXME: Rework loading old traces
+        # print("Search for trace in\n", outdir_for_cell)
         # As load_trace does not throw an error when no saved data exists, we here
         # test this manually. FIXME: Could be improved, as we check for existence
         # of names and number of chains only, but not that the data is not corrupted.
-        try:
-            trace = pm.load_trace(outdir_for_cell, model=self.model)
-            for var in self.statmodel.vars_to_estimate:
-                if var not in trace.varnames:
-                    print(var, "is not in trace, rerun sampling.")
-                    raise IndexError
-            if trace.nchains != self.chains:
-                raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data. Skip this for sampling.")
-        except Exception as e:
-            print("Problem with saved trace:", e, ". Redo parameter estimation.")
-            trace = self.sample()
-            # print(pm.summary(trace)) # takes too much memory
-            if self.save_trace:
-                pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
+        # try:
+        #     trace = pm.load_trace(outdir_for_cell, model=self.model)
+        #     for var in self.statmodel.vars_to_estimate:
+        #         if var not in trace.varnames:
+        #             print(var, "is not in trace, rerun sampling.")
+        #             raise IndexError
+        #     if trace.nchains != self.chains:
+        #         raise IndexError("Sample data not completely saved. Rerun.")
+        #     print("Successfully loaded sampled data. Skip this for sampling.")
+        # except Exception as e:
+        #     print("Problem with saved trace:", e, ". Redo parameter estimation.")
+        trace = self.sample()
+        # print(pm.summary(trace)) # takes too much memory
+        if self.save_trace:
+            pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
         return trace
 
@@ -134,14 +134,16 @@ class estimator(object):
             xf0 = fourier.rescale(df, self.modes[0])
             xf1 = fourier.rescale(df, self.modes[1])
             xf2 = fourier.rescale(df, self.modes[2])
-            xf3 = fourier.rescale(df, self.modes[3])
+            if self.sigma_model == "full":
+                xf3 = fourier.rescale(df, self.modes[3])
 
             with self.model:
                 pm.set_data({"xf0": xf0})
                 pm.set_data({"xf1": xf1})
                 pm.set_data({"xf2": xf2})
-                pm.set_data({"xf3": xf3})
                 pm.set_data({"gmt": df["gmt_scaled"].values})
+                if self.sigma_model == "full":
+                    pm.set_data({"xf3": xf3})
 
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
