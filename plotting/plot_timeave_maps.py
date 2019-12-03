@@ -5,7 +5,7 @@ import netCDF4 as nc
 import settings
 from plotting.helper_functions import get_path, get_parser
 
-plt.rcParams["figure.figsize"] = 12,14
+plt.rcParams["figure.figsize"] = 12, 14
 
 
 def main(runid):
@@ -17,43 +17,43 @@ def main(runid):
     figure_dir.mkdir(parents=True, exist_ok=True)
     print(figure_dir)
 
-    ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid),"r")
+    ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid), "r")
 
     # Plotting
-    vmax=5e-6
-    vmin=None if vmax is None else -vmax
+    vmax = 5e-6
+    vmin = None if vmax is None else -vmax
     lati = 8
     loni = 4
     # y are the original observations, cfact the counterfactual
-    fig=plt.figure()
-    for i,case in enumerate(["y", "cfact"]):
+    fig = plt.figure()
+    for i, case in enumerate(["y", "cfact"]):
         data = ncd.variables[case][:]
         # last minus first 30 years
-        trend = (data[-30 * 12:, ::-1, ::1].mean(axis=0) -
-                 data[0:30 * 12:, ::-1, ::1].mean(axis=0))
+        trend = data[-30 * 12 :, ::-1, ::1].mean(axis=0) - data[
+            0 : 30 * 12 :, ::-1, ::1
+        ].mean(axis=0)
         # trend = (np.median(np.array(data[-30 * 12:, ::-1, ::1]), axis=0) -
         #          np.median(np.array(data[0:30 * 12:, ::-1, ::1]), axis=0))
 
-        ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
+        ax = plt.subplot(211 + i, projection=ccrs.PlateCarree(central_longitude=0.0))
         ax.coastlines()
-        img = ax.imshow(trend
-                        , vmin=vmin, vmax=vmax
-                        , extent=[-180, 180, -90, 90]
-                        , cmap='RdBu')
+        img = ax.imshow(
+            trend, vmin=vmin, vmax=vmax, extent=[-180, 180, -90, 90], cmap="RdBu"
+        )
         plt.colorbar(img, ax=ax, shrink=0.6)
         ax.grid()
         # ax.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)
         plt.title(case)
 
     fig.tight_layout()
-    fig.savefig(figure_dir/"trend_map.jpg",dpi=80)
+    fig.savefig(figure_dir / "trend_map.jpg", dpi=80)
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     parser = get_parser()
     o = parser.parse_args()
-    if len(o.runid)>0:
+    if len(o.runid) > 0:
         for runid in o.runid:
             main(runid=runid)
     else:
-        print('no runid provided')
+        print("no runid provided")

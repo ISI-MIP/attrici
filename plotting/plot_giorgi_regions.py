@@ -5,23 +5,28 @@ import xarray as xr
 import regionmask as rem
 import warnings
 import settings
-from plotting.helper_functions import get_path, get_parser, get_ylims, get_seasonal_dataset
+from plotting.helper_functions import (
+    get_path,
+    get_parser,
+    get_ylims,
+    get_seasonal_dataset,
+)
 
 
 def main(runid):
     variable = settings.variable
     dataset = settings.dataset
     warnings.simplefilter("ignore")
-    plt.rcParams["figure.figsize"] = 18,12
+    plt.rcParams["figure.figsize"] = 18, 12
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
     # data_dir = Path("/home/mengel/data/20190306_IsimipDetrend/output/")
     data_dir = settings.output_dir
 
-    ncfl = get_path(data_dir, variable, dataset, runid)
+    ncfl = get_path(data_dir.parents[0], variable, dataset, runid)
 
     ds = xr.open_dataset(ncfl)
-    ds["cfact"] *= 1.e6
-    ds["y"] *= 1.e6
+    ds["cfact"] *= 1.0e6
+    ds["y"] *= 1.0e6
 
     giorgi_mask = rem.defined_regions.giorgi.mask(ds.cfact)
     giorgi_names = rem.defined_regions.giorgi.names
@@ -37,7 +42,7 @@ def main(runid):
         ylim = []
         axs = []
         plt.figure(figsize=(12, 16))
-        ds_year = ds.groupby('time.year').mean('time')
+        ds_year = ds.groupby("time.year").mean("time")
         dd = get_season_regmean(ds_year, rname, land_mask, giorgi_mask)
         ax = plt.subplot(3, 2, 1)
         dd[0].plot(label="observed")
@@ -55,7 +60,9 @@ def main(runid):
             dd[0].plot()
             dd[1].plot(alpha=0.6)
             ylim.append(ax.get_ylim())
-            ax.text(0.05, 0.9, rname + " " + season, transform=ax.transAxes, fontsize=16)
+            ax.text(
+                0.05, 0.9, rname + " " + season, transform=ax.transAxes, fontsize=16
+            )
             axs.append(ax)
             ax.set_ylabel("precipitation")
 
@@ -65,23 +72,23 @@ def main(runid):
         plt.savefig(figure_dir / Path(rname.replace(" ", "_") + ".jpg"), dpi=80)
 
 
-def select_giorgi_by_name(ds, name, land_mask,giorgi_mask):
+def select_giorgi_by_name(ds, name, land_mask, giorgi_mask):
     """ Select the land pixels belonging to the Giorgi region with name."""
     nregion = rem.defined_regions.giorgi.map_keys(name)
-    return ds.where((giorgi_mask==nregion) & land_mask)
+    return ds.where((giorgi_mask == nregion) & land_mask)
 
 
 def get_season_regmean(ds_season, rname, land_mask, giorgi_mask):
     regy = select_giorgi_by_name(ds_season.y, rname, land_mask, giorgi_mask)
     regcf = select_giorgi_by_name(ds_season.cfact, rname, land_mask, giorgi_mask)
-    return regy.mean(dim=("lat","lon")), regcf.mean(dim=("lat","lon"))
+    return regy.mean(dim=("lat", "lon")), regcf.mean(dim=("lat", "lon"))
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     parser = get_parser()
     o = parser.parse_args()
-    if len(o.runid)>0:
+    if len(o.runid) > 0:
         for runid in o.runid:
             main(runid=runid)
     else:
-        print('no runid provided')
+        print("no runid provided")
