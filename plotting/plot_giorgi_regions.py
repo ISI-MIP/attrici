@@ -13,16 +13,16 @@ from plotting.helper_functions import (
 )
 
 
-def main(runid):
+def main(runid, tag):
     variable = settings.variable
     dataset = settings.dataset
     warnings.simplefilter("ignore")
     plt.rcParams["figure.figsize"] = 18, 12
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
     # data_dir = Path("/home/mengel/data/20190306_IsimipDetrend/output/")
-    data_dir = settings.output_dir
+    data_dir = settings.output_dir.parents[0]
 
-    ncfl = get_path(data_dir.parents[0], variable, dataset, runid)
+    ncfl = get_path(data_dir, variable, dataset, runid, tag)
 
     ds = xr.open_dataset(ncfl)
     ds["cfact"] *= 1.0e6
@@ -69,7 +69,7 @@ def main(runid):
         for ax in axs[1:]:
             ax.set_ylim(get_ylims(ylim))
 
-        plt.savefig(figure_dir / Path(rname.replace(" ", "_") + ".jpg"), dpi=80)
+        plt.savefig(figure_dir / Path(rname.replace(" ", "_") + "_"+ tag+ ".jpg"), dpi=80)
 
 
 def select_giorgi_by_name(ds, name, land_mask, giorgi_mask):
@@ -89,6 +89,6 @@ if __name__ == "__main__":
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid)
+            main(runid=runid, tag=o.tag[0])
     else:
         print("no runid provided")

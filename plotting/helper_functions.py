@@ -3,19 +3,20 @@ import argparse
 import numpy as np
 
 
-def get_path(data_dir, var, dataset, runid):
+def get_path(data_dir, var, dataset, runid, tag):
     return (
         data_dir
         / Path(runid)
         / "cfact"
         / var
-        / Path(var + "_" + dataset.upper() + "_cfactual_monmean.nc4")
+        / Path(var + "_" + dataset.upper() + "_"+tag+".nc4")
     )
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--runid", nargs="*", help="provide name of the experiment.")
+    parser.add_argument("--tag", nargs="*", help="provide tag of the nc file.")
     return parser
 
 
