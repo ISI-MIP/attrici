@@ -2,22 +2,23 @@ import matplotlib.pylab as plt
 import cartopy.crs as ccrs
 import numpy as np
 import netCDF4 as nc
+from pathlib import Path
 import settings
 from plotting.helper_functions import get_path, get_parser
 
-plt.rcParams["figure.figsize"] = 12,14
+plt.rcParams["figure.figsize"] = 12, 14
 
 
-def main(runid):
+def main(runid, tag):
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
-    data_dir = settings.output_dir
+    data_dir = settings.output_dir.parents[0]
     variable = settings.variable
     dataset = settings.dataset.lower()
     figure_dir = data_dir / "figures" / runid / "maps"
     figure_dir.mkdir(parents=True, exist_ok=True)
     print(figure_dir)
 
-    ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid),"r")
+    ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid, tag), "r")
 
     # Plotting
     vmax=5e-6
@@ -29,8 +30,8 @@ def main(runid):
         cmap = 'coolwarm'
 
     # y are the original observations, cfact the counterfactual
-    fig=plt.figure()
-    for i,case in enumerate(["y", "cfact"]):
+    fig = plt.figure()
+    for i, case in enumerate(["y", "cfact"]):
         data = ncd.variables[case][:]
         # last minus first 30 years
         trend = (data[-30 * 12:, ::-1, ::1].mean(axis=0) -
@@ -38,7 +39,7 @@ def main(runid):
         # trend = (np.median(np.array(data[-30 * 12:, ::-1, ::1]), axis=0) -
         #          np.median(np.array(data[0:30 * 12:, ::-1, ::1]), axis=0))
 
-        ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
+        ax = plt.subplot(211 + i, projection=ccrs.PlateCarree(central_longitude=0.0))
         ax.coastlines()
         img = ax.imshow(trend
                         , vmin=vmin, vmax=vmax
@@ -50,14 +51,14 @@ def main(runid):
         plt.title(case)
 
     fig.tight_layout()
-    fig.savefig(figure_dir/"trend_map.jpg",dpi=80)
+    fig.savefig(figure_dir / Path(f"trend_map{tag}.jpg"), dpi=80)
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     parser = get_parser()
     o = parser.parse_args()
-    if len(o.runid)>0:
+    if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid)
+            main(runid=runid,tag=o.tag[0])
     else:
-        print('no runid provided')
+        print("no runid provided")
