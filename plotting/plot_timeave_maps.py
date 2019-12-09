@@ -22,8 +22,12 @@ def main(runid):
     # Plotting
     vmax=5e-6
     vmin=None if vmax is None else -vmax
-    lati = 8
-    loni = 4
+    # define appropriate colorscheme for the given variable
+    if variable == 'pr':
+        cmap = 'BrBG'
+    else:
+        cmap = 'coolwarm'
+
     # y are the original observations, cfact the counterfactual
     fig=plt.figure()
     for i,case in enumerate(["y", "cfact"]):
@@ -39,7 +43,7 @@ def main(runid):
         img = ax.imshow(trend
                         , vmin=vmin, vmax=vmax
                         , extent=[-180, 180, -90, 90]
-                        , cmap='RdBu')
+                        , cmap=cmap)
         plt.colorbar(img, ax=ax, shrink=0.6)
         ax.grid()
         # ax.plot(loni, lati, "x", markersize=20, markeredgewidth=3, color="r",)

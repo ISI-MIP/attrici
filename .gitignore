@@ -3,6 +3,7 @@ notebooks/
 .ipynb_checkpoints/
 __pycache__/
 output/
+input/
 gswp3
 *.egg-info/
 submit.sh
