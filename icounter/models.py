@@ -11,9 +11,10 @@ class Normal(object):
     mu and sigma parameters in a Normal distribution.
     Works for example for tas. """
 
-    def __init__(self, modes, sigma_model):
+    def __init__(self, modes, mu_model, sigma_model):
 
         self.modes = modes
+        self.mu_model = mu_model
         self.sigma_model = sigma_model
 
         print("Using Normal distribution model. Fourier modes:", modes)
@@ -29,17 +30,20 @@ class Normal(object):
             xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
             xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
 
-            mu = l.full(model, "mu", gmt, xf0, xf1, ic_sigma=5.0)
+            mu = l.full(model, pm.Normal, "mu", gmt, xf0, xf1, ic_sigma=5.0)
 
             if self.sigma_model == "full":
                 xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
-                sigma = l.full(model, "sigma", gmt, xf2, xf3)
+                sigma = l.full(model, pm.Lognormal, "sigma", gmt, xf2, xf3)
 
             elif self.sigma_model == "yearlycycle":
-                sigma = l.yearlycycle(model, "sigma", xf2)
+                sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2)
 
             elif self.sigma_model == "longterm_yearlycycle":
-                sigma = l.longterm_yearlycycle(model, "sigma", gmt, xf2)
+                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmt, xf2)
+
+            elif self.sigma_model == "longterm":
+                sigma = l.longterm(model, pm.Lognormal, "sigma", gmt)
 
             else:
                 raise NotImplemented
@@ -84,16 +88,16 @@ class Gamma(object):
 
             if self.mu_model == "full":
                 xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
-                mu = l.full(model, "mu", gmt, xf0, xf1)
+                mu = l.full(model, pm.Lognormal, "mu", gmt, xf0, xf1)
 
             elif self.mu_model == "yearlycycle":
-                mu = l.yearlycycle(model, "mu", xf0)
+                mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0)
 
             elif self.mu_model == "longterm_yearlycycle":
-                mu = l.longterm_yearlycycle(model, "mu", gmt, xf0)
+                mu = l.longterm_yearlycycle(model, pm.Lognormal, "mu", gmt, xf0)
 
             elif self.mu_model == "longterm":
-                mu = l.longterm(model, "mu", gmt)
+                mu = l.longterm(model, pm.Lognormal, "mu", gmt)
 
             else:
                 raise NotImplemented
@@ -102,16 +106,16 @@ class Gamma(object):
 
             if self.sigma_model == "full":
                 xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
-                sigma = l.full(model, "sigma", gmt, xf2, xf3)
+                sigma = l.full(model, pm.Lognormal, "sigma", gmt, xf2, xf3)
 
             elif self.sigma_model == "yearlycycle":
-                sigma = l.yearlycycle(model, "sigma", xf2)
+                sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2)
 
             elif self.sigma_model == "longterm_yearlycycle":
-                sigma = l.longterm_yearlycycle(model, "sigma", gmt, xf2)
+                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmt, xf2)
 
             elif self.sigma_model == "longterm":
-                sigma = l.longterm(model, "sigma", gmt)
+                sigma = l.longterm(model, pm.Lognormal, "sigma", gmt)
 
             else:
                 raise NotImplemented
