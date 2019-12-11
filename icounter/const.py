@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 
 threshold = {
@@ -93,14 +94,16 @@ def mask_and_scale_by_bounds(data, variable):
 
 
 
-def scale_offset_and_mask(data, variable):
+def scale_precip(data, variable):
 
     data = data - threshold[variable][0]
 
     print("Mask", (data <= 0).sum(), "values below lower bound.")
     data[data <= 0] = np.nan
-
-    scale = data.max() - data.min()
+    fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
+    # for scipy.gamma: fscale = 1/beta
+    # std = sqrt(fa/beta**2)
+    scale = fscale*fa**0.5
     scaled_data = data / scale
 
     print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
@@ -132,5 +135,5 @@ mask_and_scale = {
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
-    "pr": [scale_offset_and_mask, rescale_and_offset_precip],
+    "pr": [scale_precip, rescale_and_offset_precip],
 }
