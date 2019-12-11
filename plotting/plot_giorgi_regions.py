@@ -89,6 +89,6 @@ if __name__ == "__main__":
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid, tag=o.tag[0])
+            main(runid=runid, tag=o.tag)
     else:
         print("no runid provided")

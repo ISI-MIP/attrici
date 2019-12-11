@@ -8,7 +8,7 @@ from plotting.helper_functions import get_path, get_parser
 plt.rcParams["figure.figsize"] = 12, 14
 
 
-def main(runid, tag, rel=False):
+def main(runid, tag, rel, vmax):
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
     data_dir = settings.output_dir.parents[0]
     variable = settings.variable
@@ -20,7 +20,6 @@ def main(runid, tag, rel=False):
     ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid, tag), "r")
 
     # Plotting
-    vmax=5e-5
     vmin=None if vmax is None else -vmax
     # define appropriate colorscheme for the given variable
     if variable == 'pr':
@@ -42,7 +41,7 @@ def main(runid, tag, rel=False):
             trend = trend / data[0:30 * 12:, ::-1, ::1].mean(axis=0)
             vmax = 1
             vmin = None if vmax is None else -vmax
-            figname = "trend_map_rel.jpg"
+            figname = f"trend_map_{tag}_rel.jpg"
 
         ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
         ax.coastlines()
@@ -64,6 +63,6 @@ if __name__ == "__main__":
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid,tag=o.tag[0])
+            main(runid=runid, tag=o.tag, rel=o.rel, vmax=o.vmax)
     else:
         print("no runid provided")

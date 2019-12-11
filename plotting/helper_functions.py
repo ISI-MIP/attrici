@@ -4,18 +4,21 @@ import numpy as np
 
 
 def get_path(data_dir, var, dataset, runid, tag):
-    return (
-        data_dir
-        / Path(runid)
-        / "cfact"
-        / var
-        / Path(var + "_" + dataset.upper() + "_"+tag+".nc4")
-    )
+    file_dir = data_dir / runid / "cfact" / var
+    if tag=='':
+        return file_dir / f'{var}_{dataset.upper()}_cfactual_monmean.nc4'
+
+    else:
+        return file_dir / f'{var}_{dataset.upper()}_cfactual_monmean_{tag}.nc4'
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
+    parser.add_argument('--tag', type=str, default='',
+                        help='tag in [valid, valid_prthresh] discribes how monthly means are computed')
+    parser.add_argument('--rel', action='store_true', help="if specified, plot relative trends")
+    parser.add_argument('--vmax', type=float, default=None, help='specify the max value of the plotted scale')
     return parser
 
 
