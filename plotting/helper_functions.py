@@ -14,11 +14,20 @@ def get_path(data_dir, var, dataset, runid, tag):
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--runid', nargs='*', help='provide name of the experiment.')
+    parser.add_argument('--runid', nargs='*',
+                        help='provide name of the experiment.')
     parser.add_argument('--tag', type=str, default='',
                         help='tag in [valid, valid_prthresh] discribes how monthly means are computed')
-    parser.add_argument('--rel', action='store_true', help="if specified, plot relative trends")
-    parser.add_argument('--vmax', type=float, default=None, help='specify the max value of the plotted scale')
+    parser.add_argument('--rel', action='store_true',
+                        help="if specified, plot relative trends")
+    parser.add_argument('--vmax', type=float, default=None,
+                        help='specify the max value of the plotted scale')
+    parser.add_argument("--lat", type=float,
+                        help="latitude for which to plot the information")
+    parser.add_argument("--lon", type=float,
+                        help="longitude for which to plot the information")
+    parser.add_argument("--rolling_window", type=int, default=365,
+                        help="size of the rolling window over which mean values are calculated")
     return parser
 
 

@@ -10,9 +10,10 @@ from plotting.helper_functions import (
     get_seasonal_dataset,
 )
 import cartopy.crs as ccrs
+from plotting.plot_scaled_timeseries import main as plot_scaled_timeseries
 
 
-def main(runid, tag, lat, lon):
+def main(runid, tag, lat, lon, rolling_window):
     # load variables from settings file
     warnings.simplefilter("ignore")
     variable = settings.variable
@@ -82,6 +83,11 @@ def main(runid, tag, lat, lon):
     plt.legend(loc="upper right", frameon=False)
     axs.append(ax)
 
+    ax = plt.subplot(4, 2, 4)
+    plot_scaled_timeseries(runid=runid, lat=avail_cell['lat'], lon=avail_cell['lon'],
+                           ax=ax, rolling_window=rolling_window)
+
+
     for i, season in enumerate(["DJF", "MAM", "JJA", "SON"]):
         data_season = get_seasonal_dataset(data, season)
         ax = plt.subplot(4, 2, i + 5)
@@ -112,15 +118,10 @@ def _get_avail_cell(data, lat, lon):
 
 if __name__ == "__main__":
     parser = get_parser()
-    parser.add_argument(
-        "--lat", type=float, help="latitude for which to plot the information"
-    )
-    parser.add_argument(
-        "--lon", type=float, help="longitude for which to plot the information"
-    )
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid, tag=o.tag, lat=o.lat, lon=o.lon)
+            main(runid=runid, tag=o.tag, lat=o.lat, lon=o.lon,
+                 rolling_window=o.rolling_window)
     else:
         print("no runid provided")
