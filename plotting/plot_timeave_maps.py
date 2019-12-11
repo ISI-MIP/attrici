@@ -2,14 +2,13 @@ import matplotlib.pylab as plt
 import cartopy.crs as ccrs
 import numpy as np
 import netCDF4 as nc
-from pathlib import Path
 import settings
 from plotting.helper_functions import get_path, get_parser
 
 plt.rcParams["figure.figsize"] = 12, 14
 
 
-def main(runid, tag):
+def main(runid, tag, rel=False):
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
     data_dir = settings.output_dir.parents[0]
     variable = settings.variable
@@ -21,7 +20,7 @@ def main(runid, tag):
     ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid, tag), "r")
 
     # Plotting
-    vmax=5e-6
+    vmax=5e-5
     vmin=None if vmax is None else -vmax
     # define appropriate colorscheme for the given variable
     if variable == 'pr':
@@ -31,6 +30,7 @@ def main(runid, tag):
 
     # y are the original observations, cfact the counterfactual
     fig = plt.figure()
+    figname = f"trend_map_{tag}.jpg"
     for i, case in enumerate(["y", "cfact"]):
         data = ncd.variables[case][:]
         # last minus first 30 years
@@ -38,8 +38,13 @@ def main(runid, tag):
                  data[0:30 * 12:, ::-1, ::1].mean(axis=0))
         # trend = (np.median(np.array(data[-30 * 12:, ::-1, ::1]), axis=0) -
         #          np.median(np.array(data[0:30 * 12:, ::-1, ::1]), axis=0))
+        if rel:
+            trend = trend / data[0:30 * 12:, ::-1, ::1].mean(axis=0)
+            vmax = 1
+            vmin = None if vmax is None else -vmax
+            figname = "trend_map_rel.jpg"
 
-        ax = plt.subplot(211 + i, projection=ccrs.PlateCarree(central_longitude=0.0))
+        ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
         ax.coastlines()
         img = ax.imshow(trend
                         , vmin=vmin, vmax=vmax
@@ -51,7 +56,7 @@ def main(runid, tag):
         plt.title(case)
 
     fig.tight_layout()
-    fig.savefig(figure_dir / Path(f"trend_map{tag}.jpg"), dpi=80)
+    fig.savefig(figure_dir/figname,dpi=80)
 
 
 if __name__ == "__main__":
