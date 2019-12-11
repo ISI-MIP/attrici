@@ -12,15 +12,15 @@ from plotting.helper_functions import (
 import cartopy.crs as ccrs
 
 
-def main(runid, lat, lon):
+def main(runid, tag, lat, lon):
     # load variables from settings file
     warnings.simplefilter("ignore")
     variable = settings.variable
     dataset = settings.dataset
-    data_dir = settings.output_dir
+    data_dir = settings.output_dir.parents[0]
 
     # load dataset
-    ncfl = get_path(data_dir, variable, dataset, runid)
+    ncfl = get_path(data_dir, variable, dataset, runid, tag)
     data = xr.open_dataset(ncfl)
     avail_cell = _get_avail_cell(data, lat, lon)
     print(
@@ -96,7 +96,7 @@ def main(runid, lat, lon):
         ax.set_ylim(get_ylims(ylim))
 
     plt.savefig(
-        figure_dir / Path(f"{avail_cell['lat']};{avail_cell['lon']}.jpg"), dpi=80
+        figure_dir / f"cell_lat{avail_cell['lat']}_lon{avail_cell['lon']}_{tag}.jpg", dpi=80
     )
 
 
@@ -121,6 +121,6 @@ if __name__ == "__main__":
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid, lat=o.lat, lon=o.lon)
+            main(runid=runid, tag=o.tag, lat=o.lat, lon=o.lon)
     else:
         print("no runid provided")
