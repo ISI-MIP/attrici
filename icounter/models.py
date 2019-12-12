@@ -63,63 +63,88 @@ class Normal(object):
         return x_mapped
 
 
-class Gamma(object):
+class GammaBernoulli(object):
 
     """ Influence of GMT is modelled through the parameters of the Gamma
     distribution. Example: precipitation """
 
-    def __init__(self, modes, mu_model, sigma_model):
+    def __init__(self, modes, mu_model, sigma_model, bernoulli_model):
 
         self.modes = modes
         self.mu_model = mu_model
         self.sigma_model = sigma_model
+        self.bernoulli_model = bernoulli_model
 
         print("Using Gamma distribution model. Fourier modes:", modes)
 
-    def setup(self, df_valid):
+    def setup(self, df_valid , df):
 
         model = pm.Model()
 
         with model:
 
-            gmt = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
-            # mu = l.full(model, "mu", gmt, xf0, xf1)
+            gmt = pm.Data("gmt", df["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df.filter(like="mode_0_").values)
+            xf1 = pm.Data("xf1", df.filter(like="mode_1_").values)
+            xf2 = pm.Data("xf2", df.filter(like="mode_2_").values)
+            xf3 = pm.Data("xf3", df.filter(like="mode_3_").values)
+
+            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
+            xf0v = pm.Data("xf0v", df_valid.filter(like="mode_0_").values)
+            xf1v = pm.Data("xf1v", df_valid.filter(like="mode_1_").values)
+            xf2v = pm.Data("xf2v", df_valid.filter(like="mode_2_").values)
+            xf3v = pm.Data("xf3v", df_valid.filter(like="mode_3_").values)
+
+
+            if self.bernoulli_model == "full":
+                pbern = l.full(model, pm.Beta, "pbern", gmt, xf0, xf1, ic_mu=0.5, ic_sigma=0.1)
+
+            elif self.bernoulli_model == "yearlycycle":
+                pbern = l.yearlycycle(model, pm.Beta, "pbern", xf0, ic_mu=0.5, ic_sigma=0.1)
+
+            elif self.bernoulli_model == "longterm_yearlycycle":
+                pbern = l.longterm_yearlycycle(model, pm.Beta, "pbern", gmt, xf0, ic_mu=0.5, ic_sigma=0.1)
+
+            elif self.bernoulli_model == "longterm":
+                pbern = l.longterm(model, pm.Beta, "pbern", gmt, ic_mu=0.5, ic_sigma=0.1)
+
+            else:
+                raise NotImplemented
+
 
             if self.mu_model == "full":
-                xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
-                mu = l.full(model, pm.Lognormal, "mu", gmt, xf0, xf1)
+                mu = l.full(model, pm.Lognormal, "mu", gmtv, xf0v, xf1v)
 
             elif self.mu_model == "yearlycycle":
-                mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0)
+                mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0v)
 
             elif self.mu_model == "longterm_yearlycycle":
-                mu = l.longterm_yearlycycle(model, pm.Lognormal, "mu", gmt, xf0)
+                mu = l.longterm_yearlycycle(model, pm.Lognormal, "mu", gmtv, xf0v)
 
             elif self.mu_model == "longterm":
-                mu = l.longterm(model, pm.Lognormal, "mu", gmt)
+                mu = l.longterm(model, pm.Lognormal, "mu", gmtv)
 
             else:
                 raise NotImplemented
 
-            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
 
             if self.sigma_model == "full":
-                xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
-                sigma = l.full(model, pm.Lognormal, "sigma", gmt, xf2, xf3)
+                sigma = l.full(model, pm.Lognormal, "sigma", gmtv, xf2v, xf3v)
 
             elif self.sigma_model == "yearlycycle":
-                sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2)
+                sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2v)
 
             elif self.sigma_model == "longterm_yearlycycle":
-                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmt, xf2)
+                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmtv, xf2v)
 
             elif self.sigma_model == "longterm":
-                sigma = l.longterm(model, pm.Lognormal, "sigma", gmt)
+                sigma = l.longterm(model, pm.Lognormal, "sigma", gmtv)
 
             else:
                 raise NotImplemented
 
+            # print(df["is_dry_day"].astype(int))
+            pm.Bernoulli('bernoulli',p=pbern, observed=df["is_dry_day"].astype(int))
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model

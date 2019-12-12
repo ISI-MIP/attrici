@@ -95,6 +95,8 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
             "gmt_scaled": gmt_scaled,
         }
     )
+    if variable == "pr":
+        tdf["is_dry_day"] = np.isnan(y_scaled)
 
     return tdf, datamin, scale
 

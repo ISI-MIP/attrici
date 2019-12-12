@@ -28,6 +28,8 @@ variable = "pr"  # select variable to detrend
 # out of full, longterm_yearlycycle, yearlycycle, longterm
 mu_model = "longterm"
 sigma_model = "longterm"
+# bernoulli only relevant for precip
+bernoulli_model = "longterm"
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
 modes = [2, 1, 1, 1]

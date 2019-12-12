@@ -13,7 +13,7 @@ model_for_var = {
     "tas": models.Normal,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
-    "pr": models.Gamma,
+    "pr": models.GammaBernoulli,
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Weibull,
@@ -44,9 +44,11 @@ class estimator(object):
         self.mu_model = cfg.mu_model
         self.sigma_model = cfg.sigma_model
         self.inference = cfg.inference
+        self.bernoulli_model = cfg.bernoulli_model
 
         try:
-            self.statmodel = model_for_var[self.variable](self.modes, self.mu_model, self.sigma_model)
+            self.statmodel = model_for_var[self.variable](self.modes, self.mu_model, self.sigma_model,
+                self.bernoulli_model)
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."
@@ -60,7 +62,7 @@ class estimator(object):
         df = pd.concat([df, x_fourier], axis=1)
         df_valid = dh.get_valid_subset(df, self.subset, self.seed)
 
-        self.model = self.statmodel.setup(df_valid)
+        self.model = self.statmodel.setup(df_valid, df)
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, variable=self.variable
