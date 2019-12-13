@@ -75,6 +75,7 @@ class estimator(object):
         # of names and number of chains only, but not that the data is not corrupted.
         try:
             trace = pm.load_trace(outdir_for_cell, model=self.model)
+            print(trace.varnames)
         #     for var in self.statmodel.vars_to_estimate:
         #         if var not in trace.varnames:
         #             print(var, "is not in trace, rerun sampling.")

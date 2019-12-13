@@ -75,7 +75,7 @@ class GammaBernoulli(object):
         self.sigma_model = sigma_model
         self.bernoulli_model = bernoulli_model
 
-        print("Using Gamma distribution model. Fourier modes:", modes)
+        print("Using GammaBernoulli distribution model. Fourier modes:", modes)
 
     def setup(self, df_valid , df):
 
@@ -89,6 +89,7 @@ class GammaBernoulli(object):
             xf2 = pm.Data("xf2", df.filter(like="mode_2_").values)
             xf3 = pm.Data("xf3", df.filter(like="mode_3_").values)
 
+            # FIXME: avoid this doubling of predictors, introduced for BernoulliGamma
             gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
             xf0v = pm.Data("xf0v", df_valid.filter(like="mode_0_").values)
             xf1v = pm.Data("xf1v", df_valid.filter(like="mode_1_").values)
@@ -171,9 +172,6 @@ class GammaBernoulli(object):
 
             return x_mapped
 
-
-        drier_cf = d["pbern_ref"] > d["pbern"]
-        wetter_cf = ~drier_cf
         # make it a numpy array, so we can compine smoothly with d data frame.
         y_scaled = y_scaled.values
         dry_day = np.isnan(y_scaled)
@@ -182,22 +180,41 @@ class GammaBernoulli(object):
         quantile = bgamma_cdf(d,y_scaled)
 
         # case of p smaller p'
+        # the probability of a dry day is higher in the counterfactual day
+        # than in the historical day. We need to create dry days.
+        drier_cf = d["pbern_ref"] > d["pbern"]
         wet_to_wet = quantile > d["pbern_ref"] # False on dry day (NA in y_scaled)
-        do_normal_qm = np.logical_and(drier_cf, wet_to_wet)
+        # if the quantile of the observed rain is high enough, keep day wet
+        # and use normal quantile mapping
+        do_normal_qm_0 = np.logical_and(drier_cf, wet_to_wet)
+        print("normal qm for higher cfact dry probability:", do_normal_qm_0.sum())
         cfact = np.zeros(len(y_scaled))
-
-        cfact[do_normal_qm] = bgamma_ppf(d,quantile)[do_normal_qm]
-        # else leave zero (from np.zeros)
+        cfact[do_normal_qm_0] = bgamma_ppf(d,quantile)[do_normal_qm_0]
+        # else: make it a dry day with zero precip (from np.zeros)
 
         # case of p' smaller p
+        # the probability of a dry day is lower in the counterfactual day
+        # than in the historical day. We need to create wet days.
+        wetter_cf = ~drier_cf
         wet_day = ~dry_day
-        do_normal_qm = np.logical_and(wetter_cf, wet_day)
-        cfact[do_normal_qm] = bgamma_ppf(d,quantile)[do_normal_qm]
+        # wet days stay wet, and are normally quantile mapped
+        do_normal_qm_1 = np.logical_and(wetter_cf, wet_day)
+        print("normal qm for higher cfact wet probability:", do_normal_qm_1.sum())
+        cfact[do_normal_qm_1] = bgamma_ppf(d,quantile)[do_normal_qm_1]
+        # some dry days need to be made wet. take a random quantile from
+        # the quantile range that was dry days before
         random_dry_day_q = np.random.rand(len(d))*d["pbern"]
         map_to_wet = random_dry_day_q > d["pbern_ref"]
-        randomly_map_to_wet = np.logical_and(~do_normal_qm,map_to_wet)
+        # map these dry days to wet, which are not dry in obs and
+        # wet in counterfactual
+        randomly_map_to_wet = np.logical_and(~do_normal_qm_1,map_to_wet)
         cfact[randomly_map_to_wet] = bgamma_ppf(d,quantile)[randomly_map_to_wet]
-        # else leave zero (from np.zeros)
+        # else: leave zero (from np.zeros)
+        print ("Days originally dry:", dry_day.sum())
+        print ("Days made wet:", randomly_map_to_wet.sum())
+        print ("Days in cfact dry:", (cfact==0).sum())
+        print ("Total days:", (cfact==0).sum() + randomly_map_to_wet.sum() + do_normal_qm_0.sum() + do_normal_qm_1.sum())
+
 
         return cfact
 
