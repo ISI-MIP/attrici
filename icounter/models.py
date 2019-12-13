@@ -77,7 +77,7 @@ class GammaBernoulli(object):
 
         print("Using GammaBernoulli distribution model. Fourier modes:", modes)
 
-    def setup(self, df_valid , df):
+    def setup(self, df_valid, df):
 
         model = pm.Model()
 
@@ -96,22 +96,28 @@ class GammaBernoulli(object):
             xf2v = pm.Data("xf2v", df_valid.filter(like="mode_2_").values)
             xf3v = pm.Data("xf3v", df_valid.filter(like="mode_3_").values)
 
-
             if self.bernoulli_model == "full":
-                pbern = l.full(model, pm.Beta, "pbern", gmt, xf0, xf1, ic_mu=0.5, ic_sigma=0.1)
+                pbern = l.full(
+                    model, pm.Beta, "pbern", gmt, xf0, xf1, ic_mu=0.5, ic_sigma=0.1
+                )
 
             elif self.bernoulli_model == "yearlycycle":
-                pbern = l.yearlycycle(model, pm.Beta, "pbern", xf0, ic_mu=0.5, ic_sigma=0.1)
+                pbern = l.yearlycycle(
+                    model, pm.Beta, "pbern", xf0, ic_mu=0.5, ic_sigma=0.1
+                )
 
             elif self.bernoulli_model == "longterm_yearlycycle":
-                pbern = l.longterm_yearlycycle(model, pm.Beta, "pbern", gmt, xf0, ic_mu=0.5, ic_sigma=0.1)
+                pbern = l.longterm_yearlycycle(
+                    model, pm.Beta, "pbern", gmt, xf0, ic_mu=0.5, ic_sigma=0.1
+                )
 
             elif self.bernoulli_model == "longterm":
-                pbern = l.longterm(model, pm.Beta, "pbern", gmt, ic_mu=0.5, ic_sigma=0.1)
+                pbern = l.longterm(
+                    model, pm.Beta, "pbern", gmt, ic_mu=0.5, ic_sigma=0.1
+                )
 
             else:
                 raise NotImplemented
-
 
             if self.mu_model == "full":
                 mu = l.full(model, pm.Lognormal, "mu", gmtv, xf0v, xf1v)
@@ -128,7 +134,6 @@ class GammaBernoulli(object):
             else:
                 raise NotImplemented
 
-
             if self.sigma_model == "full":
                 sigma = l.full(model, pm.Lognormal, "sigma", gmtv, xf2v, xf3v)
 
@@ -144,7 +149,7 @@ class GammaBernoulli(object):
             else:
                 raise NotImplemented
 
-            pm.Bernoulli('bernoulli',p=pbern, observed=df["is_dry_day"].astype(int))
+            pm.Bernoulli("bernoulli", p=pbern, observed=df["is_dry_day"].astype(int))
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
@@ -155,17 +160,17 @@ class GammaBernoulli(object):
 
         def bgamma_cdf(d, y_scaled):
 
-            quantile = d["pbern"] + (1-d["pbern"]) * stats.gamma.cdf(
-            y_scaled,
-            d["mu"] ** 2.0 / d["sigma"] ** 2.0,
-            scale=d["sigma"] ** 2.0 / d["mu"],
+            quantile = d["pbern"] + (1 - d["pbern"]) * stats.gamma.cdf(
+                y_scaled,
+                d["mu"] ** 2.0 / d["sigma"] ** 2.0,
+                scale=d["sigma"] ** 2.0 / d["mu"],
             )
             return quantile
 
         def bgamma_ppf(d, quantile):
 
             x_mapped = stats.gamma.ppf(
-                (quantile-d["pbern_ref"])/(1-d["pbern_ref"]),
+                (quantile - d["pbern_ref"]) / (1 - d["pbern_ref"]),
                 d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
                 scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
             )
@@ -177,19 +182,19 @@ class GammaBernoulli(object):
         dry_day = np.isnan(y_scaled)
         # FIXME: have this zero precip at dry day fix earlier (in const.py for example)
         y_scaled[dry_day] = 0
-        quantile = bgamma_cdf(d,y_scaled)
+        quantile = bgamma_cdf(d, y_scaled)
 
         # case of p smaller p'
         # the probability of a dry day is higher in the counterfactual day
         # than in the historical day. We need to create dry days.
         drier_cf = d["pbern_ref"] > d["pbern"]
-        wet_to_wet = quantile > d["pbern_ref"] # False on dry day (NA in y_scaled)
+        wet_to_wet = quantile > d["pbern_ref"]  # False on dry day (NA in y_scaled)
         # if the quantile of the observed rain is high enough, keep day wet
         # and use normal quantile mapping
         do_normal_qm_0 = np.logical_and(drier_cf, wet_to_wet)
         print("normal qm for higher cfact dry probability:", do_normal_qm_0.sum())
         cfact = np.zeros(len(y_scaled))
-        cfact[do_normal_qm_0] = bgamma_ppf(d,quantile)[do_normal_qm_0]
+        cfact[do_normal_qm_0] = bgamma_ppf(d, quantile)[do_normal_qm_0]
         # else: make it a dry day with zero precip (from np.zeros)
 
         # case of p' smaller p
@@ -200,21 +205,26 @@ class GammaBernoulli(object):
         # wet days stay wet, and are normally quantile mapped
         do_normal_qm_1 = np.logical_and(wetter_cf, wet_day)
         print("normal qm for higher cfact wet probability:", do_normal_qm_1.sum())
-        cfact[do_normal_qm_1] = bgamma_ppf(d,quantile)[do_normal_qm_1]
+        cfact[do_normal_qm_1] = bgamma_ppf(d, quantile)[do_normal_qm_1]
         # some dry days need to be made wet. take a random quantile from
         # the quantile range that was dry days before
-        random_dry_day_q = np.random.rand(len(d))*d["pbern"]
+        random_dry_day_q = np.random.rand(len(d)) * d["pbern"]
         map_to_wet = random_dry_day_q > d["pbern_ref"]
         # map these dry days to wet, which are not dry in obs and
         # wet in counterfactual
-        randomly_map_to_wet = np.logical_and(~do_normal_qm_1,map_to_wet)
-        cfact[randomly_map_to_wet] = bgamma_ppf(d,quantile)[randomly_map_to_wet]
+        randomly_map_to_wet = np.logical_and(~do_normal_qm_1, map_to_wet)
+        cfact[randomly_map_to_wet] = bgamma_ppf(d, quantile)[randomly_map_to_wet]
         # else: leave zero (from np.zeros)
-        print ("Days originally dry:", dry_day.sum())
-        print ("Days made wet:", randomly_map_to_wet.sum())
-        print ("Days in cfact dry:", (cfact==0).sum())
-        print ("Total days:", (cfact==0).sum() + randomly_map_to_wet.sum() + do_normal_qm_0.sum() + do_normal_qm_1.sum())
-
+        print("Days originally dry:", dry_day.sum())
+        print("Days made wet:", randomly_map_to_wet.sum())
+        print("Days in cfact dry:", (cfact == 0).sum())
+        print(
+            "Total days:",
+            (cfact == 0).sum()
+            + randomly_map_to_wet.sum()
+            + do_normal_qm_0.sum()
+            + do_normal_qm_1.sum(),
+        )
 
         return cfact
 

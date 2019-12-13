@@ -123,9 +123,9 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability, is_precip=Fal
     # write the average values for the reference period to each day of the
     # whole timeseries
     for day in df_params_ref.index:
-        df_params.loc[
-            df_params.index.dayofyear == day, "mu_ref"
-        ] = df_params_ref.loc[day, "mu"]
+        df_params.loc[df_params.index.dayofyear == day, "mu_ref"] = df_params_ref.loc[
+            day, "mu"
+        ]
         if is_precip:
             df_params.loc[
                 df_params.index.dayofyear == day, "pbern_ref"

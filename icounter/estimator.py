@@ -47,8 +47,9 @@ class estimator(object):
         self.bernoulli_model = cfg.bernoulli_model
 
         try:
-            self.statmodel = model_for_var[self.variable](self.modes, self.mu_model, self.sigma_model,
-                self.bernoulli_model)
+            self.statmodel = model_for_var[self.variable](
+                self.modes, self.mu_model, self.sigma_model, self.bernoulli_model
+            )
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."
@@ -76,17 +77,17 @@ class estimator(object):
         try:
             trace = pm.load_trace(outdir_for_cell, model=self.model)
             print(trace.varnames)
-        #     for var in self.statmodel.vars_to_estimate:
-        #         if var not in trace.varnames:
-        #             print(var, "is not in trace, rerun sampling.")
-        #             raise IndexError
-        #     if trace.nchains != self.chains:
-        #         raise IndexError("Sample data not completely saved. Rerun.")
+            #     for var in self.statmodel.vars_to_estimate:
+            #         if var not in trace.varnames:
+            #             print(var, "is not in trace, rerun sampling.")
+            #             raise IndexError
+            #     if trace.nchains != self.chains:
+            #         raise IndexError("Sample data not completely saved. Rerun.")
             print("Successfully loaded sampled data. Skip this for sampling.")
         except Exception as e:
             print("Problem with saved trace:", e, ". Redo parameter estimation.")
             trace = self.sample()
-            print(pm.summary(trace)) # takes too much memory
+            print(pm.summary(trace))  # takes too much memory
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 

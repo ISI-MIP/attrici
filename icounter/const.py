@@ -93,7 +93,6 @@ def mask_and_scale_by_bounds(data, variable):
     return scaled_data, data.min(), scale
 
 
-
 def scale_precip(data, variable):
 
     data = data - threshold[variable][0]
@@ -103,7 +102,7 @@ def scale_precip(data, variable):
     fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
     # for scipy.gamma: fscale = 1/beta
     # std = sqrt(fa/beta**2)
-    scale = fscale*fa**0.5
+    scale = fscale * fa ** 0.5
     scaled_data = data / scale
 
     print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
