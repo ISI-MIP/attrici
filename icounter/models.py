@@ -150,24 +150,32 @@ class GammaBernoulli(object):
 
     def quantile_mapping(self, d, y_scaled):
 
-        """
-        Specific for Gamma distributed variables.
-        scipy Gamma works with alpha and scale parameter
-        alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        """
+        """ Needs a thorough description of QM for BernoulliGamma """
 
-        quantile = stats.gamma.cdf(
-            y_scaled,
-            d["mu"] ** 2.0 / d["sigma"] ** 2.0,
-            scale=d["sigma"] ** 2.0 / d["mu"],
-        )
-        x_mapped = stats.gamma.ppf(
-            quantile,
-            d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
-            scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
-        )
+        drier_cf = d["pbern_ref"] > d["pbern"]
+        wetter_cf = ~drier_cf
 
-        return x_mapped
+        quantile = bgamma_cdf(d,y_scaled)
+
+        # case of p smaller p'
+        wet_to_wet = quantile > d["pbern_ref"] # False on dry day (NA in y_scaled)
+        do_normal_qm = np.logical_and(drier_cf, wet_to_wet)
+        cfact = np.zeros(len(y_scaled))
+
+        cfact[do_normal_qm] = bgamma_ppf(d,quantile)[do_normal_qm]
+        # else leave zero (from np.zeros)
+
+        # case of p' smaller p
+        wet_day = ~d["is_dry_day"]
+        do_normal_qm = np.logical_and(wetter_cf, wet_day)
+        cfact[do_normal_qm] = bgamma_ppf(d,quantile)[do_normal_qm]
+        random_dry_day_q = np.random.rand(len(d))*d["pbern"]
+        map_to_wet = random_dry_day_q > d["pbern_ref"]
+        randomly_map_to_wet = np.logical_and(~do_normal_qm,map_to_wet)
+        cfact[randomly_map_to_wet] = bgamma_ppf(d,quantile)[randomly_map_to_wet]
+        # else leave zero (from np.zeros)
+
+        return cfact
 
 
 class Beta(object):
