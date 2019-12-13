@@ -152,9 +152,33 @@ class GammaBernoulli(object):
 
         """ Needs a thorough description of QM for BernoulliGamma """
 
+        def bgamma_cdf(d, y_scaled):
+
+            quantile = d["pbern"] + (1-d["pbern"]) * stats.gamma.cdf(
+            y_scaled,
+            d["mu"] ** 2.0 / d["sigma"] ** 2.0,
+            scale=d["sigma"] ** 2.0 / d["mu"],
+            )
+            return quantile
+
+        def bgamma_ppf(d, quantile):
+
+            x_mapped = stats.gamma.ppf(
+                (quantile-d["pbern_ref"])/(1-d["pbern_ref"]),
+                d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
+                scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
+            )
+
+            return x_mapped
+
+
         drier_cf = d["pbern_ref"] > d["pbern"]
         wetter_cf = ~drier_cf
-
+        # make it a numpy array, so we can compine smoothly with d data frame.
+        y_scaled = y_scaled.values
+        dry_day = np.isnan(y_scaled)
+        # FIXME: have this zero precip at dry day fix earlier (in const.py for example)
+        y_scaled[dry_day] = 0
         quantile = bgamma_cdf(d,y_scaled)
 
         # case of p smaller p'
@@ -166,7 +190,7 @@ class GammaBernoulli(object):
         # else leave zero (from np.zeros)
 
         # case of p' smaller p
-        wet_day = ~d["is_dry_day"]
+        wet_day = ~dry_day
         do_normal_qm = np.logical_and(wetter_cf, wet_day)
         cfact[do_normal_qm] = bgamma_ppf(d,quantile)[do_normal_qm]
         random_dry_day_q = np.random.rand(len(d))*d["pbern"]
