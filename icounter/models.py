@@ -143,7 +143,6 @@ class GammaBernoulli(object):
             else:
                 raise NotImplemented
 
-            # print(df["is_dry_day"].astype(int))
             pm.Bernoulli('bernoulli',p=pbern, observed=df["is_dry_day"].astype(int))
             pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 

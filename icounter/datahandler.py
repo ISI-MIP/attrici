@@ -101,32 +101,42 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
-def create_ref_df(df, trace_for_qm, ref_period, scale_variability):
+def create_ref_df(df, trace_for_qm, ref_period, scale_variability, is_precip=False):
 
-    df_mu_sigma = pd.DataFrame(index=df.index)
-    df_mu_sigma.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
-    df_mu_sigma.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
-    df_mu_sigma.index = df["ds"]
+    df_params = pd.DataFrame(index=df.index)
 
-    df_mu_sigma_ref = df_mu_sigma.loc[ref_period[0] : ref_period[1]]
+    # print(trace_for_qm["mu"])
+
+    df_params.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
+    df_params.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
+    if is_precip:
+        df_params.loc[:, "pbern"] = trace_for_qm["pbern"].mean(axis=0)
+
+    df_params.index = df["ds"]
+
+    df_params_ref = df_params.loc[ref_period[0] : ref_period[1]]
     # mean over all years for each day
-    df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+    df_params_ref = df_params_ref.groupby(df_params_ref.index.dayofyear).mean()
 
     # case of not scaling variability
-    df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
+    df_params.loc[:, "sigma_ref"] = df_params["sigma"]
     # write the average values for the reference period to each day of the
     # whole timeseries
-    for day in df_mu_sigma_ref.index:
-        df_mu_sigma.loc[
-            df_mu_sigma.index.dayofyear == day, "mu_ref"
-        ] = df_mu_sigma_ref.loc[day, "mu"]
+    for day in df_params_ref.index:
+        df_params.loc[
+            df_params.index.dayofyear == day, "mu_ref"
+        ] = df_params_ref.loc[day, "mu"]
+        if is_precip:
+            df_params.loc[
+                df_params.index.dayofyear == day, "pbern_ref"
+            ] = df_params_ref.loc[day, "pbern"]
         # case of scaling sigma
         if scale_variability:
-            df_mu_sigma.loc[
-                df_mu_sigma.index.dayofyear == day, "sigma_ref"
-            ] = df_mu_sigma_ref.loc[day, "sigma"]
+            df_params.loc[
+                df_params.index.dayofyear == day, "sigma_ref"
+            ] = df_params_ref.loc[day, "sigma"]
 
-    return df_mu_sigma
+    return df_params
 
 
 def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):

@@ -73,21 +73,21 @@ class estimator(object):
         # As load_trace does not throw an error when no saved data exists, we here
         # test this manually. FIXME: Could be improved, as we check for existence
         # of names and number of chains only, but not that the data is not corrupted.
-        # try:
-        #     trace = pm.load_trace(outdir_for_cell, model=self.model)
+        try:
+            trace = pm.load_trace(outdir_for_cell, model=self.model)
         #     for var in self.statmodel.vars_to_estimate:
         #         if var not in trace.varnames:
         #             print(var, "is not in trace, rerun sampling.")
         #             raise IndexError
         #     if trace.nchains != self.chains:
         #         raise IndexError("Sample data not completely saved. Rerun.")
-        #     print("Successfully loaded sampled data. Skip this for sampling.")
-        # except Exception as e:
-        #     print("Problem with saved trace:", e, ". Redo parameter estimation.")
-        trace = self.sample()
-        # print(pm.summary(trace)) # takes too much memory
-        if self.save_trace:
-            pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
+            print("Successfully loaded sampled data. Skip this for sampling.")
+        except Exception as e:
+            print("Problem with saved trace:", e, ". Redo parameter estimation.")
+            trace = self.sample()
+            print(pm.summary(trace)) # takes too much memory
+            if self.save_trace:
+                pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
         return trace
 
@@ -141,25 +141,26 @@ class estimator(object):
                 xf3 = fourier.rescale(df, self.modes[3])
 
             with self.model:
-                pm.set_data({"xf0": xf0})
-                pm.set_data({"xf2": xf2})
-                pm.set_data({"gmt": df["gmt_scaled"].values})
+                pm.set_data({"xf0v": xf0})
+                pm.set_data({"xf2v": xf2})
+                pm.set_data({"gmtv": df["gmt_scaled"].values})
 
                 if self.mu_model == "full":
-                    pm.set_data({"xf1": xf1})
+                    pm.set_data({"xf1v": xf1})
 
                 if self.sigma_model == "full":
-                    pm.set_data({"xf3": xf3})
+                    pm.set_data({"xf3v": xf3})
 
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=["obs", "mu", "sigma"],
+                    var_names=["obs", "mu", "sigma", "pbern"],
                     progressbar=self.progressbar,
                 )
 
+        is_precip = self.variable == "pr"
         df_mu_sigma = dh.create_ref_df(
-            df, trace_for_qm, self.qm_ref_period, self.scale_variability
+            df, trace_for_qm, self.qm_ref_period, self.scale_variability, is_precip
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
@@ -189,7 +190,7 @@ class estimator(object):
 
         if self.report_mu_sigma:
             # todo: unifiy indexes so .values can be dropped
-            for v in ["mu", "sigma", "mu_ref", "sigma_ref"]:
+            for v in ["mu", "sigma", "mu_ref", "sigma_ref", "pbern", "pbern_ref"]:
                 df.loc[:, v] = df_mu_sigma.loc[:, v].values
 
         return df
