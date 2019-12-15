@@ -178,7 +178,7 @@ class GammaBernoulli(object):
             return x_mapped
 
         # make it a numpy array, so we can compine smoothly with d data frame.
-        y_scaled = y_scaled.values
+        y_scaled = y_scaled.values.copy()
         dry_day = np.isnan(y_scaled)
         # FIXME: have this zero precip at dry day fix earlier (in const.py for example)
         y_scaled[dry_day] = 0

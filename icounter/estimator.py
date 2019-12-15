@@ -170,7 +170,8 @@ class estimator(object):
         cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
 
         # drops indices that were masked as out of range before
-        valid_index = df.dropna().index
+        valid_index = df.index
+        print("Length of valid index:", len(valid_index))
         # populate cfact with original values
         df.loc[:, "cfact_scaled"] = df.loc[:, "y_scaled"]
         df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
