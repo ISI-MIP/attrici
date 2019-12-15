@@ -83,11 +83,13 @@ class estimator(object):
             #             raise IndexError
             #     if trace.nchains != self.chains:
             #         raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data. Skip this for sampling.")
+            print("Successfully loaded sampled data from")
+            print(outdir_for_cell)
+            print("Skip this for sampling.")
         except Exception as e:
             print("Problem with saved trace:", e, ". Redo parameter estimation.")
             trace = self.sample()
-            print(pm.summary(trace))  # takes too much memory
+            # print(pm.summary(trace))  # takes too much memory
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
