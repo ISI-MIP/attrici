@@ -98,22 +98,22 @@ class GammaBernoulli(object):
 
             if self.bernoulli_model == "full":
                 pbern = l.full(
-                    model, pm.Beta, "pbern", gmt, xf0, xf1, ic_mu=0.5, ic_sigma=0.1
+                    model, pm.Beta, "pbern", gmt, xf0, xf1, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
                 )
 
             elif self.bernoulli_model == "yearlycycle":
                 pbern = l.yearlycycle(
-                    model, pm.Beta, "pbern", xf0, ic_mu=0.5, ic_sigma=0.1
+                    model, pm.Beta, "pbern", xf0, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
                 )
 
             elif self.bernoulli_model == "longterm_yearlycycle":
                 pbern = l.longterm_yearlycycle(
-                    model, pm.Beta, "pbern", gmt, xf0, ic_mu=0.5, ic_sigma=0.1
+                    model, pm.Beta, "pbern", gmt, xf0, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
                 )
 
             elif self.bernoulli_model == "longterm":
                 pbern = l.longterm(
-                    model, pm.Beta, "pbern", gmt, ic_mu=0.5, ic_sigma=0.1
+                    model, pm.Beta, "pbern", gmt, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
                 )
 
             else:

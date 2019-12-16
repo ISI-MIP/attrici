@@ -12,11 +12,11 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-def full(model, ic_prior, name, gmt, xfa, xfb, ic_mu=0.0, ic_sigma=1.0):
+def full(model, ic_prior, name, gmt, xfa, xfb, ic_mu=0.0, ic_sigma=1.0, ic_fac=1.0):
 
     with model:
 
-        intercept = ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+        intercept = ic_fac*ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
 
         slope = pm.Normal(name + "_slope", mu=0, sigma=1)
         yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])
@@ -32,11 +32,11 @@ def full(model, ic_prior, name, gmt, xfa, xfb, ic_mu=0.0, ic_sigma=1.0):
     return pm.Deterministic(name, param)
 
 
-def longterm_yearlycycle(model, ic_prior, name, gmt, xfa, ic_mu=0.0, ic_sigma=1.0):
+def longterm_yearlycycle(model, ic_prior, name, gmt, xfa, ic_mu=0.0, ic_sigma=1.0, ic_fac=1.0):
 
     with model:
 
-        intercept = ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+        intercept = ic_fac*ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
 
         slope = pm.Normal(name + "_slope", mu=0, sigma=1)
         yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])
@@ -46,11 +46,11 @@ def longterm_yearlycycle(model, ic_prior, name, gmt, xfa, ic_mu=0.0, ic_sigma=1.
     return pm.Deterministic(name, param)
 
 
-def longterm(model, ic_prior, name, gmt, ic_mu=0.0, ic_sigma=1.0):
+def longterm(model, ic_prior, name, gmt, ic_mu=0.0, ic_sigma=1.0, ic_fac=1.0):
 
     with model:
 
-        intercept = ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+        intercept = ic_fac*ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
 
         slope = pm.Normal(name + "_slope", mu=0, sigma=1)
         param = intercept / (1 + tt.exp(-1 * (slope * gmt)))
@@ -58,11 +58,11 @@ def longterm(model, ic_prior, name, gmt, ic_mu=0.0, ic_sigma=1.0):
     return pm.Deterministic(name, param)
 
 
-def yearlycycle(model, ic_prior, name, xfa, ic_mu=0.0, ic_sigma=1.0):
+def yearlycycle(model, ic_prior, name, xfa, ic_mu=0.0, ic_sigma=1.0, ic_fac=1.0):
 
     with model:
 
-        intercept = ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+        intercept = ic_fac*ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
 
         yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])
 
