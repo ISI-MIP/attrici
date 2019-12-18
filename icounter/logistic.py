@@ -32,11 +32,11 @@ def full(model, ic_prior, name, gmt, xfa, xfb, ic_mu=0.0, ic_sigma=1.0, ic_fac=1
     return pm.Deterministic(name, param)
 
 
-def longterm_yearlycycle(model, ic_prior, name, gmt, xfa, ic_mu=0.0, ic_sigma=1.0, ic_fac=1.0):
+def longterm_yearlycycle(model, intercept, name, gmt, xfa):
 
     with model:
 
-        intercept = ic_fac*ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
+        # intercept = ic_fac*ic_prior(name + "_intercept", mu=ic_mu, sigma=ic_sigma)
 
         slope = pm.Normal(name + "_slope", mu=0, sigma=1)
         yearly = pm.Normal(name + "_yearly", mu=0.0, sd=5.0, shape=xfa.dshape[1])

@@ -108,7 +108,7 @@ class GammaBernoulli(object):
 
             elif self.bernoulli_model == "longterm_yearlycycle":
                 pbern = l.longterm_yearlycycle(
-                    model, pm.Beta, "pbern", gmt, xf0, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
+                    model, pm.Beta("pbern_intercept",alpha=2,beta=0.5), "pbern", gmt, xf0,
                 )
 
             elif self.bernoulli_model == "longterm":
@@ -126,7 +126,7 @@ class GammaBernoulli(object):
                 mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0v)
 
             elif self.mu_model == "longterm_yearlycycle":
-                mu = l.longterm_yearlycycle(model, pm.Lognormal, "mu", gmtv, xf0v)
+                mu = l.longterm_yearlycycle(model, pm.Lognormal("mu_intercept",mu=0,sigma=1), "mu", gmtv, xf0v)
 
             elif self.mu_model == "longterm":
                 mu = l.longterm(model, pm.Lognormal, "mu", gmtv)
@@ -141,7 +141,7 @@ class GammaBernoulli(object):
                 sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2v)
 
             elif self.sigma_model == "longterm_yearlycycle":
-                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmtv, xf2v)
+                sigma = l.longterm_yearlycycle(model, pm.Lognormal("sigma_intercept",mu=0,sigma=1), "sigma", gmtv, xf2v)
 
             elif self.sigma_model == "longterm":
                 sigma = l.longterm(model, pm.Lognormal, "sigma", gmtv)
