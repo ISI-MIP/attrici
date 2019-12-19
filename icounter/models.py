@@ -117,10 +117,11 @@ class GammaBernoulli(object):
 
             elif self.bernoulli_model == "longterm":
                 with model:
-                    alpha = pm.Normal('pbern_alpha', mu=0, sigma=1) # alpha = 0 and beta = 0 => is no gmt influence # todo why is the name not accepted?
-                    beta = pm.Normal('pbern_beta', mu=0, sigma=1)  # alpha = 0 and beta = 0 => pbern = 1/2
-                    b = 1 / (1 + tt.exp(beta))          # insure b is in the interval (0,1)
-                    a = 1 / (1 + tt.exp(alpha)) - b     # insure a is element of the interval (-b,1-b) -> pbern in (0,1)
+                    # b is in the interval (0,2)
+                    b = pm.Beta("pbern_b", alpha=2, beta=2)  # beta(2, 2) is symmetric with mode at 0.5 b is in
+                    # a is in the interval (-b,1-b)
+                    a = tt.sub(pm.Beta("pbern_a", alpha=2, beta=2), b)
+                    # pbern is in the interval (0,1)
                     pbern = a * gmt + b                 # pbern is a linear model of gmt
                 pbern = pm.Deterministic('pbern', pbern) # todo: unit test to test whether pbern in (0,1) for any alpha,beta
 
@@ -141,10 +142,10 @@ class GammaBernoulli(object):
 
             elif self.mu_model == "longterm":
                 with model:
-                    alpha = pm.Normal('mu_alpha', mu=0, sigma=1)    # alpha = 0, beta = 0 -> a = 0, b= -> mu=1
-                    beta = pm.Normal('mu_beta', mu=0, sigma=1)      # beta = 0 -> b = 1
-                    b = tt.exp(beta)        # b in (0, inf)
-                    a = tt.exp(alpha) - b   # a in (-b, inf)
+                    # b is in the interval (0,inf)
+                    b = pm.Exponential('mu_b', lam=1)
+                    # a is in the interval (-b, inf)
+                    a = tt.sub(pm.Exponential('mu_a', lam=1), b)   # a in (-b, inf)
                     mu = a * gmtv + b        # in (0, inf)
                 mu = pm.Deterministic('mu', mu)
 
@@ -166,11 +167,11 @@ class GammaBernoulli(object):
             elif self.sigma_model == "longterm":
                 # same model as mu
                 with model:
-                    alpha = pm.Normal('sigma_alpha', mu=0, sigma=1)  # alpha = 0, beta = 0 -> a = 0, b= -> mu=1
-                    beta = pm.Normal('sigma_beta', mu=0, sigma=1)  # beta = 0 -> b = 1
-                    b = tt.exp(beta)  # b in (0, inf)
-                    a = tt.exp(alpha) - b  # a in (-b, inf)
-                    sigma = a * gmtv + b  # in (0, inf)
+                    # b is in the interval (0,inf)
+                    b = pm.Exponential('sigma_b', lam=1)
+                    # a is in the interval (-b, inf)
+                    a = tt.sub(pm.Exponential('sigma_a', lam=1), b)   # a in (-b, inf)
+                    sigma = a * gmtv + b        # in (0, inf)
                 sigma = pm.Deterministic('sigma', sigma)
 
             else:
