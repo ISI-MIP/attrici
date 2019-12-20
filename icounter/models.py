@@ -98,13 +98,25 @@ class GammaBernoulli(object):
             xf3v = pm.Data("xf3v", df_valid.filter(like="mode_3_").values)
 
             if self.bernoulli_model == "full":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                raise ValueError(
+                    f"bernoulli model {self.bernoulli_model} is not implemented yet"
+                )
                 pbern = l.full(
-                    model, pm.Beta, "pbern", gmt, xf0, xf1, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
+                    model,
+                    pm.Beta,
+                    "pbern",
+                    gmt,
+                    xf0,
+                    xf1,
+                    ic_mu=0.5,
+                    ic_sigma=0.1,
+                    ic_fac=2.0,
                 )
 
             elif self.bernoulli_model == "yearlycycle":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                raise ValueError(
+                    f"bernoulli model {self.bernoulli_model} is not implemented yet"
+                )
                 pbern = l.yearlycycle(
                     model, pm.Beta, "pbern", xf0, ic_mu=0.5, ic_sigma=0.1, ic_fac=2.0
                 )
@@ -114,71 +126,97 @@ class GammaBernoulli(object):
                 # pbern = l.longterm_yearlycycle(
                 #     model, pm.Beta("pbern_intercept",alpha=2,beta=0.5), "pbern", gmt, xf0,
                 # )
-                fourier_coeffs = pm.Beta("fourier_coeffs", alpha=2,beta=3, shape=xf0.dshape[1])
+                pbern_fourier_coeffs = pm.Beta(
+                    "pbern_fourier_coeffs", alpha=2, beta=3, shape=xf0.dshape[1]
+                )
                 b_const = pm.Beta("pbern_b", alpha=2, beta=2)
-                c_yearly = l.det_dot(xf0/2.+0.5, fourier_coeffs)
-                b_scale = pm.Beta("b_scale",alpha=0.5,beta=1.)*(1-b_const)#/tt.max(c_yearly)
-                b = pm.Deterministic("b", b_const + b_scale*c_yearly)
+                c_yearly = l.det_dot(xf0 / 2.0 + 0.5, pbern_fourier_coeffs)
+                b_scale = pm.Beta("b_scale", alpha=0.5, beta=1.0) * (
+                    1 - b_const
+                )  # /tt.max(c_yearly)
+                b = pm.Deterministic("b", b_const + b_scale * c_yearly)
                 # pp = pm.Deterministic("ttmax",tt.max(c_yearly))
                 # a is in the interval (-b,1-b)
-                a = pm.Deterministic("a",pm.Beta("pbern_a", alpha=2, beta=2) - b)
-                pbern = pm.Deterministic('pbern', a*gmt+b)
+                a = pm.Deterministic("a", pm.Beta("pbern_a", alpha=2, beta=2) - b)
+                pbern = pm.Deterministic("pbern", a * gmt + b)
 
             elif self.bernoulli_model == "longterm":
                 # b is in the interval (0,2)
-                b = pm.Beta("pbern_b", alpha=2, beta=2)  # beta(2, 2) is symmetric with mode at 0.5 b is in
+                b = pm.Beta(
+                    "pbern_b", alpha=2, beta=2
+                )  # beta(2, 2) is symmetric with mode at 0.5 b is in
                 # a is in the interval (-b,1-b)
                 a = tt.sub(pm.Beta("pbern_a", alpha=2, beta=2), b)
                 # pbern is in the interval (0,1)
-                pbern = a * gmt + b                 # pbern is a linear model of gmt
-                pbern = pm.Deterministic('pbern', pbern) # todo: unit test to test whether pbern in (0,1) for any alpha,beta
+                pbern = a * gmt + b  # pbern is a linear model of gmt
+                pbern = pm.Deterministic(
+                    "pbern", pbern
+                )  # todo: unit test to test whether pbern in (0,1) for any alpha,beta
 
             else:
                 raise NotImplemented
 
             if self.mu_model == "full":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                raise ValueError(
+                    f"bernoulli model {self.bernoulli_model} is not implemented yet"
+                )
                 mu = l.full(model, pm.Lognormal, "mu", gmtv, xf0v, xf1v)
 
             elif self.mu_model == "yearlycycle":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                raise ValueError(
+                    f"bernoulli model {self.bernoulli_model} is not implemented yet"
+                )
                 mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0v)
 
             elif self.mu_model == "longterm_yearlycycle":
                 # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
-                mu = l.longterm_yearlycycle(model, pm.Lognormal("mu_intercept",mu=0,sigma=1), "mu", gmtv, xf0v)
+                mu = l.longterm_yearlycycle(
+                    model, pm.Lognormal("mu_intercept", mu=0, sigma=1), "mu", gmtv, xf0v
+                )
 
             elif self.mu_model == "longterm":
                 # b is in the interval (0,inf)
-                b = pm.Exponential('mu_b', lam=1)
+                b = pm.Exponential("mu_b", lam=1)
                 # a is in the interval (-b, inf)
-                a = tt.sub(pm.Exponential('mu_a', lam=1), b)   # a in (-b, inf)
-                mu = a * gmtv + b        # in (0, inf)
-                mu = pm.Deterministic('mu', mu)
+                a = tt.sub(pm.Exponential("mu_a", lam=1), b)  # a in (-b, inf)
+                mu = a * gmtv + b  # in (0, inf)
+                mu = pm.Deterministic("mu", mu)
 
             else:
                 raise NotImplemented
 
             if self.sigma_model == "full":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                raise ValueError(
+                    f"bernoulli model {self.bernoulli_model} is not implemented yet"
+                )
                 sigma = l.full(model, pm.Lognormal, "sigma", gmtv, xf2v, xf3v)
 
             elif self.sigma_model == "yearlycycle":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                raise ValueError(
+                    f"bernoulli model {self.bernoulli_model} is not implemented yet"
+                )
                 sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2v)
 
             elif self.sigma_model == "longterm_yearlycycle":
                 # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
-                sigma = l.longterm_yearlycycle(model, pm.Lognormal("sigma_intercept",mu=0,sigma=1), "sigma", gmtv, xf2v)
+                sigma = l.longterm_yearlycycle(
+                    model,
+                    pm.Lognormal("sigma_intercept", mu=0, sigma=1),
+                    "sigma",
+                    gmtv,
+                    xf2v,
+                )
 
             elif self.sigma_model == "longterm":
                 # with model:
                 # b is in the interval (0,inf)
-                b = pm.Lognormal('sigma_b', mu=0, sigma=.25)  # mode close to one
+                b = pm.Lognormal("sigma_b", mu=0, sigma=0.25)  # mode close to one
                 # a is in the interval (-b, inf)
-                a = tt.sub(pm.Lognormal('sigma_a', mu=0, sigma=.25), b)   # a in (-b, inf), mode at 0
-                sigma = a * gmtv + b        # in (0, inf)
-                sigma = pm.Deterministic('sigma', sigma)
+                a = tt.sub(
+                    pm.Lognormal("sigma_a", mu=0, sigma=0.25), b
+                )  # a in (-b, inf), mode at 0
+                sigma = a * gmtv + b  # in (0, inf)
+                sigma = pm.Deterministic("sigma", sigma)
 
             else:
                 raise NotImplemented
