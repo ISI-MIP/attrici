@@ -116,13 +116,13 @@ class GammaBernoulli(object):
                 )
 
             elif self.bernoulli_model == "longterm":
-                with model:
-                    # b is in the interval (0,2)
-                    b = pm.Beta("pbern_b", alpha=2, beta=2)  # beta(2, 2) is symmetric with mode at 0.5 b is in
-                    # a is in the interval (-b,1-b)
-                    a = tt.sub(pm.Beta("pbern_a", alpha=2, beta=2), b)
-                    # pbern is in the interval (0,1)
-                    pbern = a * gmt + b                 # pbern is a linear model of gmt
+                # todo outsource params
+                # b is in the interval (0,2)
+                b = pm.Beta("pbern_b", alpha=2, beta=2)  # beta(2, 2) is symmetric with mode at 0.5 b is in
+                # a is in the interval (-b,1-b)
+                a = tt.sub(pm.Beta("pbern_a", alpha=2, beta=2), b)
+                # pbern is in the interval (0,1)
+                pbern = a * gmt + b                 # pbern is a linear model of gmt
                 pbern = pm.Deterministic('pbern', pbern) # todo: unit test to test whether pbern in (0,1) for any alpha,beta
 
             else:
@@ -167,9 +167,11 @@ class GammaBernoulli(object):
             elif self.sigma_model == "longterm":
                 with model:
                     # b is in the interval (0,inf)
-                    b = pm.Lognormal('sigma_b', mu=0, sigma=.25)  # mode close to one
+                    mu = 0
+                    sigma = 0.25
+                    b = pm.Lognormal('sigma_b', mu=mu, sigma=sigma)  # mode close to one
                     # a is in the interval (-b, inf)
-                    a = tt.sub(pm.Lognormal('sigma_a', mu=0, sigma=.25), b)   # a in (-b, inf), mode at 0
+                    a = tt.sub(pm.Lognormal('sigma_a', mu=mu, sigma=sigma), b)   # a in (-b, inf), mode at 0
                     sigma = a * gmtv + b        # in (0, inf)
                 sigma = pm.Deterministic('sigma', sigma)
 
