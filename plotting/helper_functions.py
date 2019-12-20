@@ -26,9 +26,6 @@ def get_parser():
                         help="latitude for which to plot the information")
     parser.add_argument("--lon", type=float,
                         help="longitude for which to plot the information")
-    parser.add_argument("--mode", type=str,
-                        help="select mode in [dry_days, wet_days, wet_days_scaled, all] "
-                             "for the type of data to be plotted")
     return parser
 
 
