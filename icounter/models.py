@@ -110,10 +110,19 @@ class GammaBernoulli(object):
                 )
 
             elif self.bernoulli_model == "longterm_yearlycycle":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
-                pbern = l.longterm_yearlycycle(
-                    model, pm.Beta("pbern_intercept",alpha=2,beta=0.5), "pbern", gmt, xf0,
-                )
+                # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                # pbern = l.longterm_yearlycycle(
+                #     model, pm.Beta("pbern_intercept",alpha=2,beta=0.5), "pbern", gmt, xf0,
+                # )
+                fourier_coeffs = pm.Beta("fourier_coeffs", alpha=2,beta=3, shape=xf0.dshape[1])
+                b_const = pm.Beta("pbern_b", alpha=2, beta=2)
+                c_yearly = l.det_dot(xf0/2.+0.5, fourier_coeffs)
+                b_scale = pm.Beta("b_scale",alpha=0.5,beta=1.)*(1-b_const)#/tt.max(c_yearly)
+                b = pm.Deterministic("b", b_const + b_scale*c_yearly)
+                # pp = pm.Deterministic("ttmax",tt.max(c_yearly))
+                # a is in the interval (-b,1-b)
+                a = pm.Deterministic("a",pm.Beta("pbern_a", alpha=2, beta=2) - b)
+                pbern = pm.Deterministic('pbern', a*gmt+b)
 
             elif self.bernoulli_model == "longterm":
                 # b is in the interval (0,2)
@@ -136,7 +145,7 @@ class GammaBernoulli(object):
                 mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0v)
 
             elif self.mu_model == "longterm_yearlycycle":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
                 mu = l.longterm_yearlycycle(model, pm.Lognormal("mu_intercept",mu=0,sigma=1), "mu", gmtv, xf0v)
 
             elif self.mu_model == "longterm":
@@ -159,7 +168,7 @@ class GammaBernoulli(object):
                 sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2v)
 
             elif self.sigma_model == "longterm_yearlycycle":
-                raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
+                # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
                 sigma = l.longterm_yearlycycle(model, pm.Lognormal("sigma_intercept",mu=0,sigma=1), "sigma", gmtv, xf2v)
 
             elif self.sigma_model == "longterm":

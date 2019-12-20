@@ -26,10 +26,10 @@ timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
 variable = "pr"  # select variable to detrend
 # out of full, longterm_yearlycycle, yearlycycle, longterm
-mu_model = "longterm"
-sigma_model = "longterm"
+mu_model = "longterm_yearlycycle"
+sigma_model = "longterm_yearlycycle"
 # bernoulli only relevant for precip
-bernoulli_model = "longterm"
+bernoulli_model = "longterm_yearlycycle"
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
 modes = [2, 1, 1, 1]
