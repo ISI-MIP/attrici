@@ -165,12 +165,11 @@ class GammaBernoulli(object):
                 sigma = l.longterm_yearlycycle(model, pm.Lognormal("sigma_intercept",mu=0,sigma=1), "sigma", gmtv, xf2v)
 
             elif self.sigma_model == "longterm":
-                # same model as mu
                 with model:
                     # b is in the interval (0,inf)
-                    b = pm.Exponential('sigma_b', lam=1)
+                    b = pm.Lognormal('sigma_b', mu=0, sigma=.25)  # mode close to one
                     # a is in the interval (-b, inf)
-                    a = tt.sub(pm.Exponential('sigma_a', lam=1), b)   # a in (-b, inf)
+                    a = tt.sub(pm.Lognormal('sigma_a', mu=0, sigma=.25), b)   # a in (-b, inf), mode at 0
                     sigma = a * gmtv + b        # in (0, inf)
                 sigma = pm.Deterministic('sigma', sigma)
 
