@@ -26,8 +26,6 @@ def get_parser():
                         help="latitude for which to plot the information")
     parser.add_argument("--lon", type=float,
                         help="longitude for which to plot the information")
-    parser.add_argument("--rolling_window", type=int, default=365,
-                        help="size of the rolling window over which mean values are calculated")
     return parser
 
 
