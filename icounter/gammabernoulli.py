@@ -130,10 +130,10 @@ class GammaBernoulli(object):
             elif self.mu_model == "longterm":
                 # b_mu is in the interval (0,inf)
                 b_mu = pm.Exponential("b_mu", lam=1)
-                # FIXME: why can a_mu not be just from (0,inf), without dependence on b_mu
+                # a_mu in (-b, inf)
                 a_mu = pm.Deterministic(
-                    "a_mu", pm.Exponential("am", lam=1) - b
-                )  # a_mu in (-b, inf)
+                    "a_mu", pm.Exponential("am", lam=1) - b_mu
+                )
                 mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
 
             else:
