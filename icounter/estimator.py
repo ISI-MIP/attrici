@@ -8,12 +8,13 @@ import icounter.datahandler as dh
 import icounter.const as c
 import icounter.models as models
 import icounter.fourier as fourier
+import icounter.gammabernoulli as gb
 
 model_for_var = {
     "tas": models.Normal,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
-    "pr": models.GammaBernoulli,
+    "pr": gb.GammaBernoulli,
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Weibull,
