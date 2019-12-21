@@ -75,6 +75,7 @@ class GammaBernoulli(object):
         self.mu_model = mu_model
         self.sigma_model = sigma_model
         self.bernoulli_model = bernoulli_model
+        self.test = False
 
         print("Using GammaBernoulli distribution model. Fourier modes:", modes)
 
@@ -122,10 +123,10 @@ class GammaBernoulli(object):
                 )
 
             elif self.bernoulli_model == "longterm_yearlycycle":
-                # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
-                # pbern = l.longterm_yearlycycle(
-                #     model, pm.Beta("pbern_intercept",alpha=2,beta=0.5), "pbern", gmt, xf0,
-                # )
+                # FIXME: very slow so far.
+                # Unclear if we need scaling of c_yearly
+                # Does not provide improved results as compared to longterm,
+                # though more than 25x the CPU time
                 pbern_fourier_coeffs = pm.Beta(
                     "pbern_fourier_coeffs", alpha=2, beta=3, shape=xf0.dshape[1]
                 )
@@ -170,17 +171,27 @@ class GammaBernoulli(object):
 
             elif self.mu_model == "longterm_yearlycycle":
                 # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
-                mu = l.longterm_yearlycycle(
-                    model, pm.Lognormal("mu_intercept", mu=0, sigma=1), "mu", gmtv, xf0v
+
+
+                mu_fourier_coeffs = pm.Exponential(
+                    "mu_fourier_coeffs", lam=1, shape=xf0v.dshape[1]
                 )
+                # b_const = pm.Beta("pbern_b", alpha=2, beta=2)
+                b_yearly = l.det_dot(xf0v / 2.0 + 0.5, mu_fourier_coeffs)
+                b_const = pm.Exponential("b_const_mu", lam=1)
+                b_mu = pm.Deterministic("b_mu",b_const+b_yearly)
+                a_mu = tt.sub(pm.Exponential("a_mu", lam=1), b_mu)  # a in (-b, inf)
+                # mu = a * gmtv + b  # in (0, inf)
+                mu = pm.Deterministic("mu", a_mu * gmtv + b_mu )
+                # mu = l.longterm_yearlycycle(
+                #     model, pm.Lognormal("mu_intercept", mu=0, sigma=1), "mu", gmtv, xf0v
+                # )
 
             elif self.mu_model == "longterm":
                 # b is in the interval (0,inf)
-                b = pm.Exponential("mu_b", lam=1)
-                # a is in the interval (-b, inf)
-                a = tt.sub(pm.Exponential("mu_a", lam=1), b)  # a in (-b, inf)
-                mu = a * gmtv + b  # in (0, inf)
-                mu = pm.Deterministic("mu", mu)
+                b_mu = pm.Exponential("b_mu", lam=1)
+                a_mu = pm.Deterministic("a_mu", pm.Exponential("a", lam=1) - b)  # a_mu in (-b, inf)
+                mu = pm.Deterministic("mu", a_mu * gmtv + b_mu) # in (0, inf)
 
             else:
                 raise NotImplemented
@@ -221,8 +232,9 @@ class GammaBernoulli(object):
             else:
                 raise NotImplemented
 
-            pm.Bernoulli("bernoulli", p=pbern, observed=df["is_dry_day"].astype(int))
-            pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+            if not self.test:
+                pm.Bernoulli("bernoulli", p=pbern, observed=df["is_dry_day"].astype(int))
+                pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
 
