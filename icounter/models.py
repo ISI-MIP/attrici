@@ -172,17 +172,16 @@ class GammaBernoulli(object):
             elif self.mu_model == "longterm_yearlycycle":
                 # raise ValueError(f'bernoulli model {self.bernoulli_model} is not implemented yet')
 
-
                 mu_fourier_coeffs = pm.Exponential(
                     "mu_fourier_coeffs", lam=1, shape=xf0v.dshape[1]
                 )
                 # b_const = pm.Beta("pbern_b", alpha=2, beta=2)
                 b_yearly = l.det_dot(xf0v / 2.0 + 0.5, mu_fourier_coeffs)
                 b_const = pm.Exponential("b_const_mu", lam=1)
-                b_mu = pm.Deterministic("b_mu",b_const+b_yearly)
+                b_mu = pm.Deterministic("b_mu", b_const + b_yearly)
                 a_mu = tt.sub(pm.Exponential("a_mu", lam=1), b_mu)  # a in (-b, inf)
                 # mu = a * gmtv + b  # in (0, inf)
-                mu = pm.Deterministic("mu", a_mu * gmtv + b_mu )
+                mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)
                 # mu = l.longterm_yearlycycle(
                 #     model, pm.Lognormal("mu_intercept", mu=0, sigma=1), "mu", gmtv, xf0v
                 # )
@@ -191,8 +190,10 @@ class GammaBernoulli(object):
                 # b_mu is in the interval (0,inf)
                 b_mu = pm.Exponential("b_mu", lam=1)
                 # FIXME: why can a_mu not be just from (0,inf), without dependence on b_mu
-                a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b)  # a_mu in (-b, inf)
-                mu = pm.Deterministic("mu", a_mu * gmtv + b_mu) # in (0, inf)
+                a_mu = pm.Deterministic(
+                    "a_mu", pm.Exponential("am", lam=1) - b
+                )  # a_mu in (-b, inf)
+                mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
 
             else:
                 raise NotImplemented
@@ -220,21 +221,23 @@ class GammaBernoulli(object):
                 )
 
             elif self.sigma_model == "longterm":
-                mu0=0
-                sigma0 = 0.25
                 # b_sigma is in the interval (0,inf)
-                b_sigma = pm.Lognormal("b_sigma", mu=mu0, sigma=sigma0)  # mode close to one
+                b_sigma = pm.Exponential("b_sigma", lam=1)
                 # a_sigma is in the interval (-b, inf), mode at 0
-                a_sigma = pm.Deterministic("a_sigma",
-                    pm.Lognormal("as", mu=mu0, sigma=sigma0) - b_sigma
+                a_sigma = pm.Deterministic(
+                    "a_sigma", tt.sub(pm.Exponential("as", lam=1), b_sigma)
                 )
-                sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)  # in (0, inf)
+                sigma = pm.Deterministic(
+                    "sigma", a_sigma * gmtv + b_sigma
+                )  # in (0, inf)
 
             else:
                 raise NotImplemented
 
             if not self.test:
-                pm.Bernoulli("bernoulli", p=pbern, observed=df["is_dry_day"].astype(int))
+                pm.Bernoulli(
+                    "bernoulli", p=pbern, observed=df["is_dry_day"].astype(int)
+                )
                 pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
