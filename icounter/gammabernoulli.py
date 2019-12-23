@@ -131,9 +131,7 @@ class GammaBernoulli(object):
                 # b_mu is in the interval (0,inf)
                 b_mu = pm.Exponential("b_mu", lam=1)
                 # a_mu in (-b, inf)
-                a_mu = pm.Deterministic(
-                    "a_mu", pm.Exponential("am", lam=1) - b_mu
-                )
+                a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b_mu)
                 mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
 
             else:
@@ -162,15 +160,16 @@ class GammaBernoulli(object):
                 )
 
             elif self.sigma_model == "longterm":
+                # should be same for b and a, so that a is symmetric around zero
+                lam = 1
                 # b_sigma is in the interval (0,inf)
-                b_sigma = pm.Exponential("b_sigma", lam=1)
+                b_sigma = pm.Exponential("b_sigma", lam=lam)
                 # a_sigma is in the interval (-b, inf), mode at 0
                 a_sigma = pm.Deterministic(
-                    "a_sigma", tt.sub(pm.Exponential("as", lam=1), b_sigma)
+                    "a_sigma", tt.sub(pm.Exponential("as", lam=lam), b_sigma)
                 )
-                sigma = pm.Deterministic(
-                    "sigma", a_sigma * gmtv + b_sigma
-                )  # in (0, inf)
+                # sigma in (0, inf)
+                sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
 
             else:
                 raise NotImplemented

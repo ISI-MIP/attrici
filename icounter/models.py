@@ -64,7 +64,6 @@ class Normal(object):
         return x_mapped
 
 
-
 class Beta(object):
 
     """ Influence of GMT is modelled through the influence of on the alpha parameter
