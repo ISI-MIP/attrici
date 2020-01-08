@@ -10,16 +10,16 @@ import icounter.models as models
 import icounter.fourier as fourier
 
 model_for_var = {
-    "tas": models.Normal,
+    "tas": models.TasLongterm,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
     "pr": models.PrecipitationLongterm,
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Weibull,
-    "ps": models.Normal,
-    "rsds": models.Normal,
-    "rlds": models.Normal,
+    # "ps": models.Normal,
+    # "rsds": models.Normal,
+    # "rlds": models.Normal,
 }
 
 

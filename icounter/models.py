@@ -67,48 +67,41 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
         return model
 
 
-class Normal(object):
+class TasLongterm(object):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
-    Works for example for tas. """
+    """
 
-    def __init__(self, modes, mu_model, sigma_model):
+    def __init__(self, modes):
 
         self.modes = modes
-        self.mu_model = mu_model
-        self.sigma_model = sigma_model
 
-        print("Using Normal distribution model. Fourier modes:", modes)
-
-    def setup(self, df_valid):
+    def setup(self, df_valid, df_log):
 
         model = pm.Model()
 
         with model:
 
-            gmt = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
-            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
 
-            mu = l.full(model, pm.Normal, "mu", gmt, xf0, xf1, ic_sigma=5.0)
+            # b_mu is in the interval (-inf,inf)
+            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
+            # a_mu in (-inf, inf)
+            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
+            # in (-inf, inf)
+            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)
 
-            if self.sigma_model == "full":
-                xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
-                sigma = l.full(model, pm.Lognormal, "sigma", gmt, xf2, xf3)
-
-            elif self.sigma_model == "yearlycycle":
-                sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2)
-
-            elif self.sigma_model == "longterm_yearlycycle":
-                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmt, xf2)
-
-            elif self.sigma_model == "longterm":
-                sigma = l.longterm(model, pm.Lognormal, "sigma", gmt)
-
-            else:
-                raise NotImplemented
+            # should be same for b and a, so that a is symmetric around zero
+            lam = 1
+            # b_sigma is in the interval (0,inf)
+            b_sigma = pm.Exponential("b_sigma", lam=lam)
+            # a_sigma is in the interval (-b, inf), mode at 0
+            a_sigma = pm.Deterministic(
+                "a_sigma", tt.sub(pm.Exponential("as", lam=lam), b_sigma)
+            )
+            # sigma in (0, inf)
+            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
 
             pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 

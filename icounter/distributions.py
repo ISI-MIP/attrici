@@ -12,9 +12,19 @@ class Normal(Distribution):
 
         self.parameter_bounds = {"mu":[None,None], "sigma":[0,None]}
 
+        print("Using Normal distribution model.")
+
+
     def quantile_mapping(self, d, y_scaled):
 
-        pass
+        """
+        specific for normally distributed variables.
+        """
+        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
+        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
+
+        return x_mapped
+
 
 
 class BernoulliGamma(Distribution):
