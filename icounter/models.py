@@ -67,14 +67,13 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
         return model
 
 
-class TasLongterm(object):
+class TasLongterm(icounter.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
     """
-
     def __init__(self, modes):
-
+        super(TasLongterm, self).__init__()
         self.modes = modes
 
     def setup(self, df_valid, df_log):

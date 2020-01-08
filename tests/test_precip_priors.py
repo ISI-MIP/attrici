@@ -6,6 +6,9 @@ import pathlib
 import icounter.fourier as fourier
 import icounter.datahandler as dh
 import settings as s
+import pytest
+from icounter.models import *
+from icounter.distributions import *
 
 cwd = pathlib.Path.cwd()
 df = pd.read_hdf(cwd/"tests"/"data"/"ts_GSWP3_lat-20.25_lon-49.75.h5")
@@ -18,11 +21,13 @@ if concat_notdone:
 
 df_valid = dh.get_valid_subset(df, s.subset, s.seed)
 
-
-def test_precip_longerm_priors():
+# todo second parameterization for different modes
+# get all subsubclasses of the Distribution class
+@pytest.mark.parametrize('Model', [subclass for subclasses in Distribution.__subclasses__() for subclass in subclasses.__subclasses__()])
+def test_precip_longerm_priors(Model):
 
     # modes are dummy in the longterm case
-    model = icounter.models.PrecipitationLongterm([1,1,1,1])
+    model = Model([1,1,1,1])
     model.test = True
     smodel = model.setup(df_valid, df)
 
@@ -35,12 +40,13 @@ def test_precip_longerm_priors():
 
         if bounds[0] is not None:
             assert trace[param].min() > bounds[0]
-        else:
-            assert trace[param].min() < -5
+        # todo the other tests are parameter specific and should also be formulated as properties
+#        else:
+#            assert trace[param].min() < -5
 
         if bounds[1] is not None:
             assert trace[param].max() < bounds[1]
-        else:
-            assert trace[param].max() > 5
+#        else:
+#            assert trace[param].max() > 5
 
-    assert np.abs(trace["a_sigma"].mean()) < 0.01, "mode of a_sigma should be close to zero."
+#    assert np.abs(trace["a_sigma"].mean()) < 0.01, "mode of a_sigma should be close to zero." class specific
