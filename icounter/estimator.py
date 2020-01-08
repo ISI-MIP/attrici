@@ -14,7 +14,7 @@ model_for_var = {
     "tas": models.Normal,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
-    "pr": gb.GammaBernoulli,
+    "pr": gb.PrecipitationLongterm,
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Weibull,
