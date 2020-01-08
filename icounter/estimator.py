@@ -47,9 +47,8 @@ class estimator(object):
         self.bernoulli_model = cfg.bernoulli_model
 
         try:
-            self.statmodel = model_for_var[self.variable](
-                self.modes, self.mu_model, self.sigma_model, self.bernoulli_model
-            )
+            self.statmodel = model_for_var[self.variable](self.modes)
+
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."

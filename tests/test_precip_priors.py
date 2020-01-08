@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pymc3 as pm
-import icounter.gammabernoulli as gb
+import icounter.models
 import pathlib
 import icounter.fourier as fourier
 import icounter.datahandler as dh
@@ -22,7 +22,7 @@ df_valid = dh.get_valid_subset(df, s.subset, s.seed)
 def test_precip_longerm_priors():
 
     # modes are dummy in the longterm case
-    model = gb.PrecipitationLongterm([1,1,1,1],"longterm","longterm","longterm")
+    model = icounter.models.PrecipitationLongterm([1,1,1,1])
     model.test = True
     smodel = model.setup(df_valid, df)
 

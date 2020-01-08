@@ -15,9 +15,6 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
         super(PrecipitationLongterm, self).__init__()
         self.modes = modes
-        self.mu_model = mu_model
-        self.sigma_model = sigma_model
-        self.bernoulli_model = bernoulli_model
         self.test = False
 
         print("Using PrecipitationLongterm distribution model.")
