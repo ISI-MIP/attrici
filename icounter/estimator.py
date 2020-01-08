@@ -143,6 +143,10 @@ class estimator(object):
             if self.sigma_model == "full":
                 xf3 = fourier.rescale(df, self.modes[3])
 
+            # todo not sure what happens here. But is it possible to do something like model.resample(trace, subtrace)
+            #  avoiding to set unnecessary parameters xf0 etc.
+            #  Maybe also a good idea because var_names ar model specific
+
             with self.model:
                 pm.set_data({"xf0v": xf0})
                 pm.set_data({"xf2v": xf2})
