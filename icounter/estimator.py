@@ -8,12 +8,13 @@ import icounter.datahandler as dh
 import icounter.const as c
 import icounter.models as models
 import icounter.fourier as fourier
+import icounter.gammabernoulli as gb
 
 model_for_var = {
     "tas": models.Normal,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
-    "pr": models.Gamma,
+    "pr": gb.GammaBernoulli,
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Weibull,
@@ -32,18 +33,23 @@ class estimator(object):
         self.chains = cfg.chains
         self.tune = cfg.tune
         self.subset = cfg.subset
+        self.seed = cfg.seed
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
         self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
-        self.save_trace = True
+        self.save_trace = cfg.save_trace
         self.report_mu_sigma = cfg.report_mu_sigma
+        self.mu_model = cfg.mu_model
+        self.sigma_model = cfg.sigma_model
+        self.inference = cfg.inference
+        self.bernoulli_model = cfg.bernoulli_model
 
         try:
             self.statmodel = model_for_var[self.variable](
-                self.modes, self.scale_variability
+                self.modes, self.mu_model, self.sigma_model, self.bernoulli_model
             )
         except KeyError as error:
             print(
@@ -53,55 +59,66 @@ class estimator(object):
 
     def estimate_parameters(self, df, lat, lon):
 
-        df_valid, x_fourier_valid, gmt_valid = dh.get_valid_subset(
-            df, self.modes, self.subset
-        )
+        x_fourier = fourier.get_fourier_valid(df, self.modes)
 
-        self.model = self.statmodel.setup(
-            gmt_valid, x_fourier_valid, df_valid["y_scaled"]
-        )
+        df = pd.concat([df, x_fourier], axis=1)
+        df_valid = dh.get_valid_subset(df, self.subset, self.seed)
+
+        self.model = self.statmodel.setup(df_valid, df)
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, variable=self.variable
         )
 
-        # TODO: isolate loading trace function
-        print("Search for trace in\n", outdir_for_cell)
-        trace = pm.load_trace(outdir_for_cell, model=self.model)
-
+        # FIXME: Rework loading old traces
+        # print("Search for trace in\n", outdir_for_cell)
         # As load_trace does not throw an error when no saved data exists, we here
         # test this manually. FIXME: Could be improved, as we check for existence
         # of names and number of chains only, but not that the data is not corrupted.
         try:
-            for var in self.statmodel.vars_to_estimate:
-                if var not in trace.varnames:
-                    print(var, "is not in trace, rerun sampling.")
-                    raise IndexError
-            if trace.nchains != self.chains:
-                raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data. Skip this for sampling.")
-        except IndexError:
+            trace = pm.load_trace(outdir_for_cell, model=self.model)
+            print(trace.varnames)
+            #     for var in self.statmodel.vars_to_estimate:
+            #         if var not in trace.varnames:
+            #             print(var, "is not in trace, rerun sampling.")
+            #             raise IndexError
+            #     if trace.nchains != self.chains:
+            #         raise IndexError("Sample data not completely saved. Rerun.")
+            print("Successfully loaded sampled data from")
+            print(outdir_for_cell)
+            print("Skip this for sampling.")
+        except Exception as e:
+            print("Problem with saved trace:", e, ". Redo parameter estimation.")
             trace = self.sample()
-            # print(pm.summary(trace)) # takes too much memory
+            # print(pm.summary(trace))  # takes too much memory
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
-        self.df_valid = df_valid
-        self.x_fourier_valid = x_fourier_valid
         return trace
 
     def sample(self):
 
         TIME0 = datetime.now()
 
-        with self.model:
-            trace = pm.sample(
-                draws=self.draws,
-                cores=self.cores,
-                chains=self.chains,
-                tune=self.tune,
-                progressbar=self.progressbar,
-            )
+        if self.inference == "NUTS":
+            with self.model:
+                trace = pm.sample(
+                    draws=self.draws,
+                    cores=self.cores,
+                    chains=self.chains,
+                    tune=self.tune,
+                    progressbar=self.progressbar,
+                )
+        elif self.inference == "ADVI":
+            with self.model:
+                mean_field = pm.fit(
+                    n=10000, method="fullrank_advi", progressbar=self.progressbar
+                )
+                # TODO: trace is just a workaround here so the rest of the code understands
+                # ADVI. We could communicate parameters from mean_fied directly.
+                trace = mean_field.sample(1000)
+        else:
+            raise NotImplementedError
 
         TIME1 = datetime.now()
         print(
@@ -112,7 +129,7 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=500):
+    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
         trace_for_qm = trace[-subtrace:]
 
@@ -122,26 +139,40 @@ class estimator(object):
                 "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
             )
 
-            x_fourier = fourier.rescale(df, self.modes)
+            xf0 = fourier.rescale(df, self.modes[0])
+            xf1 = fourier.rescale(df, self.modes[1])
+            xf2 = fourier.rescale(df, self.modes[2])
+            if self.sigma_model == "full":
+                xf3 = fourier.rescale(df, self.modes[3])
 
             with self.model:
-                pm.set_data({"xf": x_fourier})
-                pm.set_data({"gmt": df["gmt_scaled"].values})
+                pm.set_data({"xf0v": xf0})
+                pm.set_data({"xf2v": xf2})
+                pm.set_data({"gmtv": df["gmt_scaled"].values})
+
+                if self.mu_model == "full":
+                    pm.set_data({"xf1v": xf1})
+
+                if self.sigma_model == "full":
+                    pm.set_data({"xf3v": xf3})
 
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=["obs", "mu", "sigma"],
+                    var_names=["obs", "mu", "sigma", "pbern"],
+                    progressbar=self.progressbar,
                 )
 
+        is_precip = self.variable == "pr"
         df_mu_sigma = dh.create_ref_df(
-            df, trace_for_qm, self.qm_ref_period, self.scale_variability
+            df, trace_for_qm, self.qm_ref_period, self.scale_variability, is_precip
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
 
         # drops indices that were masked as out of range before
-        valid_index = df.dropna().index
+        valid_index = df.index
+        print("Length of valid index:", len(valid_index))
         # populate cfact with original values
         df.loc[:, "cfact_scaled"] = df.loc[:, "y_scaled"]
         df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
@@ -165,7 +196,7 @@ class estimator(object):
 
         if self.report_mu_sigma:
             # todo: unifiy indexes so .values can be dropped
-            for v in ["mu", "sigma", "mu_ref", "sigma_ref"]:
+            for v in ["mu", "sigma", "mu_ref", "sigma_ref", "pbern", "pbern_ref"]:
                 df.loc[:, v] = df_mu_sigma.loc[:, v].values
 
         return df

@@ -1,8 +1,14 @@
 from setuptools import setup
 
+import versioneer
+
+version = versioneer.get_version()
+cmdclass = versioneer.get_cmdclass()
+
 setup(
-    name="isi-cfact",
-    version="0.1",
+    name="icounter",
+    version=versioneer.get_version(),
+    cmdclass=cmdclass,
     description="Counterfactual climate data from past datasets for the ISIMIP project.",
     url="http://github.com/isi-mip/isi-cfact",
     author="Matthias Mengel, Benjamin Schmidt",

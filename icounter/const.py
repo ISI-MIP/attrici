@@ -1,4 +1,5 @@
 import numpy as np
+from scipy import stats
 
 
 threshold = {
@@ -20,7 +21,7 @@ bound = {
     "tasskew": (0.0, 1.0),
     "pr": (0.0, None),
     "prsnratio": (0.0, 1.0),
-    "hurs": (0.0, 100.0),
+    "hurs": (0, 100.0),
     "ps": (0, None),
     "rsds": (0, None),
     "rlds": (0, None),
@@ -87,37 +88,25 @@ def mask_and_scale_by_bounds(data, variable):
 
     scale = bound[variable][1] - bound[variable][0]
     scaled_data = data / scale
-    print("Scaling by bounds of variable, scale is ", scale, ".")
-
+    print("Scaling by bounds of variable, divide data by", scale)
+    print("Min and max are", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
 
 
-def scale_offset_and_mask(data, variable):
+def scale_precip(data, variable):
 
-    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
-    data[data <= threshold[variable][0]] = np.nan
-    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
-    data[data >= threshold[variable][1]] = np.nan
+    data = data - threshold[variable][0]
 
-    scale = data.max() - data.min()
-    scaled_data = (data - data.min()) / scale
+    print("Mask", (data <= 0).sum(), "values below lower bound.")
+    data[data <= 0] = np.nan
+    fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
+    # for scipy.gamma: fscale = 1/beta
+    # std = sqrt(fa/beta**2)
+    scale = fscale * fa ** 0.5
+    scaled_data = data / scale
 
+    print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
-
-
-# def scale_and_mask_precip(data, variable):
-
-#     pr_thresh = 0.000001157407  # 0.1 mm per day
-
-#     # get scale and datamin before masking
-#     scale = data.max() - data.min()
-#     datamin = data.min()
-#     masked_data = data.copy()
-#     masked_data[masked_data < pr_thresh] = np.nan
-#     # do not use datamin to shift data to avoid zero
-#     scaled_data = masked_data / scale
-
-#     return scaled_data, datamin, scale
 
 
 def refill_and_rescale(scaled_data, datamin, scale):
@@ -125,6 +114,13 @@ def refill_and_rescale(scaled_data, datamin, scale):
     # TODO: implement refilling of values that have been masked before.
 
     return scaled_data * scale
+
+
+def rescale_and_offset_precip(scaled_data, datamin, scale):
+
+    # TODO: implement refilling of values that have been masked before.
+
+    return scaled_data * scale + threshold["pr"][0]
 
 
 mask_and_scale = {
@@ -138,5 +134,5 @@ mask_and_scale = {
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasrange": [scale_and_mask, refill_and_rescale],
-    "pr": [scale_and_mask, refill_and_rescale],
+    "pr": [scale_precip, rescale_and_offset_precip],
 }

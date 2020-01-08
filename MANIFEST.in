@@ -1,0 +1,2 @@
+include versioneer.py
+include icounter/_version.py

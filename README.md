@@ -23,11 +23,15 @@ See [here](examples/tas_example.ipynb) for a notebook leading you through the ba
 
 ## Usage
 
-This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work.
+This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work. We use the GNU compiler as the many parallel compile jobs through jobarrays and JIT compilation conflict with the few Intel licenses.
 
-`module load intel/2019.4`
+`module purge`
+
+`module load compiler/gnu/7.3.0`
 
 `conda activate yourenv`
+
+Override the conda setting with: `export CXX=g++`
 
 Adjust `settings.py`
 
@@ -56,15 +60,15 @@ In the root package directory.
 
 `pip install -e .`
 
-Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` `submit.sh` to a separate directory,
+Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
 for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
 ## Install
 
-We use the jobarray feature of slurm to run many jobs in parallel. We use the intel-optimized python libraries for performance. The configuration is very much tailored to the PIK supercomputer at the moment. Please do
+We use the jobarray feature of slurm to run many jobs in parallel.
+The configuration is very much tailored to the PIK supercomputer at the moment. Please do
 
 `conda config --add channels conda-forge`
-`conda config --add channels intel`
 
 `conda create -n isi-cfact pymc3==3.7 python==3.7`
 
@@ -81,7 +85,47 @@ You may optionally
 
 #### tas
 data checked
-Works using normal distribution
+Works using Normal distribution
+
+#### rlds
+data checked
+Works using Normal distribution
+Needs a restart to finish some hanging runs
+
+#### psl / ps
+data checked
+Works using Normal distribution
+
+#### rsds
+Deviationg approach from Lange et al. 2019, using Normal distribution
+This is because the yearly cycle is handled inherently here, so no need for specific treatment.
+FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
+
+#### hurs (relative humidity)
+data checked
+With Beta distribution, working
+Needs to be rerun so some holes are filled.
+
+GSWP: needs preprocessing to rename from rhs to hurs, and mask invalid values below zero:
+
+```
+ncrename -O -v rhs,hurs fname1.nc fname2.nc
+
+cdo setrtomiss,-1e20,0 fname2.nc fname3.nc
+```
+
+#### tasskew
+data checked
+Works using Beta distribution
+
+#### prsnratio
+Beta distribution
+Snow included in GSWP3
+
+#### tasrange
+With Rice distribution
+ADVI introduces strong positive trend.
+Possible issue: use real mu, not nu for quantile mapping.
 
 #### tasmin
 Constructed from tas, tasskew and tasrange
@@ -91,43 +135,15 @@ To do in postprocessing
 Constructed from tas, tasskew and tasrange
 To do in postprocessing
 
-#### tasrange
-With Rice distribution
-FIXME: does not seem to find and remove trend. A lot of grid cells fail.
-
-#### tasskew
-data checked
-Works using Beta distribution
-
-#### rsds
-Deviationg approach from Lange et al. 2019, using Normal distribution
-This is because the yearly cycle is handled inherently here, so no need for specific treatment.
-FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
-
-#### rlds
-data checked
-Works using Normal distribution
-Needs a restart to finish some hanging runs
-
 #### pr
-Works with Gamma distribution
-FIXME: Needs checks as current version is not working at low latitudes
+Gamma distribution
+Does not remove all regional trends with NUTS.
+Fails with ADVI.
+Low latitudes are particularly most difficult.
 
 #### wind
 Works using Weibull distribution
 FIXME: does not seem to detrend. Seems we rather chose the parameter that adjusted the variability range
-
-#### psl / ps
-data checked
-Works using Normal distribution
-
-#### prsnratio
-Works using beta distribution
-
-#### hurs (relative humidity)
-data checked
-With Beta distribution, working
-Needs to be rerun so some holes are filled.
 
 
 ## Credits

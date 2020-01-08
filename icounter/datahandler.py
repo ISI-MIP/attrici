@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pathlib
 import sys
-
+import netCDF4 as nc
 import icounter.const as c
 import icounter.fourier as fourier
 
@@ -29,20 +29,32 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
         return lat_sub_dir
 
 
-def get_valid_subset(df, modes, subset):
+def get_valid_subset(df, subset, seed):
 
     orig_len = len(df)
-    df = df.loc[::subset, :].copy()
-    # reindex to a [0,1,2, ..] index
-    df.reset_index(inplace=True, drop=True)
+    if subset > 1:
+        np.random.seed(seed)
+        subselect = np.random.choice(orig_len, np.int(orig_len / subset), replace=False)
+        df = df.loc[np.sort(subselect), :].copy()
 
-    x_fourier = fourier.rescale(df, modes)
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     df_valid = df.dropna(axis=0, how="any")
 
     print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
 
-    return df_valid, x_fourier[df_valid.index, :], df_valid["gmt_scaled"].values
+    return df_valid
+
+
+# def get_valid_index(df, subset, seed):
+
+#     orig_len = len(df)
+#     if subset > 1:
+#         np.random.seed(seed)
+#         subselect = np.random.choice(orig_len, np.int(orig_len/subset), replace=False)
+#         df = df.loc[np.sort(subselect), :].copy()
+
+#     df.replace([np.inf, -np.inf], np.nan, inplace=True)
+#     return df.dropna(axis=0, how="any").index
 
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
@@ -83,49 +95,71 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
             "gmt_scaled": gmt_scaled,
         }
     )
+    if variable == "pr":
+        tdf["is_dry_day"] = np.isnan(y_scaled)
 
     return tdf, datamin, scale
 
 
-def create_ref_df(df, trace_for_qm, ref_period, scale_variability):
+def create_ref_df(df, trace_for_qm, ref_period, scale_variability, is_precip=False):
 
-    df_mu_sigma = pd.DataFrame(index=df.index)
-    df_mu_sigma.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
-    df_mu_sigma.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
-    df_mu_sigma.index = df["ds"]
+    df_params = pd.DataFrame(index=df.index)
 
-    df_mu_sigma_ref = df_mu_sigma.loc[ref_period[0] : ref_period[1]]
+    # print(trace_for_qm["mu"])
+
+    df_params.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
+    df_params.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
+    if is_precip:
+        df_params.loc[:, "pbern"] = trace_for_qm["pbern"].mean(axis=0)
+
+    df_params.index = df["ds"]
+
+    df_params_ref = df_params.loc[ref_period[0] : ref_period[1]]
     # mean over all years for each day
-    df_mu_sigma_ref = df_mu_sigma_ref.groupby(df_mu_sigma_ref.index.dayofyear).mean()
+    df_params_ref = df_params_ref.groupby(df_params_ref.index.dayofyear).mean()
 
     # case of not scaling variability
-    df_mu_sigma.loc[:, "sigma_ref"] = df_mu_sigma["sigma"]
+    df_params.loc[:, "sigma_ref"] = df_params["sigma"]
     # write the average values for the reference period to each day of the
     # whole timeseries
-    for day in df_mu_sigma_ref.index:
-        df_mu_sigma.loc[
-            df_mu_sigma.index.dayofyear == day, "mu_ref"
-        ] = df_mu_sigma_ref.loc[day, "mu"]
+    for day in df_params_ref.index:
+        df_params.loc[df_params.index.dayofyear == day, "mu_ref"] = df_params_ref.loc[
+            day, "mu"
+        ]
+        if is_precip:
+            df_params.loc[
+                df_params.index.dayofyear == day, "pbern_ref"
+            ] = df_params_ref.loc[day, "pbern"]
         # case of scaling sigma
         if scale_variability:
-            df_mu_sigma.loc[
-                df_mu_sigma.index.dayofyear == day, "sigma_ref"
-            ] = df_mu_sigma_ref.loc[day, "sigma"]
+            df_params.loc[
+                df_params.index.dayofyear == day, "sigma_ref"
+            ] = df_params_ref.loc[day, "sigma"]
 
-    return df_mu_sigma
+    return df_params
 
 
-# def add_cfact_to_df(df, cfact_scaled, datamin, scale, variable):
+def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
 
-#     valid_index = df.dropna().index
-#     df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
-#     f_rescale = c.mask_and_scale[variable][1]
-#     # populate cfact with original values
-#     df["cfact"] = df["y"]
-#     # overwrite only values adjusted through cfact calculation
-#     df.loc[valid_index, "cfact"] = f_rescale(cfact_scaled[valid_index], datamin, scale)
-
-#     return df
+    input_file = (
+        data_dir
+        / dataset
+        / pathlib.Path(variable + "_" + dataset.lower() + "_" + qualifier + ".nc4")
+    )
+    obs_data = nc.Dataset(input_file, "r")
+    nct = obs_data.variables["time"]
+    lats = obs_data.variables["lat"][:]
+    lons = obs_data.variables["lon"][:]
+    i = np.where(lats == lat)[0][0]
+    j = np.where(lons == lon)[0][0]
+    data = obs_data.variables[variable][:, i, j]
+    tm = pd.to_datetime(
+        nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
+    )
+    df = pd.DataFrame(data, index=tm, columns=[variable])
+    df.index.name = "Time"
+    obs_data.close()
+    return df
 
 
 def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
