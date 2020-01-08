@@ -23,7 +23,8 @@ def main(runid, tag, rel, vmax):
     vmin=None if vmax is None else -vmax
     # define appropriate colorscheme for the given variable
     if variable == 'pr':
-        cmap = 'BrBG'
+        #cmap = 'BrBG'
+        cmap = 'coolwarm'
     else:
         cmap = 'coolwarm'
 

@@ -2,6 +2,7 @@ import numpy as np
 import pymc3 as pm
 from scipy import stats
 import pandas as pd
+import theano.tensor as tt
 import icounter.logistic as l
 
 
@@ -59,89 +60,6 @@ class Normal(object):
         """
         quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
         x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
-
-        return x_mapped
-
-
-class Gamma(object):
-
-    """ Influence of GMT is modelled through the parameters of the Gamma
-    distribution. Example: precipitation """
-
-    def __init__(self, modes, mu_model, sigma_model):
-
-        self.modes = modes
-        self.mu_model = mu_model
-        self.sigma_model = sigma_model
-
-        print("Using Gamma distribution model. Fourier modes:", modes)
-
-    def setup(self, df_valid):
-
-        model = pm.Model()
-
-        with model:
-
-            gmt = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
-            # mu = l.full(model, "mu", gmt, xf0, xf1)
-
-            if self.mu_model == "full":
-                xf1 = pm.Data("xf1", df_valid.filter(like="mode_1_").values)
-                mu = l.full(model, pm.Lognormal, "mu", gmt, xf0, xf1)
-
-            elif self.mu_model == "yearlycycle":
-                mu = l.yearlycycle(model, pm.Lognormal, "mu", xf0)
-
-            elif self.mu_model == "longterm_yearlycycle":
-                mu = l.longterm_yearlycycle(model, pm.Lognormal, "mu", gmt, xf0)
-
-            elif self.mu_model == "longterm":
-                mu = l.longterm(model, pm.Lognormal, "mu", gmt)
-
-            else:
-                raise NotImplemented
-
-            xf2 = pm.Data("xf2", df_valid.filter(like="mode_2_").values)
-
-            if self.sigma_model == "full":
-                xf3 = pm.Data("xf3", df_valid.filter(like="mode_3_").values)
-                sigma = l.full(model, pm.Lognormal, "sigma", gmt, xf2, xf3)
-
-            elif self.sigma_model == "yearlycycle":
-                sigma = l.yearlycycle(model, pm.Lognormal, "sigma", xf2)
-
-            elif self.sigma_model == "longterm_yearlycycle":
-                sigma = l.longterm_yearlycycle(model, pm.Lognormal, "sigma", gmt, xf2)
-
-            elif self.sigma_model == "longterm":
-                sigma = l.longterm(model, pm.Lognormal, "sigma", gmt)
-
-            else:
-                raise NotImplemented
-
-            pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-    def quantile_mapping(self, d, y_scaled):
-
-        """
-        Specific for Gamma distributed variables.
-        scipy Gamma works with alpha and scale parameter
-        alpha=mu**2/sigma**2, scale=1/beta=sigma**2/mu
-        """
-
-        quantile = stats.gamma.cdf(
-            y_scaled,
-            d["mu"] ** 2.0 / d["sigma"] ** 2.0,
-            scale=d["sigma"] ** 2.0 / d["mu"],
-        )
-        x_mapped = stats.gamma.ppf(
-            quantile,
-            d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
-            scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
-        )
 
         return x_mapped
 
