@@ -6,7 +6,29 @@ import theano.tensor as tt
 import icounter.logistic as l
 import icounter.distributions
 
-class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
+
+class Precipitation():
+    def resample_missing(self, trace, df, subtrace, model, progressbar):
+        trace_for_qm = trace[-subtrace:]
+        if trace["mu"].shape[1] < df.shape[0]:
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
+            )
+
+            with model:
+                pm.set_data({"gmt": df["gmt_scaled"].values})
+                pm.set_data({"gmtv": df["gmt_scaled"].values})
+                trace_for_qm = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=["obs", "mu", "sigma", "pbern"],
+                    progressbar=progressbar,
+                )
+        return trace_for_qm
+
+
+class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation):
 
     """ Influence of GMT is modelled through the parameters of the Gamma
     distribution. Example: precipitation """
@@ -67,9 +89,11 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
         return model
 
+
+class Tas():
     def resample_missing(self, trace, df, subtrace, model, progressbar):
         trace_for_qm = trace[-subtrace:]
-        if trace["mu"].shape[1] < df.shape[0]:
+        if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
@@ -77,17 +101,16 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
             with model:
                 pm.set_data({"gmt": df["gmt_scaled"].values})
-                pm.set_data({"gmtv": df["gmt_scaled"].values})
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=["obs", "mu", "sigma", "pbern"],
+                    var_names=["obs", "mu", "sigma"],
                     progressbar=progressbar,
                 )
         return trace_for_qm
 
 
-class TasLongterm(icounter.distributions.Normal):
+class TasLongterm(icounter.distributions.Normal, Tas):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
@@ -126,23 +149,7 @@ class TasLongterm(icounter.distributions.Normal):
 
         return model
 
-    def resample_missing(self, trace, df, subtrace, model, progressbar):
-        trace_for_qm = trace[-subtrace:]
-        if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
-            print("Trace is not complete due to masked data. Resample missing.")
-            print(
-                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-            )
 
-            with model:
-                pm.set_data({"gmt": df["gmt_scaled"].values})
-                trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:],
-                    samples=subtrace,
-                    var_names=["obs", "mu", "sigma"],
-                    progressbar=progressbar,
-                )
-        return trace_for_qm
 
 
 class Beta(object):
