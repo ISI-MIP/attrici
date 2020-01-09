@@ -66,6 +66,24 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
         return model
 
+    def resample_missing(self, trace, df, subtrace, model, progressbar):
+        trace_for_qm = trace[-subtrace:]
+        if trace["mu"].shape[1] < df.shape[0]:
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
+            )
+
+            with model:
+                pm.set_data({"gmtv": df["gmt_scaled"].values})
+                trace_for_qm = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=["obs", "mu", "sigma", "pbern"],
+                    progressbar=progressbar,
+                )
+        return trace_for_qm
+
 
 class TasLongterm(icounter.distributions.Normal):
 
@@ -106,15 +124,23 @@ class TasLongterm(icounter.distributions.Normal):
 
         return model
 
-    def quantile_mapping(self, d, y_scaled):
+    def resample_missing(self, trace, df, subtrace, model, progressbar):
+        trace_for_qm = trace[-subtrace:]
+        if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
+            )
 
-        """
-        specific for normally distributed variables.
-        """
-        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
-        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
-
-        return x_mapped
+            with model:
+                pm.set_data({"gmt": df["gmt_scaled"].values})
+                trace_for_qm = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=["obs", "mu", "sigma"],
+                    progressbar=progressbar,
+                )
+        return trace_for_qm
 
 
 class Beta(object):

@@ -129,41 +129,38 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-        trace_for_qm = trace[-subtrace:]
 
-        if trace["mu"].shape[1] < df.shape[0]:
-            print("Trace is not complete due to masked data. Resample missing.")
-            print(
-                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-            )
-
-            xf0 = fourier.rescale(df, self.modes[0])
-            xf1 = fourier.rescale(df, self.modes[1])
-            xf2 = fourier.rescale(df, self.modes[2])
-            if self.sigma_model == "full":
-                xf3 = fourier.rescale(df, self.modes[3])
-
-            # todo not sure what happens here. But is it possible to do something like model.resample(trace, subtrace)
-            #  avoiding to set unnecessary parameters xf0 etc.
-            #  Maybe also a good idea because var_names ar model specific
-
-            with self.model:
-                pm.set_data({"xf0v": xf0})
-                pm.set_data({"xf2v": xf2})
-                pm.set_data({"gmtv": df["gmt_scaled"].values})
-
-                if self.mu_model == "full":
-                    pm.set_data({"xf1v": xf1})
-
-                if self.sigma_model == "full":
-                    pm.set_data({"xf3v": xf3})
-
-                trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:],
-                    samples=subtrace,
-                    var_names=["obs", "mu", "sigma", "pbern"],
-                    progressbar=self.progressbar,
-                )
+        trace_for_qm = self.statmodel.resample_missing(trace, df, subtrace, self.model, self.progressbar)
+        # if trace["mu"].shape[1] < df.shape[0]:
+        #     print("Trace is not complete due to masked data. Resample missing.")
+        #     print(
+        #         "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
+        #     )
+        #
+        #     xf0 = fourier.rescale(df, self.modes[0])
+        #     xf1 = fourier.rescale(df, self.modes[1])
+        #     xf2 = fourier.rescale(df, self.modes[2])
+        #     if self.sigma_model == "full":
+        #         xf3 = fourier.rescale(df, self.modes[3])
+        #
+        #
+        #     with self.model:
+        #         pm.set_data({"xf0v": xf0})
+        #         pm.set_data({"xf2v": xf2})
+        #         pm.set_data({"gmtv": df["gmt_scaled"].values})
+        #
+        #         if self.mu_model == "full":
+        #             pm.set_data({"xf1v": xf1})
+        #
+        #         if self.sigma_model == "full":
+        #             pm.set_data({"xf3v": xf3})
+        #
+        #         trace_for_qm = pm.sample_posterior_predictive(
+        #             trace[-subtrace:],
+        #             samples=subtrace,
+        #             var_names=["obs", "mu", "sigma", "pbern"],
+        #             progressbar=self.progressbar,
+        #         )
 
         is_precip = self.variable == "pr"
         df_mu_sigma = dh.create_ref_df(
@@ -198,7 +195,7 @@ class estimator(object):
 
         if self.report_mu_sigma:
             # todo: unifiy indexes so .values can be dropped
-            for v in ["mu", "sigma", "mu_ref", "sigma_ref", "pbern", "pbern_ref"]:
+            for v in df_mu_sigma.columns:
                 df.loc[:, v] = df_mu_sigma.loc[:, v].values
 
         return df

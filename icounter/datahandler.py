@@ -106,7 +106,7 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability, is_precip=Fal
     df_params = pd.DataFrame(index=df.index)
 
     # print(trace_for_qm["mu"])
-
+    # todo are those parameters correct for all the other Distributions?
     df_params.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
     df_params.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
     if is_precip:
