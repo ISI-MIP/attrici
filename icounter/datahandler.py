@@ -29,7 +29,7 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
         return lat_sub_dir
 
 
-def get_valid_subset(df, subset, seed):
+def get_subset(df, subset, seed):
 
     orig_len = len(df)
     if subset > 1:
@@ -38,11 +38,10 @@ def get_valid_subset(df, subset, seed):
         df = df.loc[np.sort(subselect), :].copy()
 
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    df_valid = df.dropna(axis=0, how="any")
 
-    print(len(df_valid), "data points used from originally", orig_len, "datapoints.")
+    print(len(df), "data points used from originally", orig_len, "datapoints.")
 
-    return df_valid
+    return df
 
 
 # def get_valid_index(df, subset, seed):

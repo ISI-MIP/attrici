@@ -19,7 +19,7 @@ if concat_notdone:
     df = pd.concat([df,x_fourier], axis=1)
     concat_notdone = False
 
-df_valid = dh.get_valid_subset(df, s.subset, s.seed)
+df_subset = dh.get_subset(df, s.subset, s.seed)
 
 # todo second parameterization for different modes
 # get all subsubclasses of the Distribution class
@@ -29,7 +29,7 @@ def test_precip_longerm_priors(Model):
     # modes are dummy in the longterm case
     model = Model([1,1,1,1])
     model.test = True
-    smodel = model.setup(df_valid, df)
+    smodel = model.setup(df_subset)
 
     with smodel:
         trace = pm.sample()

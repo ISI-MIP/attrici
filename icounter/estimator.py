@@ -60,9 +60,9 @@ class estimator(object):
         x_fourier = fourier.get_fourier_valid(df, self.modes)
 
         df = pd.concat([df, x_fourier], axis=1)
-        df_valid = dh.get_valid_subset(df, self.subset, self.seed)
+        df_subset = dh.get_subset(df, self.subset, self.seed)
 
-        self.model = self.statmodel.setup(df_valid, df)
+        self.model = self.statmodel.setup(df_subset)
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, variable=self.variable

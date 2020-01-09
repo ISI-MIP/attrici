@@ -19,14 +19,15 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
         print("Using PrecipitationLongterm distribution model.")
 
-    def setup(self, df_valid, df):
+    def setup(self, df_subset):
 
         model = pm.Model()
 
         with model:
 
-            gmt = pm.Data("gmt", df["gmt_scaled"].values)
-            # FIXME: avoid this doubling of predictors, introduced for BernoulliGamma
+            # dropna to make sampling possible for the precipitation amounts.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
             gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
 
             # b is in the interval (0,2)
@@ -60,7 +61,7 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
             if not self.test:
                 pm.Bernoulli(
-                    "bernoulli", p=pbern, observed=df["is_dry_day"].astype(int)
+                    "bernoulli", p=pbern, observed=df_subset["is_dry_day"].astype(int)
                 )
                 pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
@@ -75,6 +76,7 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
             )
 
             with model:
+                pm.set_data({"gmt": df["gmt_scaled"].values})
                 pm.set_data({"gmtv": df["gmt_scaled"].values})
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
@@ -94,12 +96,12 @@ class TasLongterm(icounter.distributions.Normal):
         super(TasLongterm, self).__init__()
         self.modes = modes
 
-    def setup(self, df_valid, df_log):
+    def setup(self, df_subset):
 
         model = pm.Model()
 
         with model:
-
+            df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
 
             # b_mu is in the interval (-inf,inf)
