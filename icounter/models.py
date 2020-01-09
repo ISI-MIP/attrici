@@ -34,12 +34,9 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
     distribution. Example: precipitation """
 
     def __init__(self, modes):
-
         super(PrecipitationLongterm, self).__init__()
         self.modes = modes
         self.test = False
-
-        print("Using PrecipitationLongterm distribution model.")
 
     def setup(self, df_subset):
 
