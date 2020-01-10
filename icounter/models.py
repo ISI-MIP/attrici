@@ -162,12 +162,15 @@ class TasCycle(icounter.distributions.Normal):
     def __init__(self, modes):
         super(TasCycle, self).__init__()
         self.modes = modes
+        self.test = False
 
     def setup(self, df_subset):
 
         model = pm.Model()
 
         with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
@@ -185,14 +188,17 @@ class TasCycle(icounter.distributions.Normal):
             lam = 1
             # b_sigma is in the interval (0,inf)
             b_sigma = pm.Exponential("b_sigma", lam=lam)
-            # a_sigma is in the interval (-b, inf), mode at 0
+            yearly_sigma = pm.Exponential("yearly_sigma", lam=lam, shape=xf0.dshape[1])
+            ys = det_dot(xf0, yearly_sigma)
+            # a_sigma is in the interval (-b_sigma - ys, inf), mode at 0
             a_sigma = pm.Deterministic(
-                "a_sigma", tt.sub(pm.Exponential("as", lam=lam), b_sigma)
-            )
-            # sigma in (0, inf)
-            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
+                "a_sigma", pm.Exponential("as", lam=lam) - b_sigma)
 
-            pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+            # sigma in (0, inf)
+            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma + ys)
+
+            if not self.test:
+                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
 
