@@ -55,7 +55,7 @@ data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
 df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
 
 try:
-    trace = func_timeout(
+    trace, dff = func_timeout(
         s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
     )
 except (FunctionTimedOut, ValueError) as error:
@@ -63,7 +63,7 @@ except (FunctionTimedOut, ValueError) as error:
     print(error)
     # continue
 
-df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
+df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)
 dh.save_to_disk(df_with_cfact, s, sp["lat"], sp["lon"], dformat=s.storage_format)
 
 obs_data.close()

@@ -6,6 +6,15 @@ import theano.tensor as tt
 import icounter.logistic as l
 import icounter.distributions
 
+
+def det_dot(a, b):
+    """
+    The theano dot product and NUTS sampler don't work with large matrices?
+    :param a: (np matrix)
+    :param b: (theano vector)
+    """
+    return (a * b[None, :]).sum(axis=-1)
+
 class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
     """ Influence of GMT is modelled through the parameters of the Gamma
@@ -143,6 +152,72 @@ class TasLongterm(icounter.distributions.Normal):
                     progressbar=progressbar,
                 )
         return trace_for_qm
+
+
+class TasCycle(icounter.distributions.Normal):
+
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Normal distribution.
+    """
+    def __init__(self, modes):
+        super(TasCycle, self).__init__()
+        self.modes = modes
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
+
+            # b_mu is in the interval (-inf,inf)
+            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
+            # a_mu in (-inf, inf)
+            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
+
+            yearly_mu = pm.Normal("yearly_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
+            # in (-inf, inf)
+            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu + det_dot(xf0, yearly_mu))
+
+            # should be same for b and a, so that a is symmetric around zero
+            lam = 1
+            # b_sigma is in the interval (0,inf)
+            b_sigma = pm.Exponential("b_sigma", lam=lam)
+            # a_sigma is in the interval (-b, inf), mode at 0
+            a_sigma = pm.Deterministic(
+                "a_sigma", tt.sub(pm.Exponential("as", lam=lam), b_sigma)
+            )
+            # sigma in (0, inf)
+            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
+
+            pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+    def resample_missing(self, trace, df, subtrace, model, progressbar):
+        trace_for_qm = trace[-subtrace:]
+        if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
+            )
+
+            with model:
+                pm.set_data({"gmt": df["gmt_scaled"].values,
+                    "xf0": df.filter(like="mode_0_").values})
+
+                trace_for_qm = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=["obs", "mu", "sigma"],
+                    progressbar=progressbar,
+                )
+            print ("Done with Resampling.")
+
+        return trace_for_qm
+
 
 
 class Beta(object):
