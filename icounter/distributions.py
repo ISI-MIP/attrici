@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import stats
 
+
 class Distribution(object):
     def __init__(self):
 
@@ -8,10 +9,9 @@ class Distribution(object):
 
 
 class Normal(Distribution):
-
     def __init__(self):
         super(Normal, self).__init__()
-        self.parameter_bounds = {"mu":[None,None], "sigma":[0,None]}
+        self.parameter_bounds = {"mu": [None, None], "sigma": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
 
@@ -25,10 +25,9 @@ class Normal(Distribution):
 
 
 class BernoulliGamma(Distribution):
-
     def __init__(self):
         super(BernoulliGamma, self).__init__()
-        self.parameter_bounds = {"pbern":[0,1], "mu":[0,None], "sigma":[0,None]}
+        self.parameter_bounds = {"pbern": [0, 1], "mu": [0, None], "sigma": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
 
@@ -104,6 +103,7 @@ class BernoulliGamma(Distribution):
 
         return cfact
 
+
 class Beta(Distribution):
 
     pass
@@ -113,8 +113,7 @@ class Rice(Distribution):
 
     pass
 
+
 class Weibull(Distribution):
 
     pass
-
-

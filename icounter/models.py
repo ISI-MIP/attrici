@@ -6,6 +6,7 @@ import theano.tensor as tt
 import icounter.logistic as l
 import icounter.distributions
 
+
 def det_dot(a, b):
     """
     The theano dot product and NUTS sampler don't work with large matrices?
@@ -16,6 +17,10 @@ def det_dot(a, b):
 
 
 class Precipitation:
+
+    # FIXME: I wonder if our class concept is the right solution. A class
+    # with nothing, but one method?
+
     def resample_missing(self, trace, df, subtrace, model, progressbar):
         trace_for_qm = trace[-subtrace:]
         if trace["mu"].shape[1] < df.shape[0]:
@@ -73,9 +78,7 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
             a = tt.sub(pm.Beta("pbern_a", alpha=2, beta=2), b)
             # pbern is in the interval (0,1)
             pbern = a * gmt + b  # pbern is a linear model of gmt
-            pbern = pm.Deterministic(
-                "pbern", pbern
-            )
+            pbern = pm.Deterministic("pbern", pbern)
 
             # mu
             # b_mu is in the interval (0,inf)
@@ -105,7 +108,9 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
         return model
 
 
-class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Precipitation):
+class PrecipitationLongtermYearlycycle(
+    icounter.distributions.BernoulliGamma, Precipitation
+):
     def __init__(self, modes):
         super(PrecipitationLongtermYearlycycle, self).__init__()
         self.modes = modes
@@ -134,18 +139,24 @@ class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Pr
             )
             b_const = pm.Beta("pbern_b_const", alpha=2, beta=2)
             b_pbern_yearly = det_dot(xf0, pbern_fourier_coeffs)
-            b_scale = pm.Beta("b_scale", alpha=0.5, beta=1.0) * (
-                    1 - b_const
-            ) / tt.max(b_pbern_yearly)
+            b_scale = (
+                pm.Beta("b_scale", alpha=0.5, beta=1.0)
+                * (1 - b_const)
+                / tt.max(b_pbern_yearly)
+            )
             b_pbern = pm.Deterministic("b_pbern", b_const + b_scale * b_pbern_yearly)
             # pp = pm.Deterministic("ttmax",tt.max(b_pbern_yearly))
             # a_pbern is in the interval (-b_pbern,1-b_pbern)
-            a_pbern = pm.Deterministic("a_pbern", pm.Beta("pbern_a", alpha=2, beta=2) - b_const)
+            a_pbern = pm.Deterministic(
+                "a_pbern", pm.Beta("pbern_a", alpha=2, beta=2) - b_const
+            )
             pbern = pm.Deterministic("pbern", a_pbern * gmt + b_pbern)
 
             # mu
             # mu_fourier_coeffs is in the range (0,inf)
-            mu_fourier_coeffs = pm.Exponential("mu_fourier_coeffs", lam=1, shape=xf0v.dshape[1])
+            mu_fourier_coeffs = pm.Exponential(
+                "mu_fourier_coeffs", lam=1, shape=xf0v.dshape[1]
+            )
             b_mu_yearly = det_dot(xf0v, mu_fourier_coeffs)
             b_mu_const = pm.Exponential("mu_b_const", lam=1)
 
@@ -155,19 +166,21 @@ class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Pr
             a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b_mu)
             mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
 
-
             # sigma
             # sigma_fourier_coeffs is in the range (0,inf)
-            sigma_fourier_coeffs = pm.Exponential("sigma_fourier_coeffs", lam=1, shape=xf0v.dshape[1])
+            sigma_fourier_coeffs = pm.Exponential(
+                "sigma_fourier_coeffs", lam=1, shape=xf0v.dshape[1]
+            )
             b_sigma_yearly = det_dot(xf0v, sigma_fourier_coeffs)
             b_sigma_const = pm.Exponential("sigma_b_const", lam=1)
 
             # b_sigma is in the interval (0,inf)
             b_sigma = pm.Deterministic("b_sigma", b_sigma_const + b_sigma_yearly)
             # a_sigma in (-b_pbern, inf)
-            a_sigma = pm.Deterministic("a_sigma", pm.Exponential("as", lam=1) - b_sigma_const)
+            a_sigma = pm.Deterministic(
+                "a_sigma", pm.Exponential("as", lam=1) - b_sigma_const
+            )
             sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)  # in (0, inf)
-
 
             if not self.test:
                 pm.Bernoulli(
@@ -178,10 +191,10 @@ class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Pr
         return model
 
 
-class Tas():
+class Tas:
     def resample_missing(self, trace, df, subtrace, model, progressbar):
         trace_for_qm = trace[-subtrace:]
-        if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
+        if trace["mu"].shape[1] < df.shape[0]:  # is this even required for tas?
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
@@ -207,6 +220,7 @@ class TasLongterm(icounter.distributions.Normal, Tas):
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
     """
+
     def __init__(self, modes):
         super(TasLongterm, self).__init__()
         self.modes = modes
@@ -247,6 +261,7 @@ class TasCycle(icounter.distributions.Normal, Tas):
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
     """
+
     def __init__(self, modes):
         super(TasCycle, self).__init__()
         self.modes = modes
@@ -276,11 +291,14 @@ class TasCycle(icounter.distributions.Normal, Tas):
             lam = 1
             # b_sigma is in the interval (0,inf)
             b_sigma = pm.Lognormal("b_sigma", mu=-3, sigma=1)
-            yearly_sigma = pm.Lognormal("yearly_sigma",  mu=-3, sigma=1, shape=xf0.dshape[1])
+            yearly_sigma = pm.Lognormal(
+                "yearly_sigma", mu=-3, sigma=1, shape=xf0.dshape[1]
+            )
             ys = det_dot(xf0, yearly_sigma)
             # a_sigma is in the interval (-b_sigma - ys, inf), mode at 0
             a_sigma = pm.Deterministic(
-                "a_sigma", pm.Lognormal("as", mu=-3, sigma=1) - b_sigma)
+                "a_sigma", pm.Lognormal("as", mu=-3, sigma=1) - b_sigma
+            )
 
             # sigma in (0, inf)
             sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma + ys)
@@ -290,32 +308,13 @@ class TasCycle(icounter.distributions.Normal, Tas):
 
         return model
 
-    # def resample_missing(self, trace, df, subtrace, model, progressbar):
-    #     trace_for_qm = trace[-subtrace:]
-    #     if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
-    #         print("Trace is not complete due to masked data. Resample missing.")
-    #         print(
-    #             "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-    #         )
-    #
-    #         with model:
-    #             pm.set_data({"gmt": df["gmt_scaled"].values,
-    #                 "xf0": df.filter(like="mode_0_").values})
-    #
-    #             trace_for_qm = pm.sample_posterior_predictive(
-    #                 trace[-subtrace:],
-    #                 samples=subtrace,
-    #                 var_names=["obs", "mu", "sigma"],
-    #                 progressbar=progressbar,
-    #             )
-    #         print ("Done with Resampling.")
-    #
-    #     return trace_for_qm
+
 class TasCycleRelu(icounter.distributions.Normal, Tas):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
     """
+
     def __init__(self, modes):
         super(TasCycleRelu, self).__init__()
         self.modes = modes
@@ -338,17 +337,26 @@ class TasCycleRelu(icounter.distributions.Normal, Tas):
             # a_mu in (-inf, inf)
             a_mu = pm.Normal("a_mu", mu=0, sigma=1)
 
-            fourier_coefficients_mu = pm.Normal("fourier_coefficients_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
+            fourier_coefficients_mu = pm.Normal(
+                "fourier_coefficients_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1]
+            )
             # in (-inf, inf)
-            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu))
+            mu = pm.Deterministic(
+                "mu", a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu)
+            )
 
             # sigma
             b_sigma = pm.Normal("b_sigma", mu=1, sigma=1)
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=1)
 
-            fourier_coefficients_sigma = pm.Normal("fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=xf0.dshape[1])
+            fourier_coefficients_sigma = pm.Normal(
+                "fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=xf0.dshape[1]
+            )
             # in (-inf, inf)
-            lin = pm.Deterministic("foo", a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma))
+            lin = pm.Deterministic(
+                "foo",
+                a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
+            )
             sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))
 
             if not self.test:

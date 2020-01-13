@@ -129,8 +129,9 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-
-        trace_for_qm = self.statmodel.resample_missing(trace, df, subtrace, self.model, self.progressbar)
+        trace_for_qm = self.statmodel.resample_missing(
+            trace, df, subtrace, self.model, self.progressbar
+        )
         # if trace["mu"].shape[1] < df.shape[0]:
         #     print("Trace is not complete due to masked data. Resample missing.")
         #     print(
