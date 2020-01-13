@@ -58,8 +58,8 @@ landsea_file = "ISIMIP2b_landseamask_generic_sub" + str(lateral_sub) + ".nc4"
 source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 # .h5 or .csv
-save_trace = True
 storage_format = ".h5"
+save_trace = False
 
 # model run settings
 tune = 100  # number of draws to tune model

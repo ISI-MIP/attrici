@@ -346,15 +346,15 @@ class TasCycleRelu(icounter.distributions.Normal, Tas):
             )
 
             # sigma
-            b_sigma = pm.Normal("b_sigma", mu=1, sigma=1)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1)
+            b_sigma = pm.Normal("b_sigma", mu=1, sigma=1, testval=1.)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1, testval=1.)
 
             fourier_coefficients_sigma = pm.Normal(
                 "fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=xf0.dshape[1]
-            )
+            , testval= 1.)
             # in (-inf, inf)
             lin = pm.Deterministic(
-                "foo",
+                "lin",
                 a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
             )
             sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))
