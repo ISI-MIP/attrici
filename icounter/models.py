@@ -49,6 +49,7 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
             gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
             gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
 
+            # pbern
             # b is in the interval (0,2)
             b = pm.Beta(
                 "pbern_b", alpha=2, beta=2
@@ -61,12 +62,14 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
                 "pbern", pbern
             )
 
+            # mu
             # b_mu is in the interval (0,inf)
             b_mu = pm.Exponential("b_mu", lam=1)
             # a_mu in (-b, inf)
             a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b_mu)
             mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
 
+            # sigma
             # should be same for b and a, so that a is symmetric around zero
             lam = 1
             # b_sigma is in the interval (0,inf)
@@ -77,6 +80,79 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
             )
             # sigma in (0, inf)
             sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
+
+            if not self.test:
+                pm.Bernoulli(
+                    "bernoulli", p=pbern, observed=df_subset["is_dry_day"].astype(int)
+                )
+                pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Precipitation):
+    def __init__(self, modes):
+        super(PrecipitationLongtermYearlycycle, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_subset.filter(like="mode_0_").values)
+
+            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
+            xf0v = pm.Data("xf0v", df_valid.filter(like="mode_0_").values)
+
+            # Todo rename a_pbern and b_pbern into intercept and slope
+            # pbern
+            # FIXME: very slow so far.
+            # Unclear if we need scaling of b_pbern_yearly
+            # Does not provide improved results as compared to longterm,
+            # though more than 25x the CPU time
+            pbern_fourier_coeffs = pm.Beta(
+                "pbern_fourier_coeffs", alpha=2, beta=3, shape=xf0.dshape[1]
+            )
+            b_const = pm.Beta("pbern_b_const", alpha=2, beta=2)
+            b_pbern_yearly = l.det_dot(xf0 / 2.0 + 0.5, pbern_fourier_coeffs)
+            b_scale = pm.Beta("b_scale", alpha=0.5, beta=1.0) * (
+                    1 - b_const
+            ) / tt.max(b_pbern_yearly)
+            b_pbern = pm.Deterministic("b_pbern", b_const + b_scale * b_pbern_yearly)
+            # pp = pm.Deterministic("ttmax",tt.max(b_pbern_yearly))
+            # a_pbern is in the interval (-b_pbern,1-b_pbern)
+            a_pbern = pm.Deterministic("a_pbern", pm.Beta("pbern_a", alpha=2, beta=2) - b_pbern)
+            pbern = pm.Deterministic("pbern", a_pbern * gmt + b_pbern)
+
+            # mu
+            # mu_fourier_coeffs is in the range (0,inf)
+            mu_fourier_coeffs = pm.Exponential("mu_fourier_coeffs", lam=1, shape=xf0v.dshape[1])
+            b_mu_yearly = l.det_dot(xf0v / 2.0 + 0.5, mu_fourier_coeffs)
+            b_mu_const = pm.Exponential("mu_b_const", lam=1)
+
+            # b_mu is in the interval (0,inf)
+            b_mu = pm.Deterministic("b_mu", b_mu_const + b_mu_yearly)
+            # a_mu in (-b_pbern, inf)
+            a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b_mu)
+            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
+
+
+            # sigma
+            # sigma_fourier_coeffs is in the range (0,inf)
+            sigma_fourier_coeffs = pm.Exponential("sigma_fourier_coeffs", lam=1, shape=xf0v.dshape[1])
+            b_sigma_yearly = l.det_dot(xf0v / 2.0 + 0.5, sigma_fourier_coeffs)
+            b_sigma_const = pm.Exponential("sigma_b_const", lam=1)
+
+            # b_sigma is in the interval (0,inf)
+            b_sigma = pm.Deterministic("b_sigma", b_sigma_const + b_sigma_yearly)
+            # a_sigma in (-b_pbern, inf)
+            a_sigma = pm.Deterministic("a_sigma", pm.Exponential("as", lam=1) - b_sigma)
+            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)  # in (0, inf)
+
 
             if not self.test:
                 pm.Bernoulli(
