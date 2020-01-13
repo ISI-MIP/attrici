@@ -302,7 +302,50 @@ class TasLongterm(icounter.distributions.Normal, Tas):
     #         print ("Done with Resampling.")
     #
     #     return trace_for_qm
+class TasCycleRelu(icounter.distributions.Normal, Tas):
 
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Normal distribution.
+    """
+    def __init__(self, modes):
+        super(TasCycleRelu, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
+
+            # mu
+            # b_mu is in the interval (-inf,inf)
+            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
+            # a_mu in (-inf, inf)
+            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
+
+            fourier_coefficients_mu = pm.Normal("fourier_coefficients_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
+            # in (-inf, inf)
+            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu))
+
+            # sigma
+            b_sigma = pm.Normal("b_sigma", mu=1, sigma=1)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1)
+
+            fourier_coefficients_sigma = pm.Normal("fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=xf0.dshape[1])
+            # in (-inf, inf)
+            lin = pm.Deterministic("foo", a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma))
+            sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))
+
+            if not self.test:
+                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
 
 
 class Beta(object):
