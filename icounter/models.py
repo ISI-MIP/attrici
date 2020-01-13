@@ -275,12 +275,12 @@ class TasCycle(icounter.distributions.Normal, Tas):
             # should be same for b and a, so that a is symmetric around zero
             lam = 1
             # b_sigma is in the interval (0,inf)
-            b_sigma = pm.Exponential("b_sigma", lam=lam)
-            yearly_sigma = pm.Exponential("yearly_sigma", lam=lam, shape=xf0.dshape[1])
+            b_sigma = pm.Lognormal("b_sigma", mu=-3, sigma=1)
+            yearly_sigma = pm.Lognormal("yearly_sigma",  mu=-3, sigma=1, shape=xf0.dshape[1])
             ys = det_dot(xf0, yearly_sigma)
             # a_sigma is in the interval (-b_sigma - ys, inf), mode at 0
             a_sigma = pm.Deterministic(
-                "a_sigma", pm.Exponential("as", lam=lam) - b_sigma)
+                "a_sigma", pm.Lognormal("as", mu=-3, sigma=1) - b_sigma)
 
             # sigma in (0, inf)
             sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma + ys)
