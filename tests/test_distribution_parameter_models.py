@@ -1,7 +1,3 @@
-import numpy as np
-import pandas as pd
-import pymc3 as pm
-import icounter.models
 import pathlib
 import icounter.fourier as fourier
 import icounter.datahandler as dh
@@ -24,7 +20,7 @@ df_subset = dh.get_subset(df, s.subset, s.seed)
 # todo second parameterization for different modes
 # get all subsubclasses of the Distribution class
 @pytest.mark.parametrize('Model', [subclass for subclasses in Distribution.__subclasses__() for subclass in subclasses.__subclasses__()])
-def test_precip_longerm_priors(Model):
+def test_precip_parameter_bounds(Model):
 
     # modes are dummy in the longterm case
     model = Model([1,1,1,1])
@@ -48,5 +44,6 @@ def test_precip_longerm_priors(Model):
             assert trace[param].max() < bounds[1]
 #        else:
 #            assert trace[param].max() > 5
+        assert trace[param].min() < trace[param].max(), f'trace of {param} is constant'
 
 #    assert np.abs(trace["a_sigma"].mean()) < 0.01, "mode of a_sigma should be close to zero." class specific
