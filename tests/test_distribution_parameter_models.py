@@ -39,13 +39,13 @@ def test_precip_parameter_bounds(Model):
         assert trace[param].min() < trace[param].max()
 
         if bounds[0] is not None:
-            assert trace[param].min() > bounds[0]
+            assert trace[param].min() >= bounds[0]
         # todo the other tests are parameter specific and should also be formulated as properties
         #        else:
         #            assert trace[param].min() < -5
 
         if bounds[1] is not None:
-            assert trace[param].max() < bounds[1]
+            assert trace[param].max() <= bounds[1]
 
 
 #        else:

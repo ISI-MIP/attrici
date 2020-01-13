@@ -14,7 +14,8 @@ def det_dot(a, b):
     """
     return (a * b[None, :]).sum(axis=-1)
 
-class Precipitation():
+
+class Precipitation:
     def resample_missing(self, trace, df, subtrace, model, progressbar):
         trace_for_qm = trace[-subtrace:]
         if trace["mu"].shape[1] < df.shape[0]:
@@ -26,6 +27,13 @@ class Precipitation():
             with model:
                 pm.set_data({"gmt": df["gmt_scaled"].values})
                 pm.set_data({"gmtv": df["gmt_scaled"].values})
+                # only if available
+                try:
+                    pm.set_data({"xf0": df.filter(like="mode_0_").values})
+                    pm.set_data({"xf0v": df.filter(like="mode_0_").values})
+                except KeyError:
+                    pass
+
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
@@ -125,24 +133,24 @@ class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Pr
                 "pbern_fourier_coeffs", alpha=2, beta=3, shape=xf0.dshape[1]
             )
             b_const = pm.Beta("pbern_b_const", alpha=2, beta=2)
-            b_pbern_yearly = l.det_dot(xf0 / 2.0 + 0.5, pbern_fourier_coeffs)
+            b_pbern_yearly = det_dot(xf0, pbern_fourier_coeffs)
             b_scale = pm.Beta("b_scale", alpha=0.5, beta=1.0) * (
                     1 - b_const
             ) / tt.max(b_pbern_yearly)
             b_pbern = pm.Deterministic("b_pbern", b_const + b_scale * b_pbern_yearly)
             # pp = pm.Deterministic("ttmax",tt.max(b_pbern_yearly))
             # a_pbern is in the interval (-b_pbern,1-b_pbern)
-            a_pbern = pm.Deterministic("a_pbern", pm.Beta("pbern_a", alpha=2, beta=2) - b_pbern)
+            a_pbern = pm.Deterministic("a_pbern", pm.Beta("pbern_a", alpha=2, beta=2) - b_const)
             pbern = pm.Deterministic("pbern", a_pbern * gmt + b_pbern)
 
             # mu
             # mu_fourier_coeffs is in the range (0,inf)
             mu_fourier_coeffs = pm.Exponential("mu_fourier_coeffs", lam=1, shape=xf0v.dshape[1])
-            b_mu_yearly = l.det_dot(xf0v / 2.0 + 0.5, mu_fourier_coeffs)
+            b_mu_yearly = det_dot(xf0v, mu_fourier_coeffs)
             b_mu_const = pm.Exponential("mu_b_const", lam=1)
 
             # b_mu is in the interval (0,inf)
-            b_mu = pm.Deterministic("b_mu", b_mu_const + b_mu_yearly)
+            b_mu = pm.Deterministic("b_mu", b_mu_const + b_mu_const)
             # a_mu in (-b_pbern, inf)
             a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b_mu)
             mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
@@ -151,13 +159,13 @@ class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma, Pr
             # sigma
             # sigma_fourier_coeffs is in the range (0,inf)
             sigma_fourier_coeffs = pm.Exponential("sigma_fourier_coeffs", lam=1, shape=xf0v.dshape[1])
-            b_sigma_yearly = l.det_dot(xf0v / 2.0 + 0.5, sigma_fourier_coeffs)
+            b_sigma_yearly = det_dot(xf0v, sigma_fourier_coeffs)
             b_sigma_const = pm.Exponential("sigma_b_const", lam=1)
 
             # b_sigma is in the interval (0,inf)
             b_sigma = pm.Deterministic("b_sigma", b_sigma_const + b_sigma_yearly)
             # a_sigma in (-b_pbern, inf)
-            a_sigma = pm.Deterministic("a_sigma", pm.Exponential("as", lam=1) - b_sigma)
+            a_sigma = pm.Deterministic("a_sigma", pm.Exponential("as", lam=1) - b_sigma_const)
             sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)  # in (0, inf)
 
 
@@ -181,6 +189,10 @@ class Tas():
 
             with model:
                 pm.set_data({"gmt": df["gmt_scaled"].values})
+                try:
+                    pm.set_data({"xf0": df.filter(like="mode_0_").values})
+                except KeyError:
+                    pass
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
@@ -230,77 +242,66 @@ class TasLongterm(icounter.distributions.Normal, Tas):
         return model
 
 
-
-
-class TasCycle(icounter.distributions.Normal, Tas):
+class TasLongterm(icounter.distributions.Normal, Tas):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
     """
     def __init__(self, modes):
-        super(TasCycle, self).__init__()
+        super(TasLongterm, self).__init__()
         self.modes = modes
-        self.test = False
 
     def setup(self, df_subset):
 
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
-            # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
 
             # b_mu is in the interval (-inf,inf)
             b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
             # a_mu in (-inf, inf)
             a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            yearly_mu = pm.Normal("yearly_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
             # in (-inf, inf)
-            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu + det_dot(xf0, yearly_mu))
+            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)
 
             # should be same for b and a, so that a is symmetric around zero
             lam = 1
             # b_sigma is in the interval (0,inf)
             b_sigma = pm.Exponential("b_sigma", lam=lam)
-            yearly_sigma = pm.Exponential("yearly_sigma", lam=lam, shape=xf0.dshape[1])
-            ys = det_dot(xf0, yearly_sigma)
-            # a_sigma is in the interval (-b_sigma - ys, inf), mode at 0
+            # a_sigma is in the interval (-b, inf), mode at 0
             a_sigma = pm.Deterministic(
-                "a_sigma", pm.Exponential("as", lam=lam) - b_sigma)
-
+                "a_sigma", tt.sub(pm.Exponential("as", lam=lam), b_sigma)
+            )
             # sigma in (0, inf)
-            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma + ys)
+            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
 
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+            pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
 
-    def resample_missing(self, trace, df, subtrace, model, progressbar):
-        trace_for_qm = trace[-subtrace:]
-        if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
-            print("Trace is not complete due to masked data. Resample missing.")
-            print(
-                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-            )
-
-            with model:
-                pm.set_data({"gmt": df["gmt_scaled"].values,
-                    "xf0": df.filter(like="mode_0_").values})
-
-                trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:],
-                    samples=subtrace,
-                    var_names=["obs", "mu", "sigma"],
-                    progressbar=progressbar,
-                )
-            print ("Done with Resampling.")
-
-        return trace_for_qm
+    # def resample_missing(self, trace, df, subtrace, model, progressbar):
+    #     trace_for_qm = trace[-subtrace:]
+    #     if trace["mu"].shape[1] < df.shape[0]: # is this even required for tas?
+    #         print("Trace is not complete due to masked data. Resample missing.")
+    #         print(
+    #             "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
+    #         )
+    #
+    #         with model:
+    #             pm.set_data({"gmt": df["gmt_scaled"].values,
+    #                 "xf0": df.filter(like="mode_0_").values})
+    #
+    #             trace_for_qm = pm.sample_posterior_predictive(
+    #                 trace[-subtrace:],
+    #                 samples=subtrace,
+    #                 var_names=["obs", "mu", "sigma"],
+    #                 progressbar=progressbar,
+    #             )
+    #         print ("Done with Resampling.")
+    #
+    #     return trace_for_qm
 
 
 
