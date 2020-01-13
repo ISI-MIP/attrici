@@ -1,3 +1,7 @@
+import numpy as np
+import pandas as pd
+import pymc3 as pm
+import icounter.models
 import pathlib
 import icounter.fourier as fourier
 import icounter.datahandler as dh
@@ -23,7 +27,7 @@ df_subset = dh.get_subset(df, s.subset, s.seed)
 def test_precip_parameter_bounds(Model):
 
     # modes are dummy in the longterm case
-    model = Model([1,1,1,1])
+    model = Model([1, 1, 1, 1])
     model.test = True
     smodel = model.setup(df_subset)
 
@@ -37,11 +41,13 @@ def test_precip_parameter_bounds(Model):
         if bounds[0] is not None:
             assert trace[param].min() > bounds[0]
         # todo the other tests are parameter specific and should also be formulated as properties
-#        else:
-#            assert trace[param].min() < -5
+        #        else:
+        #            assert trace[param].min() < -5
 
         if bounds[1] is not None:
             assert trace[param].max() < bounds[1]
+
+
 #        else:
 #            assert trace[param].max() > 5
         assert trace[param].min() < trace[param].max(), f'trace of {param} is constant'

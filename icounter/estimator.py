@@ -10,7 +10,7 @@ import icounter.models as models
 import icounter.fourier as fourier
 
 model_for_var = {
-    "tas": models.TasLongterm,
+    "tas": models.TasCycle,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
     "pr": models.PrecipitationLongtermYearlycycle,
@@ -59,8 +59,8 @@ class estimator(object):
 
         x_fourier = fourier.get_fourier_valid(df, self.modes)
 
-        df = pd.concat([df, x_fourier], axis=1)
-        df_subset = dh.get_subset(df, self.subset, self.seed)
+        dff = pd.concat([df, x_fourier], axis=1)
+        df_subset = dh.get_subset(dff, self.subset, self.seed)
 
         self.model = self.statmodel.setup(df_subset)
 
@@ -92,7 +92,7 @@ class estimator(object):
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
-        return trace
+        return trace, dff
 
     def sample(self):
 
@@ -168,7 +168,7 @@ class estimator(object):
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
-
+        print("Done with quantile mapping.")
         # drops indices that were masked as out of range before
         valid_index = df.index
         print("Length of valid index:", len(valid_index))
