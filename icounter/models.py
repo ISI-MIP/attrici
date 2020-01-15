@@ -63,6 +63,7 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
         model = pm.Model()
 
         with model:
+            # todo broken as pbern is not in (0, 1)
 
             # dropna to make sampling possible for the precipitation amounts.
             df_valid = df_subset.dropna(axis=0, how="any")
@@ -107,6 +108,59 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
 
         return model
 
+
+class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma, Precipitation):
+
+    """ Influence of GMT is modelled through the parameters of the Gamma
+    distribution. Example: precipitation """
+
+    def __init__(self, modes):
+        super(PrecipitationLongtermRelu, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+
+            # dropna to make sampling possible for the precipitation amounts.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
+            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
+
+            # pbern
+            # b_pbern = pm.Normal("pbern_b", mu=0, sigma=1)
+            b_pbern = pm.Normal("pbern_b", mu=0.5, sigma=.2)
+            #b_pbern = pm.Beta("pbern_b", alpha=2, beta=2)
+            a_pbern = pm.Normal("pbern_a", mu=0, sigma=.2, testval=0)
+            # pbern is a linear model of gmt
+            pbern_linear = pm.Deterministic("pbern_linear", a_pbern * gmt + b_pbern)
+            # todo check if cutoff is ok
+            pbern = pm.Deterministic("pbern", tt.clip(pbern_linear, 0.001, 0.999))
+            # pbern = pm.Deterministic("pbern", tt.nnet.hard_sigmoid(pbern_linear))
+            # pbern = pm.Beta("pbern", alpha=2, beta=2)
+
+            # mu
+            b_mu = pm.Normal("mu_b", mu=1, sigma=.5, testval=1.)
+            a_mu = pm.Normal("mu_a", mu=0, sigma=.5, testval=0)
+            mu_linear = pm.Deterministic("mu_linear", a_mu * gmtv + b_mu)
+            mu = pm.Deterministic("mu", tt.nnet.relu(mu_linear) + 1e-30)
+
+            # sigma
+            b_sigma = pm.Normal("sigma_b", mu=1, sigma=.5, testval=1.)
+            a_sigma = pm.Normal("sigma_a", mu=0, sigma=1, testval=0)
+            sigma_linear = pm.Deterministic("sigma_linear", a_sigma * gmtv + b_sigma)
+            sigma = pm.Deterministic("sigma", tt.nnet.relu(sigma_linear) + 1e-30)
+
+            if not self.test:
+                pm.Bernoulli(
+                    "bernoulli", p=pbern, observed=df_subset["is_dry_day"].astype(int)
+                )
+                pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
 
 class PrecipitationLongtermYearlycycle(
     icounter.distributions.BernoulliGamma, Precipitation
@@ -347,7 +401,7 @@ class TasCycleRelu(icounter.distributions.Normal, Tas):
 
             # sigma
             b_sigma = pm.Normal("b_sigma", mu=1, sigma=1, testval=1.)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1, testval=1.)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1, testval=0)
 
             fourier_coefficients_sigma = pm.Normal(
                 "fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=xf0.dshape[1]
@@ -357,7 +411,7 @@ class TasCycleRelu(icounter.distributions.Normal, Tas):
                 "lin",
                 a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
             )
-            sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))
+            sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))  + 1e-30
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
