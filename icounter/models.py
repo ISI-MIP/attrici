@@ -16,39 +16,7 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
-class Precipitation:
-
-    # FIXME: I wonder if our class concept is the right solution. A class
-    # with nothing, but one method?
-
-    def resample_missing(self, trace, df, subtrace, model, progressbar):
-        trace_for_qm = trace[-subtrace:]
-        if trace["mu"].shape[1] < df.shape[0]:
-            print("Trace is not complete due to masked data. Resample missing.")
-            print(
-                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-            )
-
-            with model:
-                pm.set_data({"gmt": df["gmt_scaled"].values})
-                pm.set_data({"gmtv": df["gmt_scaled"].values})
-                # only if available
-                try:
-                    pm.set_data({"xf0": df.filter(like="mode_0_").values})
-                    pm.set_data({"xf0v": df.filter(like="mode_0_").values})
-                except KeyError:
-                    pass
-
-                trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:],
-                    samples=subtrace,
-                    var_names=["obs", "mu", "sigma", "pbern"],
-                    progressbar=progressbar,
-                )
-        return trace_for_qm
-
-
-class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation):
+class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
 
     """ Influence of GMT is modelled through the parameters of the Gamma
     distribution. Example: precipitation """
@@ -109,7 +77,7 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma, Precipitation
         return model
 
 
-class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma, Precipitation):
+class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
 
     """ Influence of GMT is modelled through the parameters of the Gamma
     distribution. Example: precipitation """
@@ -162,9 +130,7 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma, Precipita
 
         return model
 
-class PrecipitationLongtermYearlycycle(
-    icounter.distributions.BernoulliGamma, Precipitation
-):
+class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma):
     def __init__(self, modes):
         super(PrecipitationLongtermYearlycycle, self).__init__()
         self.modes = modes
@@ -245,31 +211,7 @@ class PrecipitationLongtermYearlycycle(
         return model
 
 
-class Tas:
-    def resample_missing(self, trace, df, subtrace, model, progressbar):
-        trace_for_qm = trace[-subtrace:]
-        if trace["mu"].shape[1] < df.shape[0]:  # is this even required for tas?
-            print("Trace is not complete due to masked data. Resample missing.")
-            print(
-                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-            )
-
-            with model:
-                pm.set_data({"gmt": df["gmt_scaled"].values})
-                try:
-                    pm.set_data({"xf0": df.filter(like="mode_0_").values})
-                except KeyError:
-                    pass
-                trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:],
-                    samples=subtrace,
-                    var_names=["obs", "mu", "sigma"],
-                    progressbar=progressbar,
-                )
-        return trace_for_qm
-
-
-class TasLongterm(icounter.distributions.Normal, Tas):
+class TasLongterm(icounter.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
@@ -310,7 +252,7 @@ class TasLongterm(icounter.distributions.Normal, Tas):
         return model
 
 
-class TasCycle(icounter.distributions.Normal, Tas):
+class TasCycle(icounter.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
@@ -363,7 +305,7 @@ class TasCycle(icounter.distributions.Normal, Tas):
         return model
 
 
-class TasCycleRelu(icounter.distributions.Normal, Tas):
+class TasCycleRelu(icounter.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Normal distribution.
