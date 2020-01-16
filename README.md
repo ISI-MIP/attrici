@@ -115,14 +115,19 @@ cdo setrtomiss,-1e20,0 fname2.nc fname3.nc
 ```
 
 #### tasskew
+tasskew = (tas-tasmin)/tasrange
+
 data checked
 Works using Beta distribution
+
 
 #### prsnratio
 Beta distribution
 Snow included in GSWP3
 
 #### tasrange
+tasrange = tasmin - tasmax
+
 With Rice distribution
 ADVI introduces strong positive trend.
 Possible issue: use real mu, not nu for quantile mapping.
@@ -136,7 +141,7 @@ Constructed from tas, tasskew and tasrange
 To do in postprocessing
 
 #### pr
-Gamma distribution
+Mixed Bernoulli-Gamma distribution
 Does not remove all regional trends with NUTS.
 Fails with ADVI.
 Low latitudes are particularly most difficult.
