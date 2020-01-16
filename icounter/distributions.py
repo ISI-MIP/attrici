@@ -1,16 +1,51 @@
 import numpy as np
 from scipy import stats
+import pymc3 as pm
+
 
 class Distribution(object):
     def __init__(self):
 
         print(f"Using {type(self).__name__} distribution model.")
 
+    def resample_missing(self, trace, df, subtrace, model, progressbar):
+        trace_for_qm = trace[-subtrace:]
+        if trace[self.params[0]].shape[1] < df.shape[0]:
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:", trace[self.params[0]].shape[1], "Dataframe length", df.shape[0]
+            )
+
+            with model:
+                # use all data for the model specific data-inputs
+                # if input is available in the model
+                input_vars = {
+                    "gmt": "gmt_scaled",
+                    "gmtv": "gmt_scaled",
+                    "xf0": "mode_0_",
+                    "xf0v": "mode_0_"
+                }
+                for key, df_key in input_vars.items():
+                    try:
+                        pm.set_data({key: df[df_key].values})
+                        print(f'replaced {key} in model with full data-set')
+                    except KeyError:
+                        pass
+
+                trace_for_qm = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=["obs"] + self.params,
+                    progressbar=progressbar,
+                )
+        return trace_for_qm
+
 
 class Normal(Distribution):
 
     def __init__(self):
         super(Normal, self).__init__()
+        self.params = ["mu", "sigma"]
         self.parameter_bounds = {"mu":[None,None], "sigma":[0,None]}
 
     def quantile_mapping(self, d, y_scaled):
@@ -28,6 +63,7 @@ class BernoulliGamma(Distribution):
 
     def __init__(self):
         super(BernoulliGamma, self).__init__()
+        self.params = ["mu", "sigma", "pbern"]
         self.parameter_bounds = {"pbern":[0,1], "mu":[0,None], "sigma":[0,None]}
 
     def quantile_mapping(self, d, y_scaled):
