@@ -58,8 +58,10 @@ class estimator(object):
     def estimate_parameters(self, df, lat, lon):
 
         x_fourier = fourier.get_fourier_valid(df, self.modes)
+        x_fourier_01 = (x_fourier + 1) / 2
+        x_fourier_01.columns = ["pos"+col for col in x_fourier_01.columns]
 
-        dff = pd.concat([df, x_fourier], axis=1)
+        dff = pd.concat([df, x_fourier, x_fourier_01], axis=1)
         df_subset = dh.get_subset(dff, self.subset, self.seed)
 
         self.model = self.statmodel.setup(df_subset)

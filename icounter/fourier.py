@@ -9,7 +9,7 @@ def series(t, p, modes):
     x = x * t[:, None]
     x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
     # scale to range [0, 1]
-    x = (x + 1) / 2
+    # x = (x + 1) / 2
     return x
 
 

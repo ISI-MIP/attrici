@@ -326,6 +326,7 @@ class TasCycleRelu(icounter.distributions.Normal):
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
+            posxf0 = pm.Data("posxf0", df_valid.filter(like="posmode_0_").values)
 
             # mu
             # b_mu is in the interval (-inf,inf)
@@ -346,14 +347,15 @@ class TasCycleRelu(icounter.distributions.Normal):
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=1, testval=0)
 
             fourier_coefficients_sigma = pm.Normal(
-                "fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=xf0.dshape[1]
+                "fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=posxf0.dshape[1]
             , testval= 1.)
             # in (-inf, inf)
             lin = pm.Deterministic(
                 "lin",
-                a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
+                a_sigma * gmtv + b_sigma + det_dot(posxf0, fourier_coefficients_sigma),
             )
             sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))  + 1e-30
+            # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
