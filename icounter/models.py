@@ -343,18 +343,19 @@ class TasCycleRelu(icounter.distributions.Normal):
             )
 
             # sigma
-            b_sigma = pm.Normal("b_sigma", mu=1, sigma=1, testval=1.)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1, testval=0)
+            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
 
-            fourier_coefficients_sigma = pm.Normal(
-                "fourier_coefficients_sigma", mu=0.0, sd=1.0, shape=posxf0.dshape[1]
-            , testval= 1.)
+            fourier_coefficients_sigma = pm.Lognormal(
+                "fourier_coefficients_sigma", mu=0.0, sd=0.1, shape=posxf0.dshape[1]
+            )
             # in (-inf, inf)
             lin = pm.Deterministic(
                 "lin",
                 a_sigma * gmtv + b_sigma + det_dot(posxf0, fourier_coefficients_sigma),
             )
-            sigma = pm.Deterministic("sigma", tt.nnet.relu(lin))  + 1e-30
+            alpha = 1e-4
+            sigma = pm.Deterministic("sigma", tt.nnet.elu(lin,alpha)) + 2*alpha
             # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
 
             if not self.test:

@@ -131,6 +131,7 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
+        print(trace["mu"].shape,df.shape)
         trace_for_qm = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar
         )
