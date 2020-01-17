@@ -26,6 +26,12 @@ def get_parser():
                         help="latitude for which to plot the information")
     parser.add_argument("--lon", type=float,
                         help="longitude for which to plot the information")
+    parser.add_argument('--window', type=str, default='1a',
+                        help="from ['1a', '1m', '1d']")
+    parser.add_argument('--start', type=str, default='01-01-1901',
+                        help="date in form dd-mm-yyyy")
+    parser.add_argument('--end', type=str, default='31-12-2011',
+                        help="date in form dd-mm-yyyy")
     return parser
 
 
