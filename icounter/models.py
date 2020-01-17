@@ -325,7 +325,7 @@ class TasCycleRelu(icounter.distributions.Normal):
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
             posxf0 = pm.Data("posxf0", df_valid.filter(like="posmode_0_").values)
 
             # mu

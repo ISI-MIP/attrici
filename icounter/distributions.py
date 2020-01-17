@@ -21,15 +21,25 @@ class Distribution(object):
                 # if input is available in the model
                 input_vars = {
                     "gmt": "gmt_scaled",
-                    "gmtv": "gmt_scaled",
-                    "xf0": "mode_0_",
-                    "xf0v": "mode_0_"
+                    "gmtv": "gmt_scaled"
+                }
+                fourier_vars = {
+                    "xf0": "^mode_0_",
+                    "xf0v": "^mode_0_",
+                    "posxf0": "posmode_0_"
                 }
                 for key, df_key in input_vars.items():
                     try:
                         pm.set_data({key: df[df_key].values})
                         print(f'replaced {key} in model with full data-set')
-                    except KeyError:
+                    except KeyError as e:
+                        pass
+
+                for key, df_key in fourier_vars.items():
+                    try:
+                        pm.set_data({key: df.filter(regex=df_key).values})
+                        print(f'replaced {key} in model with full data-set')
+                    except KeyError as e:
                         pass
 
                 trace_for_qm = pm.sample_posterior_predictive(
