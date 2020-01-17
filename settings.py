@@ -37,7 +37,7 @@ modes = [2, 1, 1, 1]
 inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
-subset = 1  # only use every subset datapoint for bayes estimation for speedup
+subset = 100  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
@@ -59,7 +59,7 @@ source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 # .h5 or .csv
 storage_format = ".h5"
-save_trace = False
+save_trace = True
 
 # model run settings
 tune = 100  # number of draws to tune model
