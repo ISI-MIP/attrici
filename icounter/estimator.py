@@ -10,7 +10,7 @@ import icounter.models as models
 import icounter.fourier as fourier
 
 model_for_var = {
-    "tas": models.TasCycleRelu,
+    "tas": models.TasLogistic,
     "tasrange": models.Rice,
     "tasskew": models.Beta,
     "pr": models.PrecipitationLongterm,
