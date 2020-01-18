@@ -26,6 +26,9 @@ class Distribution(object):
                 fourier_vars = {
                     "xf0": "^mode_0_",
                     "xf0v": "^mode_0_",
+                    "xf1": "^mode_1_",
+                    "xf2": "^mode_2_",
+                    "xf3": "^mode_3_",
                     "posxf0": "posmode_0_"
                 }
                 for key, df_key in input_vars.items():
