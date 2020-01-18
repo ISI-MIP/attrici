@@ -443,6 +443,7 @@ class TasLogisticTrend(icounter.distributions.Normal):
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
             xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
             xf2 = pm.Data("xf2", df_valid.filter(regex="^mode_2_").values)
+            xf3 = pm.Data("xf3", df_valid.filter(regex="^mode_3_").values)
             # mu
             # b_mu is in the interval (-inf,inf)
             b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
@@ -464,11 +465,14 @@ class TasLogisticTrend(icounter.distributions.Normal):
             b_sigma = pm.Lognormal("b_sigma", mu=0.0, sigma=1.0)
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=1.0)
 
-            fourier_coeffs_sigma = pm.Lognormal(
-                "fourier_coeffs_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1]
+            fc_sigma = pm.Lognormal(
+                "fc_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1]
+            )
+            fctrend_sigma = pm.Normal(
+                "fctrend_sigma", mu=0.0, sd=1.0, shape=xf3.dshape[1]
             )
             # in (-inf, inf)
-            logistic = b_sigma/(1+tt.exp(-1.0*(a_sigma*gmtv + det_dot(xf2, fourier_coeffs_sigma))))
+            logistic = b_sigma/(1+tt.exp(-1.0*(a_sigma*gmtv + det_dot(xf2, fc_sigma) + gmtv*det_dot(xf3, fctrend_sigma))  ))
 
             sigma = pm.Deterministic("sigma", logistic)
             # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
