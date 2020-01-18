@@ -59,7 +59,7 @@ class estimator(object):
 
         x_fourier = fourier.get_fourier_valid(df, self.modes)
         x_fourier_01 = (x_fourier + 1) / 2
-        x_fourier_01.columns = ["pos"+col for col in x_fourier_01.columns]
+        x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
 
         dff = pd.concat([df, x_fourier, x_fourier_01], axis=1)
         df_subset = dh.get_subset(dff, self.subset, self.seed)
@@ -131,7 +131,7 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-        print(trace["mu"].shape,df.shape)
+        print(trace["mu"].shape, df.shape)
         trace_for_qm = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar
         )

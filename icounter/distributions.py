@@ -13,35 +13,35 @@ class Distribution(object):
         if trace[self.params[0]].shape[1] < df.shape[0]:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
-                "Trace length:", trace[self.params[0]].shape[1], "Dataframe length", df.shape[0]
+                "Trace length:",
+                trace[self.params[0]].shape[1],
+                "Dataframe length",
+                df.shape[0],
             )
 
             with model:
                 # use all data for the model specific data-inputs
                 # if input is available in the model
-                input_vars = {
-                    "gmt": "gmt_scaled",
-                    "gmtv": "gmt_scaled"
-                }
+                input_vars = {"gmt": "gmt_scaled", "gmtv": "gmt_scaled"}
                 fourier_vars = {
                     "xf0": "^mode_0_",
                     "xf0v": "^mode_0_",
                     "xf1": "^mode_1_",
                     "xf2": "^mode_2_",
                     "xf3": "^mode_3_",
-                    "posxf0": "posmode_0_"
+                    "posxf0": "posmode_0_",
                 }
                 for key, df_key in input_vars.items():
                     try:
                         pm.set_data({key: df[df_key].values})
-                        print(f'replaced {key} in model with full data-set')
+                        print(f"replaced {key} in model with full data-set")
                     except KeyError as e:
                         pass
 
                 for key, df_key in fourier_vars.items():
                     try:
                         pm.set_data({key: df.filter(regex=df_key).values})
-                        print(f'replaced {key} in model with full data-set')
+                        print(f"replaced {key} in model with full data-set")
                     except KeyError as e:
                         pass
 
@@ -55,7 +55,6 @@ class Distribution(object):
 
 
 class Normal(Distribution):
-
     def __init__(self):
         super(Normal, self).__init__()
         self.params = ["mu", "sigma"]

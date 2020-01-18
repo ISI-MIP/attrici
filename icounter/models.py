@@ -100,9 +100,9 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
 
             # pbern
             # b_pbern = pm.Normal("pbern_b", mu=0, sigma=1)
-            b_pbern = pm.Normal("pbern_b", mu=0.5, sigma=.2)
-            #b_pbern = pm.Beta("pbern_b", alpha=2, beta=2)
-            a_pbern = pm.Normal("pbern_a", mu=0, sigma=.2, testval=0)
+            b_pbern = pm.Normal("pbern_b", mu=0.5, sigma=0.2)
+            # b_pbern = pm.Beta("pbern_b", alpha=2, beta=2)
+            a_pbern = pm.Normal("pbern_a", mu=0, sigma=0.2, testval=0)
             # pbern is a linear model of gmt
             pbern_linear = pm.Deterministic("pbern_linear", a_pbern * gmt + b_pbern)
             # todo check if cutoff is ok
@@ -111,13 +111,13 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
             # pbern = pm.Beta("pbern", alpha=2, beta=2)
 
             # mu
-            b_mu = pm.Normal("mu_b", mu=1, sigma=.5, testval=1.)
-            a_mu = pm.Normal("mu_a", mu=0, sigma=.5, testval=0)
+            b_mu = pm.Normal("mu_b", mu=1, sigma=0.5, testval=1.0)
+            a_mu = pm.Normal("mu_a", mu=0, sigma=0.5, testval=0)
             mu_linear = pm.Deterministic("mu_linear", a_mu * gmtv + b_mu)
             mu = pm.Deterministic("mu", tt.nnet.relu(mu_linear) + 1e-30)
 
             # sigma
-            b_sigma = pm.Normal("sigma_b", mu=1, sigma=.5, testval=1.)
+            b_sigma = pm.Normal("sigma_b", mu=1, sigma=0.5, testval=1.0)
             a_sigma = pm.Normal("sigma_a", mu=0, sigma=1, testval=0)
             sigma_linear = pm.Deterministic("sigma_linear", a_sigma * gmtv + b_sigma)
             sigma = pm.Deterministic("sigma", tt.nnet.relu(sigma_linear) + 1e-30)
@@ -129,6 +129,7 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
                 pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
+
 
 # class PrecipitationLongtermYearlycycle(icounter.distributions.BernoulliGamma):
 #     def __init__(self, modes):
@@ -343,7 +344,7 @@ class TasCycleRelu(icounter.distributions.Normal):
             )
 
             # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.)
+            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
 
             fourier_coefficients_sigma = pm.Lognormal(
@@ -355,7 +356,7 @@ class TasCycleRelu(icounter.distributions.Normal):
                 a_sigma * gmtv + b_sigma + det_dot(posxf0, fourier_coefficients_sigma),
             )
             alpha = 1e-4
-            sigma = pm.Deterministic("sigma", tt.nnet.elu(lin,alpha)) + 2*alpha
+            sigma = pm.Deterministic("sigma", tt.nnet.elu(lin, alpha)) + 2 * alpha
             # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
 
             if not self.test:
@@ -409,7 +410,9 @@ class TasLogistic(icounter.distributions.Normal):
                 "fourier_coeffs_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1]
             )
             # in (-inf, inf)
-            logistic = b_sigma/(1+tt.exp(-1.0*(a_sigma*gmtv + det_dot(xf2, fourier_coeffs_sigma))))
+            logistic = b_sigma / (
+                1 + tt.exp(-1.0 * (a_sigma * gmtv + det_dot(xf2, fourier_coeffs_sigma)))
+            )
 
             sigma = pm.Deterministic("sigma", logistic)
             # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
@@ -450,29 +453,37 @@ class TasLogisticTrend(icounter.distributions.Normal):
             # a_mu in (-inf, inf)
             a_mu = pm.Normal("a_mu", mu=0, sigma=1)
 
-            fc_mu = pm.Normal(
-                "fc_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1]
-            )
-            fctrend_mu = pm.Normal(
-                "fctrend_mu", mu=0.0, sd=1.0, shape=xf1.dshape[1]
-            )
+            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
+            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=1.0, shape=xf1.dshape[1])
             # in (-inf, inf)
             mu = pm.Deterministic(
-                "mu", a_mu * gmtv + b_mu + det_dot(xf0, fc_mu) + gmtv*det_dot(xf1, fctrend_mu)
+                "mu",
+                a_mu * gmtv
+                + b_mu
+                + det_dot(xf0, fc_mu)
+                + gmtv * det_dot(xf1, fctrend_mu),
             )
 
             # sigma
             b_sigma = pm.Lognormal("b_sigma", mu=0.0, sigma=1.0)
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=1.0)
 
-            fc_sigma = pm.Lognormal(
-                "fc_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1]
-            )
+            fc_sigma = pm.Lognormal("fc_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1])
             fctrend_sigma = pm.Normal(
                 "fctrend_sigma", mu=0.0, sd=1.0, shape=xf3.dshape[1]
             )
             # in (-inf, inf)
-            logistic = b_sigma/(1+tt.exp(-1.0*(a_sigma*gmtv + det_dot(xf2, fc_sigma) + gmtv*det_dot(xf3, fctrend_sigma))  ))
+            logistic = b_sigma / (
+                1
+                + tt.exp(
+                    -1.0
+                    * (
+                        a_sigma * gmtv
+                        + det_dot(xf2, fc_sigma)
+                        + gmtv * det_dot(xf3, fctrend_sigma)
+                    )
+                )
+            )
 
             sigma = pm.Deterministic("sigma", logistic)
             # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
