@@ -567,7 +567,7 @@ class Tasskew(icounter.distributions.Beta):
             xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
 
             # alpha
-            b_alpha = pm.Lognormal("b_alpha", mu=0.0, sigma=1.0)
+            b_alpha = pm.Lognormal("b_alpha", mu=1.0, sigma=1.5)
             a_alpha = pm.Normal("a_alpha", mu=0, sigma=1.0)
 
             fc_alpha = pm.Normal("fc_alpha", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
@@ -589,7 +589,8 @@ class Tasskew(icounter.distributions.Beta):
 
             alpha = pm.Deterministic("alpha", logistic)
 
-            beta = pm.HalfCauchy("beta", 0.5, testval=1)
+            # beta = pm.HalfCauchy("beta", 0.5, testval=1)
+            beta = pm.Lognormal("beta", mu=1.0, sigma=1.5)
 
             if not self.test:
                 pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])

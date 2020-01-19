@@ -37,7 +37,7 @@ modes = [1, 1, 1, 1]
 inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
