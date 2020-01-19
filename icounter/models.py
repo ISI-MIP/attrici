@@ -621,7 +621,8 @@ class Tasrange(icounter.distributions.Rice):
             xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
 
             # nu
-            b_nu = pm.Lognormal("b_nu", mu=1.0, sigma=1.5)
+            # b_nu = pm.Lognormal("b_nu", mu=0.0, sigma=1)
+            b_nu = pm.HalfCauchy("b_nu", 0.1, testval=1)
             a_nu = pm.Normal("a_nu", mu=0, sigma=1.0)
 
             fc_nu = pm.Normal("fc_nu", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
@@ -642,8 +643,7 @@ class Tasrange(icounter.distributions.Rice):
             )
 
             nu = pm.Deterministic("nu", logistic)
-
-            sigma = pm.Lognormal("sigma", mu=1.0, sigma=1.5)
+            sigma = pm.HalfCauchy("sigma", 0.1, testval=1)
 
             if not self.test:
                 pm.Rice("obs", nu=nu, sigma=sigma, observed=df_valid["y_scaled"])
