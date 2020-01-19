@@ -154,7 +154,20 @@ class BernoulliGamma(Distribution):
 
 class Beta(Distribution):
 
-    pass
+    def __init__(self):
+
+        super(Beta, self).__init__()
+        self.params = ["alha", "beta"]
+        self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
+
+
+    def quantile_mapping(self, d, y_scaled):
+
+        quantile = stats.beta.cdf(y_scaled, d["alpha"], d["beta"])
+        x_mapped = stats.beta.ppf(quantile, d["alpha_ref"], d["beta_ref"])
+
+        return x_mapped
+
 
 
 class Rice(Distribution):
