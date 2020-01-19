@@ -565,8 +565,6 @@ class Tasskew(icounter.distributions.Beta):
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
             xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-            # xf2 = pm.Data("xf2", df_valid.filter(regex="^mode_2_").values)
-            # xf3 = pm.Data("xf3", df_valid.filter(regex="^mode_3_").values)
 
             # alpha
             b_alpha = pm.Lognormal("b_alpha", mu=0.0, sigma=1.0)

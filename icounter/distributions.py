@@ -157,7 +157,7 @@ class Beta(Distribution):
     def __init__(self):
 
         super(Beta, self).__init__()
-        self.params = ["alha", "beta"]
+        self.params = ["alpha", "beta"]
         self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
 
 

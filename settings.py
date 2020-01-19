@@ -24,7 +24,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "tas"  # select variable to detrend
+variable = "tasskew"  # select variable to detrend
 # out of full, longterm_yearlycycle, yearlycycle, longterm
 mu_model = "longterm"
 sigma_model = "longterm"
@@ -32,17 +32,17 @@ sigma_model = "longterm"
 bernoulli_model = "longterm"
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
-modes = [2, 2, 1, 1]
+modes = [1, 1, 1, 1]
 # NUTS or ADVI
 inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
-subset = 1  # only use every subset datapoint for bayes estimation for speedup
+subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 20
+lateral_sub = 80
 
 dataset = "GSWP3"  # select dataset to run on
 

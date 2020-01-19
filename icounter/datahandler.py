@@ -100,16 +100,15 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
-def create_ref_df(df, trace_for_qm, ref_period, scale_variability, is_precip=False):
+def create_ref_df(df, trace_for_qm, ref_period, scale_variability, params):
 
     df_params = pd.DataFrame(index=df.index)
 
-    # print(trace_for_qm["mu"])
-    # todo are those parameters correct for all the other Distributions?
-    df_params.loc[:, "mu"] = trace_for_qm["mu"].mean(axis=0)
-    df_params.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
-    if is_precip:
-        df_params.loc[:, "pbern"] = trace_for_qm["pbern"].mean(axis=0)
+    for p in params:
+        df_params.loc[:, p] = trace_for_qm[p].mean(axis=0)
+    # df_params.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
+    # if is_precip:
+    #     df_params.loc[:, "pbern"] = trace_for_qm["pbern"].mean(axis=0)
 
     df_params.index = df["ds"]
 
@@ -118,22 +117,22 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability, is_precip=Fal
     df_params_ref = df_params_ref.groupby(df_params_ref.index.dayofyear).mean()
 
     # case of not scaling variability
-    df_params.loc[:, "sigma_ref"] = df_params["sigma"]
+    # df_params.loc[:, "sigma_ref"] = df_params["sigma"]
     # write the average values for the reference period to each day of the
     # whole timeseries
     for day in df_params_ref.index:
-        df_params.loc[df_params.index.dayofyear == day, "mu_ref"] = df_params_ref.loc[
-            day, "mu"
-        ]
-        if is_precip:
-            df_params.loc[
-                df_params.index.dayofyear == day, "pbern_ref"
-            ] = df_params_ref.loc[day, "pbern"]
-        # case of scaling sigma
-        if scale_variability:
-            df_params.loc[
-                df_params.index.dayofyear == day, "sigma_ref"
-            ] = df_params_ref.loc[day, "sigma"]
+        for p in params:
+            df_params.loc[df_params.index.dayofyear == day, p+"_ref"] = df_params_ref.loc[
+            day, p ]
+        # if is_precip:
+        #     df_params.loc[
+        #         df_params.index.dayofyear == day, "pbern_ref"
+        #     ] = df_params_ref.loc[day, "pbern"]
+        # # case of scaling sigma
+        # if scale_variability:
+        #     df_params.loc[
+        #         df_params.index.dayofyear == day, "sigma_ref"
+        #     ] = df_params_ref.loc[day, "sigma"]
 
     return df_params
 

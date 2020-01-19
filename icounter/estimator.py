@@ -131,7 +131,7 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-        print(trace["mu"].shape, df.shape)
+        # print(trace["mu"].shape, df.shape)
         trace_for_qm = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar
         )
@@ -166,9 +166,9 @@ class estimator(object):
         #             progressbar=self.progressbar,
         #         )
 
-        is_precip = self.variable == "pr"
+        # is_precip = self.variable == "pr"
         df_mu_sigma = dh.create_ref_df(
-            df, trace_for_qm, self.qm_ref_period, self.scale_variability, is_precip
+            df, trace_for_qm, self.qm_ref_period, self.scale_variability, self.statmodel.params
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
