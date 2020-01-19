@@ -172,7 +172,23 @@ class Beta(Distribution):
 
 class Rice(Distribution):
 
-    pass
+    def __init__(self):
+
+        super(Rice, self).__init__()
+        self.params = ["nu", "sigma"]
+        self.parameter_bounds = {"nu": [0, None], "sigma": [0, None]}
+
+
+    def quantile_mapping(self, d, y_scaled):
+
+        quantile = stats.rice.cdf(y_scaled, b=d["nu"] / d["sigma"], scale=d["sigma"])
+        x_mapped = stats.rice.ppf(
+            quantile, b=d["nu_ref"] / d["sigma_ref"], scale=d["sigma_ref"]
+        )
+
+        return x_mapped
+
+
 
 
 class Weibull(Distribution):

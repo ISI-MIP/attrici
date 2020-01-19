@@ -597,6 +597,60 @@ class Tasskew(icounter.distributions.Beta):
 
         return model
 
+class Tasrange(icounter.distributions.Rice):
+
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Beta distribution.
+    """
+
+    def __init__(self, modes):
+        super(Tasrange, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # nu
+            b_nu = pm.Lognormal("b_nu", mu=1.0, sigma=1.5)
+            a_nu = pm.Normal("a_nu", mu=0, sigma=1.0)
+
+            fc_nu = pm.Normal("fc_nu", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
+            fctrend_nu = pm.Normal(
+                "fctrend_nu", mu=0.0, sigma=1.0, shape=xf1.dshape[1]
+            )
+            # in (-inf, inf)
+            logistic = b_nu / (
+                1
+                + tt.exp(
+                    -1.0
+                    * (
+                        a_nu * gmtv
+                        + det_dot(xf0, fc_nu)
+                        + gmtv * det_dot(xf1, fctrend_nu)
+                    )
+                )
+            )
+
+            nu = pm.Deterministic("nu", logistic)
+
+            sigma = pm.Lognormal("sigma", mu=1.0, sigma=1.5)
+
+            if not self.test:
+                pm.Rice("obs", nu=nu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
 
 class Beta(object):
 
