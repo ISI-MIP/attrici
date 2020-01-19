@@ -423,6 +423,55 @@ class TasLogistic(icounter.distributions.Normal):
         return model
 
 
+class TasCauchySigmaPrior(icounter.distributions.Normal):
+
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Normal distribution.
+    """
+
+    def __init__(self, modes):
+        super(TasCauchySigmaPrior, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # mu
+            # b_mu is in the interval (-inf,inf)
+            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
+            # a_mu in (-inf, inf)
+            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
+
+            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
+            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
+
+            # in (-inf, inf)
+            mu = pm.Deterministic(
+                "mu",
+                a_mu * gmtv
+                + b_mu
+                + det_dot(xf0, fc_mu)
+                + gmtv * det_dot(xf1, fctrend_mu),
+            )
+
+            sigma = pm.HalfCauchy("sigma", 0.5, testval=1)
+
+            if not self.test:
+                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
 class TasLogisticTrend(icounter.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of

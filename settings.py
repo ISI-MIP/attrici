@@ -32,7 +32,7 @@ sigma_model = "longterm"
 bernoulli_model = "longterm"
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
-modes = [1, 1, 1, 1]
+modes = [2, 2, 1, 1]
 # NUTS or ADVI
 inference = "NUTS"
 
