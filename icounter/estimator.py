@@ -168,7 +168,11 @@ class estimator(object):
 
         # is_precip = self.variable == "pr"
         df_mu_sigma = dh.create_ref_df(
-            df, trace_for_qm, self.qm_ref_period, self.scale_variability, self.statmodel.params
+            df,
+            trace_for_qm,
+            self.qm_ref_period,
+            self.scale_variability,
+            self.statmodel.params,
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])

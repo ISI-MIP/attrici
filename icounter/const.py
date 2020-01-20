@@ -30,6 +30,7 @@ bound = {
 
 # for rsds, the global maximum is 500
 
+
 def check_bounds(data, variable):
 
     lower = bound[variable][0]

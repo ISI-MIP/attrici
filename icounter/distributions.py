@@ -155,13 +155,11 @@ class BernoulliGamma(Distribution):
 
 
 class Beta(Distribution):
-
     def __init__(self):
 
         super(Beta, self).__init__()
         self.params = ["alpha", "beta"]
         self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
-
 
     def quantile_mapping(self, d, y_scaled):
 
@@ -171,15 +169,12 @@ class Beta(Distribution):
         return x_mapped
 
 
-
 class Rice(Distribution):
-
     def __init__(self):
 
         super(Rice, self).__init__()
         self.params = ["nu", "sigma"]
         self.parameter_bounds = {"nu": [0, None], "sigma": [0, None]}
-
 
     def quantile_mapping(self, d, y_scaled):
 
@@ -191,9 +186,7 @@ class Rice(Distribution):
         return x_mapped
 
 
-
 class Weibull(Distribution):
-
     def __init__(self):
 
         super(Weibull, self).__init__()
@@ -201,12 +194,9 @@ class Weibull(Distribution):
         self.params = ["beta", "alpha"]
         self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
 
-
     def quantile_mapping(self, d, y_scaled):
 
         quantile = stats.weibull_min.cdf(y_scaled, d["alpha"], scale=d["beta"])
-        x_mapped = stats.weibull_min.ppf(
-            quantile, d["alpha_ref"], scale=d["beta_ref"])
+        x_mapped = stats.weibull_min.ppf(quantile, d["alpha_ref"], scale=d["beta_ref"])
 
         return x_mapped
-
