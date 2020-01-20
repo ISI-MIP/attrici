@@ -10,6 +10,8 @@ class Distribution(object):
 
     def resample_missing(self, trace, df, subtrace, model, progressbar):
         trace_for_qm = trace[-subtrace:]
+        # FIXME: this breaks if first parameter does not have time dimension
+        # but second parameter has. It therefore requires an order in self.params
         if trace[self.params[0]].shape[1] < df.shape[0]:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
@@ -190,7 +192,21 @@ class Rice(Distribution):
 
 
 
-
 class Weibull(Distribution):
 
-    pass
+    def __init__(self):
+
+        super(Weibull, self).__init__()
+        # ensure that parameter with time dimension is first
+        self.params = ["beta", "alpha"]
+        self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
+
+
+    def quantile_mapping(self, d, y_scaled):
+
+        quantile = stats.weibull_min.cdf(y_scaled, d["alpha"], scale=d["beta"])
+        x_mapped = stats.weibull_min.ppf(
+            quantile, d["alpha_ref"], scale=d["beta_ref"])
+
+        return x_mapped
+

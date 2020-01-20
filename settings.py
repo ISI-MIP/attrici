@@ -24,7 +24,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "hurs"  # select variable to detrend
+variable = "wind"  # select variable to detrend
 # out of full, longterm_yearlycycle, yearlycycle, longterm
 mu_model = "longterm"
 sigma_model = "longterm"
