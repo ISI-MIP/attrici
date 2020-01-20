@@ -23,11 +23,12 @@ bound = {
     "prsnratio": (0.0, 1.0),
     "hurs": (0, 100.0),
     "ps": (0, None),
-    "rsds": (0, None),
+    "rsds": (0, 501),
     "rlds": (0, None),
     "wind": (0.0, None),
 }
 
+# for rsds, the global maximum is 500
 
 def check_bounds(data, variable):
 
@@ -128,7 +129,7 @@ mask_and_scale = {
     "tas": [scale_to_unity, rescale_to_original],
     "ps": [scale_to_unity, rescale_to_original],
     "rlds": [scale_to_unity, rescale_to_original],
-    "rsds": [scale_to_unity, rescale_to_original],
+    "rsds": [mask_and_scale_by_bounds, refill_and_rescale],
     "wind": [scale_and_mask, refill_and_rescale],
     "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],

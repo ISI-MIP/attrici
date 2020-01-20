@@ -18,7 +18,7 @@ model_for_var = {
     "hurs": models.Hurs,
     "wind": models.Weibull,
     "ps": models.Ps,
-    # "rsds": models.Normal,
+    "rsds": models.Rsds,
     "rlds": models.Rlds,
 }
 
