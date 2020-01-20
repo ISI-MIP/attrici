@@ -798,6 +798,60 @@ class Tasrange(icounter.distributions.Rice):
         return model
 
 
+class Wind(icounter.distributions.Weibull):
+
+    """ Influence of GMT is modelled through a shift of
+    the scale parameter beta in the Weibull distribution. The shape
+    parameter alpha is assumed free of a trend.
+
+    """
+
+    def __init__(self, modes):
+        super(Wind, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            b_beta = pm.HalfCauchy("b_beta", 0.1, testval=1)
+            a_beta = pm.Normal("a_beta", mu=0, sigma=0.1)
+
+            fc_beta = pm.Normal("fc_beta", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
+            fctrend_beta = pm.Normal(
+                "fctrend_beta", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
+            )
+            # in (-inf, inf)
+            logistic = b_beta / (
+                1
+                + tt.exp(
+                    -1.0
+                    * (
+                        a_beta * gmtv
+                        + det_dot(xf0, fc_beta)
+                        + gmtv * det_dot(xf1, fctrend_beta)
+                    )
+                )
+            )
+
+            beta = pm.Deterministic("beta", logistic)
+            alpha = pm.HalfCauchy("alpha", 0.1, testval=1)
+
+            if not self.test:
+                pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
+
+        return model
+
+
 
 class Beta(object):
 
