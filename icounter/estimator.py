@@ -17,7 +17,7 @@ model_for_var = {
     "prsnratio": models.Beta,
     "hurs": models.Beta,
     "wind": models.Weibull,
-    # "ps": models.Normal,
+    "ps": models.Ps,
     # "rsds": models.Normal,
     "rlds": models.Rlds,
 }
