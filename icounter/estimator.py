@@ -15,7 +15,7 @@ model_for_var = {
     "tasskew": models.Tasskew,
     "pr": models.PrecipitationLongterm,
     "prsnratio": models.Beta,
-    "hurs": models.Beta,
+    "hurs": models.Hurs,
     "wind": models.Weibull,
     "ps": models.Ps,
     # "rsds": models.Normal,
