@@ -10,7 +10,8 @@ class Distribution(object):
 
     def resample_missing(self, trace, df, subtrace, model, progressbar):
         trace_for_qm = trace[-subtrace:]
-        print(trace_for_qm.varnames)
+        # FIXME: this breaks if first parameter does not have time dimension
+        # but second parameter has. It therefore requires an order in self.params
         if trace[self.params[0]].shape[1] < df.shape[0]:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
@@ -196,7 +197,8 @@ class Weibull(Distribution):
     def __init__(self):
 
         super(Weibull, self).__init__()
-        self.params = ["alpha", "beta"]
+        # ensure that parameter with time dimension is first
+        self.params = ["beta", "alpha"]
         self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
 
 
