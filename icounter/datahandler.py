@@ -122,8 +122,9 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability, params):
     # whole timeseries
     for day in df_params_ref.index:
         for p in params:
-            df_params.loc[df_params.index.dayofyear == day, p+"_ref"] = df_params_ref.loc[
-            day, p ]
+            df_params.loc[
+                df_params.index.dayofyear == day, p + "_ref"
+            ] = df_params_ref.loc[day, p]
         # if is_precip:
         #     df_params.loc[
         #         df_params.index.dayofyear == day, "pbern_ref"

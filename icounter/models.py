@@ -775,15 +775,15 @@ class Rsds(icounter.distributions.Beta):
             )
             # in (-inf, inf)
             logistic = b_alpha / (
-                    1
-                    + tt.exp(
-                -1.0
-                * (
+                1
+                + tt.exp(
+                    -1.0
+                    * (
                         a_alpha * gmtv
                         + det_dot(xf0, fc_alpha)
                         + gmtv * det_dot(xf1, fctrend_alpha)
+                    )
                 )
-            )
             )
 
             alpha = pm.Deterministic("alpha", logistic)
@@ -798,15 +798,15 @@ class Rsds(icounter.distributions.Beta):
             )
             # in (-inf, inf)
             logistic = b_beta / (
-                    1
-                    + tt.exp(
-                -1.0
-                * (
+                1
+                + tt.exp(
+                    -1.0
+                    * (
                         a_beta * gmtv
                         + det_dot(xf0, fc_beta)
                         + gmtv * det_dot(xf1, fctrend_beta)
+                    )
                 )
-            )
             )
 
             beta = pm.Deterministic("beta", logistic)
@@ -923,9 +923,7 @@ class Tasrange(icounter.distributions.Rice):
             a_nu = pm.Normal("a_nu", mu=0, sigma=0.1)
 
             fc_nu = pm.Normal("fc_nu", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            fctrend_nu = pm.Normal(
-                "fctrend_nu", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
-            )
+            fctrend_nu = pm.Normal("fctrend_nu", mu=0.0, sigma=0.1, shape=xf1.dshape[1])
             # in (-inf, inf)
             logistic = b_nu / (
                 1
@@ -1000,7 +998,6 @@ class Wind(icounter.distributions.Weibull):
                 pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
 
         return model
-
 
 
 class Beta(object):
