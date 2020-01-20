@@ -19,7 +19,7 @@ model_for_var = {
     "wind": models.Weibull,
     # "ps": models.Normal,
     # "rsds": models.Normal,
-    # "rlds": models.Normal,
+    "rlds": models.Rlds,
 }
 
 

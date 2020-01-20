@@ -12,8 +12,8 @@ import settings as s
 
 print("Version", icounter.__version__)
 
-lon = 130.25
-lat = 59.75
+lon = -69.75
+lat = 49.75
 
 submitted = False
 njobarray = 1

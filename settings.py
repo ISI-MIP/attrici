@@ -37,12 +37,12 @@ modes = [1, 1, 1, 1]
 inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
+subset = 5  # only use every subset datapoint for bayes estimation for speedup
 # use the estimated variability in qm
 scale_variability = True
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 80
+lateral_sub = 20
 
 dataset = "GSWP3"  # select dataset to run on
 

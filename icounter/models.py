@@ -426,7 +426,7 @@ class TasLogistic(icounter.distributions.Normal):
 class TasCauchySigmaPrior(icounter.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
+    mu parameter in the Normal distribution.
     """
 
     def __init__(self, modes):
@@ -470,6 +470,8 @@ class TasCauchySigmaPrior(icounter.distributions.Normal):
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
 
         return model
+
+
 
 
 class TasLogisticTrend(icounter.distributions.Normal):
@@ -623,11 +625,11 @@ class Tasrange(icounter.distributions.Rice):
             # nu
             # b_nu = pm.Lognormal("b_nu", mu=0.0, sigma=1)
             b_nu = pm.HalfCauchy("b_nu", 0.1, testval=1)
-            a_nu = pm.Normal("a_nu", mu=0, sigma=1.0)
+            a_nu = pm.Normal("a_nu", mu=0, sigma=0.1)
 
             fc_nu = pm.Normal("fc_nu", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
             fctrend_nu = pm.Normal(
-                "fctrend_nu", mu=0.0, sigma=1.0, shape=xf1.dshape[1]
+                "fctrend_nu", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
             )
             # in (-inf, inf)
             logistic = b_nu / (
