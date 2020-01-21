@@ -85,6 +85,21 @@ def plot_scaled_timeseries(runid, data_dir, variable,
                     for pct in [0.05, 0.5, 0.95]:
                         df[f'{int(pct * 100)}pct'] = stats.rice.ppf(pct, b=b, scale=scale)
                         df[f'{int(pct * 100)}pct_ref'] = stats.rice.ppf(pct, b=b_ref, scale=scale_ref)
+                elif distribution == 'Normal':
+                    # calculate percentiles
+                    for pct in [0.05, 0.5, 0.95]:
+                        df[f'{int(pct * 100)}pct'] = stats.norm.ppf(pct, loc=df["mu"], scale=df["sigma"])
+                        df[f'{int(pct * 100)}pct_ref'] = stats.norm.ppf(pct, loc=df["mu_ref"], scale=df["sigma_ref"])
+                elif distribution == 'Beta':
+                    # calculate percentiles
+                    for pct in [0.05, 0.5, 0.95]:
+                        df[f'{int(pct * 100)}pct'] = stats.beta.ppf(pct, loc=df["alpha"], scale=df["beta"])
+                        df[f'{int(pct * 100)}pct_ref'] = stats.beta.ppf(pct, loc=df["alpha_ref"], scale=df["beta_ref"])
+                elif distribution == 'Weibull':
+                    # calculate percentiles
+                    for pct in [0.05, 0.5, 0.95]:
+                        df[f'{int(pct * 100)}pct'] = stats.weibull_min.ppf(pct, loc=df["alpha"], scale=df["beta"])
+                        df[f'{int(pct * 100)}pct_ref'] = stats.weibull_min.ppf(pct, loc=df["alpha_ref"], scale=df["beta_ref"])
                 else:
                     raise NotImplemented(f'Plotting for the {distribution}-Distribution is not implemented.')
 
