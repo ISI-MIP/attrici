@@ -570,7 +570,7 @@ class Ps(icounter.distributions.Normal):
         return model
 
 
-class Hurs(icounter.distributions.Normal):
+class Hurs(icounter.distributions.Beta):
 
     """ Influence of GMT on relative humidity (hurs) is modelled through a shift of
     mu parameter in the Normal distribution.
@@ -593,28 +593,34 @@ class Hurs(icounter.distributions.Normal):
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
             xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
 
-            # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
+            # alpha
+            b_alpha = pm.Lognormal("b_alpha", mu=1.0, sigma=1.5)
+            a_alpha = pm.Normal("a_alpha", mu=0, sigma=1.0)
 
-            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
-            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
-
+            fc_alpha = pm.Normal("fc_alpha", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
+            fctrend_alpha = pm.Normal(
+                "fctrend_alpha", mu=0.0, sigma=1.0, shape=xf1.dshape[1]
+            )
             # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv
-                + b_mu
-                + det_dot(xf0, fc_mu)
-                + gmtv * det_dot(xf1, fctrend_mu),
+            logistic = b_alpha / (
+                1
+                + tt.exp(
+                    -1.0
+                    * (
+                        a_alpha * gmtv
+                        + det_dot(xf0, fc_alpha)
+                        + gmtv * det_dot(xf1, fctrend_alpha)
+                    )
+                )
             )
 
-            sigma = pm.HalfCauchy("sigma", 0.5, testval=1)
+            alpha = pm.Deterministic("alpha", logistic)
+
+            # beta = pm.HalfCauchy("beta", 0.5, testval=1)
+            beta = pm.Lognormal("beta", mu=1.0, sigma=1.5)
 
             if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+                pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
 
         return model
 
