@@ -10,7 +10,8 @@ import icounter.estimator as est
 
 def plot_scaled_timeseries(runid, data_dir, variable,
                            lat, lon, window='1a', start='01-01-1900', end='31-12-2011',
-                           save_fig=False, test_day=None):
+                           save_fig=False, test_day=None,
+                           cfact=False):
     """
     For mode = dry_days:        Plots timeseries of the observed and counterfactual dry_day freq.
                                 From the hd5 timeseries files, as well as the modeled Bernoulli parameter.
@@ -99,31 +100,44 @@ def plot_scaled_timeseries(runid, data_dir, variable,
                     # calculate percentiles
                     for pct in [0.05, 0.5, 0.95]:
                         df[f'{int(pct * 100)}pct'] = stats.weibull_min.ppf(pct, loc=df["alpha"], scale=df["beta"])
-                        df[f'{int(pct * 100)}pct_ref'] = stats.weibull_min.ppf(pct, loc=df["alpha_ref"], scale=df["beta_ref"])
+                        df[f'{int(pct * 100)}pct_ref'] = stats.weibull_min.ppf(pct, loc=df["alpha_ref"],
+                                                                               scale=df["beta_ref"])
                 else:
                     raise NotImplemented(f'Plotting for the {distribution}-Distribution is not implemented.')
 
+                df_plot_frame = df[start: end]
+
                 if test_day is None:
                     df_plot_frame = df.resample(window).mean()[start: end]
-                    plt.plot(df_plot_frame['50pct'], label=f'50th pct', alpha=0.9, color='red')
-                    plt.plot(df_plot_frame['y_scaled'], label=f'observed {variable}', alpha=0.5)
-
-                    if window == '1d':
-                        plt.fill_between(df_plot_frame.index, df_plot_frame['5pct'],
-                                         df_plot_frame['95pct'], alpha=0.2, interpolate=True, color='black')
-                    else:
-                        plt.plot(df_plot_frame['5pct'], label=f'5th pct', alpha=0.5)
-                        plt.plot(df_plot_frame['95pct'], label=f'95th pct', alpha=0.5)
-
                 else:
-                    df_plot_frame = df[start: end]
                     day, month = test_day.split('-')
                     df_plot_frame = df_plot_frame.loc[(df_plot_frame.index.day == int(day)) &
                                                       (df_plot_frame.index.month == int(month))]
-                    plt.fill_between(df_plot_frame.index, df_plot_frame['5pct'],
-                                     df_plot_frame['95pct'], alpha=0.2, interpolate=True, color='black')
-                    plt.plot(df_plot_frame['50pct'], label=f'50th pct', alpha=0.9, color='red')
-                    plt.plot(df_plot_frame['y_scaled'], label=f'observed {variable}', alpha=0.5)
+
+                if window == '1d':
+                    if not cfact:
+                        plt.fill_between(df_plot_frame.index, df_plot_frame['5pct'],
+                                         df_plot_frame['95pct'], alpha=0.2, interpolate=True, color='black')
+
+                # else:
+                # plt.plot(df_plot_frame['5pct'], label=f'5th pct', alpha=0.5, color='gray')
+                # plt.plot(df_plot_frame['95pct'], label=f'95th pct', alpha=0.5, color='gray')
+                # if cfact:
+                #    plt.plot(df_plot_frame['5pct_ref'], label=f'5th pct ref', alpha=0.5, color='gray', linestyle=':')
+                #    plt.plot(df_plot_frame['95pct_ref'], label=f'95th pct ref', alpha=0.5, color='gray', linestyle=':')
+
+                plt.plot(df_plot_frame['y_scaled'], label=f'observed {variable}', alpha=0.5)
+                plt.plot(df_plot_frame['50pct'], label=f'50th pct', alpha=0.9, color='red')
+                if cfact:
+                    plt.plot(df_plot_frame['cfact_scaled'], label=f'cfact {variable}', alpha=0.5)
+                    plt.plot(df_plot_frame['50pct_ref'], label=f'50th pct ref', alpha=0.9, color='red', linestyle=':')
+
+            plt.legend()
+            fig.suptitle(file.stem)
+            if save_fig:
+                plt.savefig(figure_dir / f'{file.stem}.png', dpi=80)
+            else:
+                plt.show()
 
             plt.legend()
             fig.suptitle(file.stem)
