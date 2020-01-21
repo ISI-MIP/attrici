@@ -139,13 +139,6 @@ def plot_scaled_timeseries(runid, data_dir, variable,
             else:
                 plt.show()
 
-            plt.legend()
-            fig.suptitle(file.stem)
-            if save_fig:
-                plt.savefig(figure_dir / f'{file.stem}.png', dpi=80)
-            else:
-                plt.show()
-
 
 if __name__ == "__main__":
     parser = get_parser()
