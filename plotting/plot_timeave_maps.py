@@ -8,29 +8,24 @@ from plotting.helper_functions import get_path, get_parser
 plt.rcParams["figure.figsize"] = 12, 14
 
 
-def main(runid, tag, rel, vmax):
+def plot_timeave_maps(runid, data_dir, variable, dataset,
+                      tag='', rel=False, vmax=None, save_fig=False):
     # data_dir = Path("/p/tmp/mengel/isimip/isi-cfact/output")
-    data_dir = settings.output_dir.parents[0]
-    variable = settings.variable
-    dataset = settings.dataset.lower()
-    figure_dir = data_dir / "figures" / runid / "maps"
-    figure_dir.mkdir(parents=True, exist_ok=True)
-    print(figure_dir)
 
     ncd = nc.Dataset(get_path(data_dir, variable, dataset, runid, tag), "r")
 
     # Plotting
-    vmin=None if vmax is None else -vmax
+    vmin = None if vmax is None else -vmax
     # define appropriate colorscheme for the given variable
     if variable == 'pr':
-        #cmap = 'BrBG'
-        cmap = 'coolwarm'
+        cmap = 'BrBG'
+        # cmap = 'coolwarm'
     else:
         cmap = 'coolwarm'
 
     # y are the original observations, cfact the counterfactual
     fig = plt.figure()
-    figname = f"trend_map_{tag}.jpg"
+    figname = f"trend_map_{tag}.png"
     for i, case in enumerate(["y", "cfact"]):
         data = ncd.variables[case][:]
         # last minus first 30 years
@@ -42,9 +37,9 @@ def main(runid, tag, rel, vmax):
             trend = trend / data[0:30 * 12:, ::-1, ::1].mean(axis=0)
             vmax = 1
             vmin = None if vmax is None else -vmax
-            figname = f"trend_map_{tag}_rel.jpg"
+            figname = f"trend_map_{tag}_rel.png"
 
-        ax = plt.subplot(211+i, projection=ccrs.PlateCarree(central_longitude=0.0))
+        ax = plt.subplot(211 + i, projection=ccrs.PlateCarree(central_longitude=0.0))
         ax.coastlines()
         img = ax.imshow(trend
                         , vmin=vmin, vmax=vmax
@@ -56,7 +51,15 @@ def main(runid, tag, rel, vmax):
         plt.title(case)
 
     fig.tight_layout()
-    fig.savefig(figure_dir/figname,dpi=80)
+    if save_fig:
+        figure_dir = data_dir / "figures" / runid / "maps"
+        figure_dir.mkdir(parents=True, exist_ok=True)
+        fig.savefig(figure_dir / figname, dpi=80)
+
+        print(figure_dir)
+    else:
+        plt.show()
+        return trend, ncd
 
 
 if __name__ == "__main__":
@@ -64,6 +67,10 @@ if __name__ == "__main__":
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid, tag=o.tag, rel=o.rel, vmax=o.vmax)
+            plot_timeave_maps(runid=runid, tag=o.tag, rel=o.rel, vmax=o.vmax,
+                              data_dir=settings.output_dir.parents[0],
+                              variable=settings.variable,
+                              dataset=settings.dataset.lower(),
+                              save_fig=True)
     else:
         print("no runid provided")
