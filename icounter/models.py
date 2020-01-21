@@ -869,9 +869,9 @@ class RsdsRice(icounter.distributions.Rice):
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.1)
 
             fc_sigma = pm.Normal("fc_sigma", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            fctrend_sigma = pm.Normal(
-                "fctrend_sigma", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
-            )
+            # fctrend_sigma = pm.Normal(
+            #     "fctrend_sigma", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
+            # )
             # in (-inf, inf)
             logistic = b_sigma / (
                     1
@@ -880,7 +880,7 @@ class RsdsRice(icounter.distributions.Rice):
                 * (
                         a_sigma * gmtv
                         + det_dot(xf0, fc_sigma)
-                        + gmtv * det_dot(xf1, fctrend_sigma)
+                        # + gmtv * det_dot(xf1, fctrend_sigma)
                 )
             )
             )
