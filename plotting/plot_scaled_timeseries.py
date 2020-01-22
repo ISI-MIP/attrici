@@ -82,7 +82,7 @@ def plot_scaled_timeseries(runid, data_dir, variable,
                     scale = df['sigma']
                     scale_ref = df['sigma_ref']
                     b = df['nu'] / scale
-                    b_ref = df['nu'] / scale
+                    b_ref = df['nu_ref'] / scale
                     for pct in [0.05, 0.5, 0.95]:
                         df[f'{int(pct * 100)}pct'] = stats.rice.ppf(pct, b=b, scale=scale)
                         df[f'{int(pct * 100)}pct_ref'] = stats.rice.ppf(pct, b=b_ref, scale=scale_ref)
