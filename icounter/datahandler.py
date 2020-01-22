@@ -44,18 +44,6 @@ def get_subset(df, subset, seed):
     return df
 
 
-# def get_valid_index(df, subset, seed):
-
-#     orig_len = len(df)
-#     if subset > 1:
-#         np.random.seed(seed)
-#         subselect = np.random.choice(orig_len, np.int(orig_len/subset), replace=False)
-#         df = df.loc[np.sort(subselect), :].copy()
-
-#     df.replace([np.inf, -np.inf], np.nan, inplace=True)
-#     return df.dropna(axis=0, how="any").index
-
-
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
     # proper dates plus additional time axis that is
@@ -100,15 +88,12 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
-def create_ref_df(df, trace_for_qm, ref_period, scale_variability, params):
+def create_ref_df(df, trace_for_qm, ref_period, params):
 
     df_params = pd.DataFrame(index=df.index)
 
     for p in params:
         df_params.loc[:, p] = trace_for_qm[p].mean(axis=0)
-    # df_params.loc[:, "sigma"] = trace_for_qm["sigma"].mean(axis=0)
-    # if is_precip:
-    #     df_params.loc[:, "pbern"] = trace_for_qm["pbern"].mean(axis=0)
 
     df_params.index = df["ds"]
 
@@ -116,8 +101,6 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability, params):
     # mean over all years for each day
     df_params_ref = df_params_ref.groupby(df_params_ref.index.dayofyear).mean()
 
-    # case of not scaling variability
-    # df_params.loc[:, "sigma_ref"] = df_params["sigma"]
     # write the average values for the reference period to each day of the
     # whole timeseries
     for day in df_params_ref.index:
@@ -125,15 +108,6 @@ def create_ref_df(df, trace_for_qm, ref_period, scale_variability, params):
             df_params.loc[
                 df_params.index.dayofyear == day, p + "_ref"
             ] = df_params_ref.loc[day, p]
-        # if is_precip:
-        #     df_params.loc[
-        #         df_params.index.dayofyear == day, "pbern_ref"
-        #     ] = df_params_ref.loc[day, "pbern"]
-        # # case of scaling sigma
-        # if scale_variability:
-        #     df_params.loc[
-        #         df_params.index.dayofyear == day, "sigma_ref"
-        #     ] = df_params_ref.loc[day, "sigma"]
 
     return df_params
 

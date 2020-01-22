@@ -45,7 +45,6 @@ dataset = "GSWP3"  # select dataset to run on
 # the reference distribution for quantile mapping.
 # take care that period encompasses a leap year
 qm_ref_period = ["1901-01-01", "1904-12-31"]
-report_mu_sigma = True
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 landsea_file = "ISIMIP2b_landseamask_generic_sub" + str(lateral_sub) + ".nc4"

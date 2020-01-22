@@ -39,7 +39,6 @@ class estimator(object):
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = cfg.save_trace
-        self.report_mu_sigma = cfg.report_mu_sigma
         self.inference = cfg.inference
 
         try:
@@ -132,15 +131,14 @@ class estimator(object):
             trace, df, subtrace, self.model, self.progressbar
         )
 
-        df_mu_sigma = dh.create_ref_df(
+        df_params = dh.create_ref_df(
             df,
             trace_for_qm,
             self.qm_ref_period,
-            self.scale_variability,
             self.statmodel.params,
         )
 
-        cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
+        cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
         print("Done with quantile mapping.")
         # drops indices that were masked as out of range before
         valid_index = df.index
@@ -166,9 +164,8 @@ class estimator(object):
             df.loc[valid_index, "cfact_scaled"], datamin, scale
         )
 
-        if self.report_mu_sigma:
-            # todo: unifiy indexes so .values can be dropped
-            for v in df_mu_sigma.columns:
-                df.loc[:, v] = df_mu_sigma.loc[:, v].values
+        # todo: unifiy indexes so .values can be dropped
+        for v in df_params.columns:
+            df.loc[:, v] = df_params.loc[:, v].values
 
         return df
