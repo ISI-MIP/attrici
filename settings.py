@@ -12,10 +12,10 @@ if user == "mengel":
     log_dir = "./log"
 
 elif user == "sitreu":
-    conda_path = "/home/sitreu/.conda/envs/mpi_py3"
+    # conda_path = "/home/sitreu/.conda/envs/mpi_py3"
     # data_dir = "/home/sitreu/temp/isi-cfact/"
-    data_dir = "/home/sitreu/Documents/PIK/CounterFactuals/isi-cfact"
-    log_dir = "./output"
+    data_dir = "/p/tmp/sitreu/isimip/isi-cfact"
+    log_dir = "./log"
 
 input_dir = Path(data_dir) / "input"
 # make output dir same as cwd. Helps if running more than one job.
