@@ -36,15 +36,11 @@ class estimator(object):
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
-        self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = cfg.save_trace
-        self.report_mu_sigma = cfg.report_mu_sigma
-        self.mu_model = cfg.mu_model
-        self.sigma_model = cfg.sigma_model
+        self.report_variables = cfg.report_variables
         self.inference = cfg.inference
-        self.bernoulli_model = cfg.bernoulli_model
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes)
@@ -135,47 +131,15 @@ class estimator(object):
         trace_for_qm = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar
         )
-        # if trace["mu"].shape[1] < df.shape[0]:
-        #     print("Trace is not complete due to masked data. Resample missing.")
-        #     print(
-        #         "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-        #     )
-        #
-        #     xf0 = fourier.rescale(df, self.modes[0])
-        #     xf1 = fourier.rescale(df, self.modes[1])
-        #     xf2 = fourier.rescale(df, self.modes[2])
-        #     if self.sigma_model == "full":
-        #         xf3 = fourier.rescale(df, self.modes[3])
-        #
-        #
-        #     with self.model:
-        #         pm.set_data({"xf0v": xf0})
-        #         pm.set_data({"xf2v": xf2})
-        #         pm.set_data({"gmtv": df["gmt_scaled"].values})
-        #
-        #         if self.mu_model == "full":
-        #             pm.set_data({"xf1v": xf1})
-        #
-        #         if self.sigma_model == "full":
-        #             pm.set_data({"xf3v": xf3})
-        #
-        #         trace_for_qm = pm.sample_posterior_predictive(
-        #             trace[-subtrace:],
-        #             samples=subtrace,
-        #             var_names=["obs", "mu", "sigma", "pbern"],
-        #             progressbar=self.progressbar,
-        #         )
 
-        # is_precip = self.variable == "pr"
-        df_mu_sigma = dh.create_ref_df(
+        df_params = dh.create_ref_df(
             df,
             trace_for_qm,
             self.qm_ref_period,
-            self.scale_variability,
             self.statmodel.params,
         )
 
-        cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
+        cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
         print("Done with quantile mapping.")
         # drops indices that were masked as out of range before
         valid_index = df.index
@@ -201,9 +165,11 @@ class estimator(object):
             df.loc[valid_index, "cfact_scaled"], datamin, scale
         )
 
-        if self.report_mu_sigma:
-            # todo: unifiy indexes so .values can be dropped
-            for v in df_mu_sigma.columns:
-                df.loc[:, v] = df_mu_sigma.loc[:, v].values
+        # todo: unifiy indexes so .values can be dropped
+        for v in df_params.columns:
+            df.loc[:, v] = df_params.loc[:, v].values
+
+        if self.report_variables != "all":
+            df = df.loc[:,self.report_variables]
 
         return df

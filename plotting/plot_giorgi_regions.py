@@ -69,7 +69,9 @@ def main(runid, tag):
         for ax in axs[1:]:
             ax.set_ylim(get_ylims(ylim))
 
-        plt.savefig(figure_dir / Path(rname.replace(" ", "_") + "_"+ tag+ ".jpg"), dpi=80)
+        plt.savefig(
+            figure_dir / Path(rname.replace(" ", "_") + "_" + tag + ".jpg"), dpi=80
+        )
 
 
 def select_giorgi_by_name(ds, name, land_mask, giorgi_mask):

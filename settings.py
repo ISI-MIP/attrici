@@ -25,11 +25,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
 variable = "hurs"  # select variable to detrend
-# out of full, longterm_yearlycycle, yearlycycle, longterm
-mu_model = "longterm"
-sigma_model = "longterm"
-# bernoulli only relevant for precip
-bernoulli_model = "longterm"
+
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
 modes = [1, 1, 1, 1]
@@ -38,11 +34,10 @@ inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
 subset = 10  # only use every subset datapoint for bayes estimation for speedup
-# use the estimated variability in qm
-scale_variability = True
+
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 80
+lateral_sub = 20
 
 dataset = "GSWP3"  # select dataset to run on
 
@@ -50,7 +45,6 @@ dataset = "GSWP3"  # select dataset to run on
 # the reference distribution for quantile mapping.
 # take care that period encompasses a leap year
 qm_ref_period = ["1901-01-01", "1904-12-31"]
-report_mu_sigma = True
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 landsea_file = "ISIMIP2b_landseamask_generic_sub" + str(lateral_sub) + ".nc4"
@@ -59,6 +53,10 @@ source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 # .h5 or .csv
 storage_format = ".h5"
+# "all" or list like ["y","y_scaled","mu","sigma"]
+# for productions runs, use ["cfact"]
+report_variables = "all"
+
 save_trace = True
 
 # model run settings

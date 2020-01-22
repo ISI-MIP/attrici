@@ -84,9 +84,13 @@ def main(runid, tag, lat, lon, rolling_window):
     axs.append(ax)
 
     ax = plt.subplot(4, 2, 4)
-    plot_scaled_timeseries(runid=runid, lat=avail_cell['lat'], lon=avail_cell['lon'],
-                           ax=ax, rolling_window=rolling_window)
-
+    plot_scaled_timeseries(
+        runid=runid,
+        lat=avail_cell["lat"],
+        lon=avail_cell["lon"],
+        ax=ax,
+        rolling_window=rolling_window,
+    )
 
     for i, season in enumerate(["DJF", "MAM", "JJA", "SON"]):
         data_season = get_seasonal_dataset(data, season)
@@ -102,7 +106,8 @@ def main(runid, tag, lat, lon, rolling_window):
         ax.set_ylim(get_ylims(ylim))
 
     plt.savefig(
-        figure_dir / f"cell_lat{avail_cell['lat']}_lon{avail_cell['lon']}_{tag}.jpg", dpi=80
+        figure_dir / f"cell_lat{avail_cell['lat']}_lon{avail_cell['lon']}_{tag}.jpg",
+        dpi=80,
     )
 
 
@@ -121,7 +126,12 @@ if __name__ == "__main__":
     o = parser.parse_args()
     if len(o.runid) > 0:
         for runid in o.runid:
-            main(runid=runid, tag=o.tag, lat=o.lat, lon=o.lon,
-                 rolling_window=o.rolling_window)
+            main(
+                runid=runid,
+                tag=o.tag,
+                lat=o.lat,
+                lon=o.lon,
+                rolling_window=o.rolling_window,
+            )
     else:
         print("no runid provided")
