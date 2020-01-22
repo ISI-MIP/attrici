@@ -955,6 +955,87 @@ class RsdsRice(icounter.distributions.Rice):
 
         return model
 
+class RsdsNormal(icounter.distributions.Normal):
+    """ Influence of GMT is modelled through a shift of
+        mu and sigma parameters in a Beta distribution.
+        """
+    # Todo implement appropriate quantile mapping
+
+    def __init__(self, modes):
+        super(RsdsNormal, self).__init__()
+        self.modes = modes
+        self.test = False
+
+
+    def quantile_mapping(self, d, y_scaled):
+        """
+        specific for censored normal values
+        rsds can not be smaller than zero
+        all values equal to zero are masked out for training
+        those masked values are replaced by random values, sampled from the trained model
+
+        those random values are quantile-mapped
+        after quantile mapping negative c-fact values are mapped to zero
+        """
+        random_values = stats.norm.rvs(loc=d["mu"], scale=d["sigma"])
+        # the random values should not be larger than 0 (any value smaller 0 is possible)
+        np.minimum(random_values, 0, random_values)
+        y_filled = y_scaled.fillna(pd.Series(random_values))
+
+        quantile = stats.norm.cdf(y_filled, loc=d["mu"], scale=d["sigma"])
+        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
+        np.maximum(x_mapped, 0, x_mapped)
+        return x_mapped
+
+    def setup(self, df_subset):
+        model = pm.Model()
+
+        with model:
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # nu
+            b_mu = pm.Lognormal("b_mu", mu=-1, sigma=0.4, testval=1.0)
+            a_mu = pm.Normal("a_mu", mu=0, sigma=0.05, testval=0)
+
+            fourier_coefficients_mu = pm.Normal(
+                "fourier_coefficients_mu", mu=0.0, sd=0.1, shape=xf0.dshape[1]
+            )
+            # in (-inf, inf)
+            # lin = pm.Deterministic(
+            #     "lin_mu",
+            #     a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu),
+            # )
+            #mu = pm.Deterministic("mu", pm.math.switch(lin>1e-3,lin, 1e-3))
+            mu = pm.Deterministic(
+                "mu",
+                a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu),
+            )
+            #mu = pm.Deterministic("mu", tt.nnet.elu(lin, alpha)) + 2 * alpha
+
+            # sigma
+            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
+
+            fourier_coefficients_sigma = pm.Normal(
+                "fourier_coefficients_sigma", mu=0.0, sd=0.1, shape=xf0.dshape[1]
+            )
+            # in (-inf, inf)
+            lin = pm.Deterministic(
+                "lin_sigma",
+                a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
+            )
+            sigma = pm.Deterministic("sigma", pm.math.switch(lin > 1e-1, lin, 1e-1))
+            #sigma = pm.Deterministic("sigma", tt.nnet.elu(lin, alpha)) + 2 * alpha
+
+            if not self.test:
+                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
 
 class Tasrange(icounter.distributions.Rice):
 
