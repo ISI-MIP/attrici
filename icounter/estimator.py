@@ -133,43 +133,37 @@ class estimator(object):
         )
 
         df_params = dh.create_ref_df(
-            df,
-            trace_for_qm,
-            self.qm_ref_period,
-            self.statmodel.params,
+            df, trace_for_qm, self.qm_ref_period, self.statmodel.params
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
         print("Done with quantile mapping.")
-        # drops indices that were masked as out of range before
-        valid_index = df.index
-        print("Length of valid index:", len(valid_index))
-        # populate cfact with original values
-        df.loc[:, "cfact_scaled"] = df.loc[:, "y_scaled"]
-        df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
 
-        if (cfact_scaled == np.inf).sum() > 0:
-            print(
-                "There are",
-                (cfact_scaled == np.inf).sum(),
-                "values out of range for quantile mapping. Keep original values.",
-            )
-            df.loc[valid_index[cfact_scaled == np.inf], "cfact_scaled"] = df.loc[
-                valid_index[cfact_scaled == np.inf], "y_scaled"
-            ]
+        # fill cfact_scaled as is from quantile mapping
+        # for easy checking later
+        df.loc[:, "cfact_scaled"] = cfact_scaled
 
-        # populate cfact with original values
-        df.loc[:, "cfact"] = df.loc[:, "y"]
-        # overwrite only values adjusted through cfact calculation
-        df.loc[valid_index, "cfact"] = self.f_rescale(
-            df.loc[valid_index, "cfact_scaled"], datamin, scale
-        )
+        # rescale all scaled values back to original, invalids included
+        df.loc[:, "cfact"] = self.f_rescale(df.loc[:, "cfact_scaled"], datamin, scale)
+
+        # populate invalid values originating from y_scaled with with original values
+        invalid_index = df.index[df["y_scaled"].isna()]
+        df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
+
+        # df = df.replace([np.inf, -np.inf], np.nan)
+        # if df["y"].isna().sum() > 0:
+        yna = df["y"].isna().sum()
+        yinf = (df["y"] == np.inf).sum()
+        yminf = (df["y"] == -np.inf).sum()
+        print(f"There are {yna} NaN values from quantile mapping.")
+        print(f"There are {yinf} Inf values from quantile mapping.")
+        print(f"There are {yminf} -Inf values from quantile mapping.")
 
         # todo: unifiy indexes so .values can be dropped
         for v in df_params.columns:
             df.loc[:, v] = df_params.loc[:, v].values
 
         if self.report_variables != "all":
-            df = df.loc[:,self.report_variables]
+            df = df.loc[:, self.report_variables]
 
         return df
