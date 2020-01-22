@@ -150,10 +150,10 @@ def plot_scaled_timeseries(
                     # calculate percentiles
                     for pct in [0.05, 0.5, 0.95]:
                         df[f"{int(pct * 100)}pct"] = stats.weibull_min.ppf(
-                            pct, loc=df["alpha"], scale=df["beta"]
+                            pct, df["alpha"], scale=df["beta"]
                         )
                         df[f"{int(pct * 100)}pct_ref"] = stats.weibull_min.ppf(
-                            pct, loc=df["alpha_ref"], scale=df["beta_ref"]
+                            pct, df["alpha_ref"], scale=df["beta_ref"]
                         )
                 else:
                     raise NotImplemented(
