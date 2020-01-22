@@ -53,6 +53,10 @@ source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
 cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 # .h5 or .csv
 storage_format = ".h5"
+# "all" or list like ["y","y_scaled","mu","sigma"]
+# for productions runs, use ["cfact"]
+report_variables = "all"
+
 save_trace = True
 
 # model run settings

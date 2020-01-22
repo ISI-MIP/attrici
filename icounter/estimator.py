@@ -39,6 +39,7 @@ class estimator(object):
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = cfg.save_trace
+        self.report_variables = cfg.report_variables
         self.inference = cfg.inference
 
         try:
@@ -167,5 +168,8 @@ class estimator(object):
         # todo: unifiy indexes so .values can be dropped
         for v in df_params.columns:
             df.loc[:, v] = df_params.loc[:, v].values
+
+        if self.report_variables != "all":
+            df = df.loc[:,self.report_variables]
 
         return df
