@@ -82,7 +82,7 @@ def plot_scaled_timeseries(runid, data_dir, variable,
                     scale = df['sigma']
                     scale_ref = df['sigma_ref']
                     b = df['nu'] / scale
-                    b_ref = df['nu_ref'] / scale
+                    b_ref = df['nu_ref'] / scale_ref
                     for pct in [0.05, 0.5, 0.95]:
                         df[f'{int(pct * 100)}pct'] = stats.rice.ppf(pct, b=b, scale=scale)
                         df[f'{int(pct * 100)}pct_ref'] = stats.rice.ppf(pct, b=b_ref, scale=scale_ref)
@@ -150,6 +150,7 @@ if __name__ == "__main__":
                                        start=o.start, end=o.end,
                                        data_dir=settings.output_dir.parents[0],
                                        variable=settings.variable,
-                                       save_fig=True)
+                                       save_fig=True,
+                                       cfact=o.cfact)
     else:
         print("no runid provided")

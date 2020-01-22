@@ -20,6 +20,8 @@ def get_parser():
                         help='tag in [valid, valid_prthresh] discribes how monthly means are computed')
     parser.add_argument('--rel', action='store_true',
                         help="if specified, plot relative trends")
+    parser.add_argument('--cfact', action='store_true',
+                        help="if specified, plot cfacts")
     parser.add_argument('--vmax', type=float, default=None,
                         help='specify the max value of the plotted scale')
     parser.add_argument("--lat", type=float,
