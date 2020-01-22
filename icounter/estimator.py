@@ -36,15 +36,11 @@ class estimator(object):
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
-        self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = cfg.save_trace
         self.report_mu_sigma = cfg.report_mu_sigma
-        self.mu_model = cfg.mu_model
-        self.sigma_model = cfg.sigma_model
         self.inference = cfg.inference
-        self.bernoulli_model = cfg.bernoulli_model
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes)
@@ -135,38 +131,7 @@ class estimator(object):
         trace_for_qm = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar
         )
-        # if trace["mu"].shape[1] < df.shape[0]:
-        #     print("Trace is not complete due to masked data. Resample missing.")
-        #     print(
-        #         "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-        #     )
-        #
-        #     xf0 = fourier.rescale(df, self.modes[0])
-        #     xf1 = fourier.rescale(df, self.modes[1])
-        #     xf2 = fourier.rescale(df, self.modes[2])
-        #     if self.sigma_model == "full":
-        #         xf3 = fourier.rescale(df, self.modes[3])
-        #
-        #
-        #     with self.model:
-        #         pm.set_data({"xf0v": xf0})
-        #         pm.set_data({"xf2v": xf2})
-        #         pm.set_data({"gmtv": df["gmt_scaled"].values})
-        #
-        #         if self.mu_model == "full":
-        #             pm.set_data({"xf1v": xf1})
-        #
-        #         if self.sigma_model == "full":
-        #             pm.set_data({"xf3v": xf3})
-        #
-        #         trace_for_qm = pm.sample_posterior_predictive(
-        #             trace[-subtrace:],
-        #             samples=subtrace,
-        #             var_names=["obs", "mu", "sigma", "pbern"],
-        #             progressbar=self.progressbar,
-        #         )
 
-        # is_precip = self.variable == "pr"
         df_mu_sigma = dh.create_ref_df(
             df,
             trace_for_qm,
