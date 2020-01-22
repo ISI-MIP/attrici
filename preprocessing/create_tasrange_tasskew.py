@@ -4,7 +4,7 @@ from pathlib import Path
 output_base = Path("/p/tmp/mengel/isimip/isi-cfact/input/")
 
 dataset = "GSWP3"
-qualifier = "_sub20"
+qualifier = "_sub1"
 
 outdir = output_base/dataset
 
