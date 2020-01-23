@@ -105,6 +105,7 @@ class estimator(object):
                     tune=self.tune,
                     progressbar=self.progressbar,
                 )
+            # could set target_accept=.95 to get smaller step size if warnings appear
         elif self.inference == "ADVI":
             with self.model:
                 mean_field = pm.fit(

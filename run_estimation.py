@@ -81,9 +81,13 @@ for n in run_numbers[:]:
         trace, dff = func_timeout(
             s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
         )
+    # todo is except still appropriate here? it will still raise an error later because dff is not defined
     except (FunctionTimedOut, ValueError) as error:
-        print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
-        print(error)
+        if str(error) == 'Modes larger 1 are not allowed for the censored model.':
+            raise error
+        else:
+            print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
+            print(error)
         continue
 
     df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)

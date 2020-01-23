@@ -995,41 +995,30 @@ class RsdsNormal(icounter.distributions.Normal):
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+            if (np.array(self.modes) > 1).any():
+                raise ValueError('Modes larger 1 are not allowed for the censored model.')
 
-            # nu
+            # mu
             b_mu = pm.Lognormal("b_mu", mu=-1, sigma=0.4, testval=1.0)
             a_mu = pm.Normal("a_mu", mu=0, sigma=0.05, testval=0)
-
             fourier_coefficients_mu = pm.Normal(
                 "fourier_coefficients_mu", mu=0.0, sd=0.1, shape=xf0.dshape[1]
             )
-            # in (-inf, inf)
-            # lin = pm.Deterministic(
-            #     "lin_mu",
-            #     a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu),
-            # )
-            #mu = pm.Deterministic("mu", pm.math.switch(lin>1e-3,lin, 1e-3))
             mu = pm.Deterministic(
                 "mu",
                 a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu),
             )
-            #mu = pm.Deterministic("mu", tt.nnet.elu(lin, alpha)) + 2 * alpha
 
             # sigma
             b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
             a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
 
-            fourier_coefficients_sigma = pm.Normal(
-                "fourier_coefficients_sigma", mu=0.0, sd=0.1, shape=xf0.dshape[1]
-            )
-            # in (-inf, inf)
             lin = pm.Deterministic(
                 "lin_sigma",
-                a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
+                a_sigma * gmtv + b_sigma
             )
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > 1e-1, lin, 1e-1))
-            #sigma = pm.Deterministic("sigma", tt.nnet.elu(lin, alpha)) + 2 * alpha
+            alpha = 1e-30
+            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])

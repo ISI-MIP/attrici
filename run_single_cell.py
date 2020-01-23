@@ -12,9 +12,9 @@ import settings as s
 
 print("Version", icounter.__version__)
 
-lat = 69.75
-lon = 100.25
 
+lat = 79.75
+lon = -99.75
 submitted = False
 njobarray = 1
 task_id = 0
@@ -59,8 +59,11 @@ try:
         s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
     )
 except (FunctionTimedOut, ValueError) as error:
-    print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
-    print(error)
+    if str(error) == 'Modes larger 1 are not allowed for the censored model.':
+        raise error
+    else:
+        print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
+        print(error)
     # continue
 
 df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)

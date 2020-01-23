@@ -113,6 +113,7 @@ def plot_scaled_timeseries(
                 )
 
             else:
+                df.fillna(0, inplace=True)
                 # distinction by distributions
                 distribution = est.model_for_var[variable].__bases__[0].__name__
                 if distribution == "Rice":
