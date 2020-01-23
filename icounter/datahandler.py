@@ -15,7 +15,7 @@ def create_output_dirs(output_dir):
         (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
-def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable=None):
+def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable):
 
     """ params: output_dir: a pathlib object """
 
@@ -134,20 +134,34 @@ def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
     obs_data.close()
     return df
 
+def get_cell_filename(outdir_for_cell, lat, lon, settings):
 
-def save_to_disk(df_with_cfact, settings, lat, lon, dformat=".h5"):
-
-    outdir_for_cell = make_cell_output_dir(
-        settings.output_dir, "timeseries", lat, lon, settings.variable
+    return outdir_for_cell / (
+        "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + settings.storage_format
     )
 
-    fname = outdir_for_cell / (
-        "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + dformat
-    )
+def test_if_data_valid_exists(fname):
 
-    if dformat == ".csv":
+    if ".h5" in str(fname):
+        pd.read_hdf(fname)
+    elif ".csv" in str(fname):
+        pd.read_csv(fname)
+    else:
+        raise ValueError
+
+def save_to_disk(df_with_cfact, fname, lat, lon, storage_format):
+
+    # outdir_for_cell = make_cell_output_dir(
+    #     settings.output_dir, "timeseries", lat, lon, settings.variable
+    # )
+
+    # fname = outdir_for_cell / (
+    #     "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + dformat
+    # )
+
+    if storage_format == ".csv":
         df_with_cfact.to_csv(fname)
-    elif dformat == ".h5":
+    elif storage_format == ".h5":
         df_with_cfact.to_hdf(fname, "lat_" + str(lat) + "_lon_" + str(lon), mode="w")
     else:
         raise NotImplementedError("choose storage format .h5 or csv.")

@@ -73,6 +73,19 @@ for n in run_numbers[:]:
     print(
         "This is SLURM task", task_id, "run number", n, "lat,lon", sp["lat"], sp["lon"]
     )
+    outdir_for_cell = dh.make_cell_output_dir(
+        s.output_dir, "timeseries", sp["lat"], sp["lon"], s.variable
+    )
+    fname_cell = dh.get_cell_filename(outdir_for_cell, sp["lat"], sp["lon"], s)
+
+    if s.skip_if_data_exists:
+        try:
+            dh.test_if_data_valid_exists(fname_cell)
+            print(f"Existing valid data in {fname_cell} . Skip calculation.")
+            continue
+        except Exception as e:
+            print(e)
+            print("No valid data found. Run calculation.")
 
     data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
     df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
@@ -87,7 +100,7 @@ for n in run_numbers[:]:
         continue
 
     df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)
-    dh.save_to_disk(df_with_cfact, s, sp["lat"], sp["lon"], dformat=s.storage_format)
+    dh.save_to_disk(df_with_cfact, fname_cell, sp["lat"], sp["lon"], s.storage_format)
 
 obs_data.close()
 nc_lsmask.close()
