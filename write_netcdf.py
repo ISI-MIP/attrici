@@ -6,7 +6,7 @@ import glob
 import itertools
 from pathlib import Path
 
-# import netCDF4 as nc
+import netCDF4 as nc
 import xarray as xr
 
 import numpy as np
@@ -53,14 +53,38 @@ lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
 #  get headers and form empty netCDF file with all meatdata
 print(data_list[0])
 
+# write empty outfile to netcdf with all orignal attributes
 source_data = xr.open_dataset(source_file)
+attributes = source_data[s.variable].attrs
+coords = source_data[s.variable].coords
+
 outfile = source_data.drop_vars(s.variable)
 
-outfile[s.variable] = source_data[s.variable]
-outfile[s.variable+"_orig"] = source_data[s.variable].copy()
+outfile.to_netcdf(cfact_file)
 
-outfile[s.variable][:] = np.nan
-outfile[s.variable+"_orig"][:] = np.nan
+# outfile[s.variable] = source_data[s.variable]
+# outfile[s.variable+"_orig"] = source_data[s.variable].copy()
+
+# outfile[s.variable][:] = np.nan
+# outfile[s.variable+"_orig"][:] = np.nan
+
+# open with netCDF4 for memory efficient writing
+outfile = nc.Dataset(cfact_file,"a")
+
+ncvars = {}
+for var in s.report_to_netcdf:
+    ncvars[var] = outfile.createVariable(
+        var,
+        "f4",
+        ("time", "lat", "lon"),
+        chunksizes=(len(coords["time"]), 1, 1),
+        fill_value=1e20,
+    )
+    if var == s.variable:
+        for key,att in attributes.items():
+            ncvars[var].__dict__[key] = att
+
+# outfile = nc.Dataset(cfact_file, "a")
 
 for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
 
@@ -70,7 +94,10 @@ for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list)
         outfile.variables[var][:, i, j] = np.array(ts)
     print("wrote data from", dfpath, "to", i, j)
 
-outfile.to_netcdf(cfact_file)
+# outfile.to_netcdf(cfact_file)
+outfile.close()
+
+
 
 print("Successfully wrote", cfact_file, "file. Took")
 print("It took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
