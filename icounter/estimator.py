@@ -15,7 +15,7 @@ model_for_var = {
     "tasskew": models.Tasskew,
     "pr": models.PrecipitationLongterm,
     "prsnratio": models.Beta,
-    "hurs": models.Hurs,
+    "hurs": models.HursCensored,
     "wind": models.Wind,
     "ps": models.Ps,
     "rsds": models.RsdsNormal,
@@ -104,6 +104,7 @@ class estimator(object):
                     chains=self.chains,
                     tune=self.tune,
                     progressbar=self.progressbar,
+                    target_accept=.95
                 )
             # could set target_accept=.95 to get smaller step size if warnings appear
         elif self.inference == "ADVI":
