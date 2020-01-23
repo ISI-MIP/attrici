@@ -13,8 +13,8 @@ import settings as s
 print("Version", icounter.__version__)
 
 
-lat = 79.75
-lon = -99.75
+lat = 29.75
+lon = 30.25
 submitted = False
 njobarray = 1
 task_id = 0
@@ -67,7 +67,11 @@ except (FunctionTimedOut, ValueError) as error:
     # continue
 
 df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)
-dh.save_to_disk(df_with_cfact, s, sp["lat"], sp["lon"], dformat=s.storage_format)
+outdir_for_cell = dh.make_cell_output_dir(
+        s.output_dir, "timeseries", sp["lat"], sp["lon"], s.variable
+    )
+fname_cell = dh.get_cell_filename(outdir_for_cell, sp["lat"], sp["lon"], s)
+dh.save_to_disk(df_with_cfact, fname_cell, sp["lat"], sp["lon"], s.storage_format)
 
 obs_data.close()
 # nc_lsmask.close()
