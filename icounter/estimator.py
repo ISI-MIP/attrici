@@ -63,7 +63,7 @@ class estimator(object):
         self.model = self.statmodel.setup(df_subset)
 
         outdir_for_cell = dh.make_cell_output_dir(
-            self.output_dir, "traces", lat, lon, variable=self.variable
+            self.output_dir, "traces", lat, lon, self.variable
         )
 
         # FIXME: Rework loading old traces

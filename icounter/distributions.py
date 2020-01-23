@@ -50,9 +50,10 @@ class Distribution(object):
                 trace_for_qm = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=["obs"] + self.params,
+                    var_names=self.params,# + ["obs"],
                     progressbar=progressbar,
                 )
+            print("Resampled missing.")
         return trace_for_qm
 
 
