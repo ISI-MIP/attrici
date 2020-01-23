@@ -38,7 +38,7 @@ subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 dataset = "GSWP3"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 80
+lateral_sub = 20
 
 # start and end date are the time period used to construct
 # the reference distribution for quantile mapping.
@@ -55,6 +55,9 @@ storage_format = ".h5"
 # "all" or list like ["y","y_scaled","mu","sigma"]
 # for productions runs, use ["cfact"]
 report_variables = "all"
+# reporting to netcdf can include all report variables
+# "cfact" is translated to variable, and "y" to variable_orig
+report_to_netcdf = [variable, variable+"_orig"]
 
 save_trace = True
 skip_if_data_exists = True

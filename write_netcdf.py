@@ -3,30 +3,36 @@
 # coding: utf-8
 
 import glob
-import itertools as it
+import itertools
 from pathlib import Path
 
-import netCDF4 as nc
+# import netCDF4 as nc
+import xarray as xr
+
 import numpy as np
-import pandas as pd
+# import pandas as pd
 from datetime import datetime
 import subprocess
 import icounter.postprocess as pp
 import settings as s
 
-# options for postprocess
+### options for postprocess
 rechunk = False
 # cdo_processing needs rechunk
 cdo_processing = False
 
+# append later with more variables if needed
+vardict = {s.variable: "cfact", s.variable+"_orig": "y"}
+
 TIME0 = datetime.now()
 
+source_file = Path(s.input_dir) / s.dataset / s.source_file.lower()
 ts_dir = s.output_dir / "timeseries" / s.variable
 cfact_dir = s.output_dir / "cfact" / s.variable
+cfact_file = cfact_dir / s.cfact_file
 
 data_gen = ts_dir.glob("**/*" + s.storage_format)
 cfact_dir.mkdir(parents=True, exist_ok=True)
-cfact_file = cfact_dir / s.cfact_file
 
 ### check which data is available
 data_list = []
@@ -41,36 +47,31 @@ for i in data_gen:
 
 # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
 # TODO: make this more robust
-lat_indices = np.array(lat_indices) / s.lateral_sub
-lon_indices = np.array(lon_indices) / s.lateral_sub
-
-### access data from source file
-obs = nc.Dataset(Path(s.input_dir) / s.dataset / s.source_file.lower(), "r")
-time = obs.variables["time"][:]
-lat = obs.variables["lat"][:]
-lon = obs.variables["lon"][:]
-
-# append later with more variables if needed
-variables_to_report = {s.variable: "cfact", s.variable+"_orig": "y"}
+lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
+lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
 
 #  get headers and form empty netCDF file with all meatdata
-headers = pp.read_from_disk(data_list[0]).keys()
 print(data_list[0])
-headers = headers.drop(["t", "ds", "gmt", "gmt_scaled"])
 
-out = nc.Dataset(cfact_file, "w", format="NETCDF4")
-pp.form_global_nc(out, time, lat, lon, headers, obs.variables["time"].units)
+source_data = xr.open_dataset(source_file)
+outfile = source_data.drop_vars(s.variable)
 
+outfile[s.variable] = source_data[s.variable]
+outfile[s.variable+"_orig"] = source_data[s.variable].copy()
 
-for (i, j, dfpath) in it.zip_longest(lat_indices, lon_indices, data_list):
+outfile[s.variable][:] = np.nan
+outfile[s.variable+"_orig"][:] = np.nan
+
+for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
 
     df = pp.read_from_disk(dfpath)
-    for head in headers:
-        ts = df[head]
-        out.variables[head][:, i, j] = np.array(ts)
+    for var in s.report_to_netcdf:
+        ts = df[vardict[var]]
+        outfile.variables[var][:, i, j] = np.array(ts)
     print("wrote data from", dfpath, "to", i, j)
 
-out.close()
+outfile.to_netcdf(cfact_file)
+
 print("Successfully wrote", cfact_file, "file. Took")
 print("It took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
 
