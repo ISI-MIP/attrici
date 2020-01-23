@@ -13,7 +13,7 @@ if user == "mengel":
 
 elif user == "sitreu":
     # conda_path = "/home/sitreu/.conda/envs/mpi_py3"
-    # data_dir = "/home/sitreu/temp/isi-cfact/"
+    # data_dir = "/home/sitreu/Documents/PIK/CounterFactuals/isi-cfact/"
     data_dir = "/p/tmp/sitreu/isimip/isi-cfact"
     log_dir = "./log"
 
