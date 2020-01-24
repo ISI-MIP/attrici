@@ -114,13 +114,13 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
             b_mu = pm.Normal("mu_b", mu=1, sigma=0.5, testval=1.0)
             a_mu = pm.Normal("mu_a", mu=0, sigma=0.5, testval=0)
             mu_linear = pm.Deterministic("mu_linear", a_mu * gmtv + b_mu)
-            mu = pm.Deterministic("mu", tt.nnet.relu(mu_linear) + 1e-30)
+            mu = pm.Deterministic("mu", tt.nnet.relu(mu_linear) + 1e-10)
 
             # sigma
             b_sigma = pm.Normal("sigma_b", mu=1, sigma=0.5, testval=1.0)
             a_sigma = pm.Normal("sigma_a", mu=0, sigma=1, testval=0)
             sigma_linear = pm.Deterministic("sigma_linear", a_sigma * gmtv + b_sigma)
-            sigma = pm.Deterministic("sigma", tt.nnet.relu(sigma_linear) + 1e-30)
+            sigma = pm.Deterministic("sigma", tt.nnet.relu(sigma_linear) + 1e-6)
 
             if not self.test:
                 pm.Bernoulli(
@@ -680,7 +680,7 @@ class HursCensored(icounter.distributions.Normal):
                 "lin_sigma",
                 a_sigma * gmtv + b_sigma
             )
-            alpha = 1e-30
+            alpha = 1e-6
             sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
 
             if not self.test:
