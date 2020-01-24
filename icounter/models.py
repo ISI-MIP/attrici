@@ -1081,7 +1081,7 @@ class RsdsNormal(icounter.distributions.Normal):
                 "lin_sigma",
                 a_sigma * gmtv + b_sigma
             )
-            alpha = 1e-30
+            alpha = 1e-6
             sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
 
             if not self.test:
