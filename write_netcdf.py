@@ -13,6 +13,7 @@ import numpy as np
 # import pandas as pd
 from datetime import datetime
 import subprocess
+import icounter
 import icounter.postprocess as pp
 import settings as s
 
@@ -71,12 +72,15 @@ for var in s.report_to_netcdf:
         "f4",
         ("time", "lat", "lon"),
         chunksizes=(len(coords["time"]), 1, 1),
-        fill_value=1e20,
+        fill_value=9.9692e+36,
     )
     if var in [s.variable, s.variable+"_orig"]:
         for key,att in attributes.items():
             ncvar.setncattr(key, att)
 
+
+outfile.setncattr("cfact_version", icounter.__version__)
+outfile.setncattr("runid", Path.cwd().name)
 
 for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
 
