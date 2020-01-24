@@ -13,11 +13,12 @@ import numpy as np
 # import pandas as pd
 from datetime import datetime
 import subprocess
+import icounter
 import icounter.postprocess as pp
 import settings as s
 
 ### options for postprocess
-rechunk = False
+rechunk = True
 # cdo_processing needs rechunk
 cdo_processing = False
 
@@ -62,29 +63,24 @@ outfile = source_data.drop_vars(s.variable)
 
 outfile.to_netcdf(cfact_file)
 
-# outfile[s.variable] = source_data[s.variable]
-# outfile[s.variable+"_orig"] = source_data[s.variable].copy()
-
-# outfile[s.variable][:] = np.nan
-# outfile[s.variable+"_orig"][:] = np.nan
-
 # open with netCDF4 for memory efficient writing
 outfile = nc.Dataset(cfact_file,"a")
 
-ncvars = {}
 for var in s.report_to_netcdf:
-    ncvars[var] = outfile.createVariable(
+    ncvar = outfile.createVariable(
         var,
         "f4",
         ("time", "lat", "lon"),
         chunksizes=(len(coords["time"]), 1, 1),
-        fill_value=1e20,
+        fill_value=9.9692e+36,
     )
-    if var == s.variable:
+    if var in [s.variable, s.variable+"_orig"]:
         for key,att in attributes.items():
-            ncvars[var].__dict__[key] = att
+            ncvar.setncattr(key, att)
 
-# outfile = nc.Dataset(cfact_file, "a")
+
+outfile.setncattr("cfact_version", icounter.__version__)
+outfile.setncattr("runid", Path.cwd().name)
 
 for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
 
@@ -94,13 +90,10 @@ for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list)
         outfile.variables[var][:, i, j] = np.array(ts)
     print("wrote data from", dfpath, "to", i, j)
 
-# outfile.to_netcdf(cfact_file)
 outfile.close()
 
-
-
 print("Successfully wrote", cfact_file, "file. Took")
-print("It took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
+print("Writing took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
 
 if rechunk:
     cfact_rechunked = pp.rechunk_netcdf(cfact_file)
