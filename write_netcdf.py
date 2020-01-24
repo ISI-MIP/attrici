@@ -19,6 +19,7 @@ import icounter.postprocess as pp
 import settings as s
 
 ### options for postprocess
+write_netcdf = False
 rechunk = True
 # cdo_processing needs rechunk
 cdo_processing = False
@@ -33,72 +34,75 @@ ts_dir = s.output_dir / "timeseries" / s.variable
 cfact_dir = s.output_dir / "cfact" / s.variable
 cfact_file = cfact_dir / s.cfact_file
 
-data_gen = ts_dir.glob("**/*" + s.storage_format)
-cfact_dir.mkdir(parents=True, exist_ok=True)
+if write_netcdf:
 
-### check which data is available
-data_list = []
-lat_indices = []
-lon_indices = []
-for i in data_gen:
-    data_list.append(str(i))
-    lat_float = float(str(i).split("lat")[-1].split("_")[0])
-    lon_float = float(str(i).split("lon")[-1].split(s.storage_format)[0])
-    lat_indices.append(int(180 - 2 * lat_float - 0.5))
-    lon_indices.append(int(2 * lon_float - 0.5 + 360))
+    data_gen = ts_dir.glob("**/*" + s.storage_format)
+    cfact_dir.mkdir(parents=True, exist_ok=True)
 
-# adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
-# TODO: make this more robust
-lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
-lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
+    ### check which data is available
+    data_list = []
+    lat_indices = []
+    lon_indices = []
+    for i in data_gen:
+        data_list.append(str(i))
+        lat_float = float(str(i).split("lat")[-1].split("_")[0])
+        lon_float = float(str(i).split("lon")[-1].split(s.storage_format)[0])
+        lat_indices.append(int(180 - 2 * lat_float - 0.5))
+        lon_indices.append(int(2 * lon_float - 0.5 + 360))
 
-#  get headers and form empty netCDF file with all meatdata
-print(data_list[0])
+    # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
+    # TODO: make this more robust
+    lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
+    lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
 
-# write empty outfile to netcdf with all orignal attributes
-source_data = xr.open_dataset(source_file)
-attributes = source_data[s.variable].attrs
-coords = source_data[s.variable].coords
+    #  get headers and form empty netCDF file with all meatdata
+    print(data_list[0])
 
-outfile = source_data.drop_vars(s.variable)
+    # write empty outfile to netcdf with all orignal attributes
+    source_data = xr.open_dataset(source_file)
+    attributes = source_data[s.variable].attrs
+    coords = source_data[s.variable].coords
 
-outfile.to_netcdf(cfact_file)
+    outfile = source_data.drop_vars(s.variable)
 
-# open with netCDF4 for memory efficient writing
-outfile = nc.Dataset(cfact_file, "a")
+    outfile.to_netcdf(cfact_file)
 
-for var in s.report_to_netcdf:
-    ncvar = outfile.createVariable(
-        var,
-        "f4",
-        ("time", "lat", "lon"),
-        chunksizes=(len(coords["time"]), 1, 1),
-        fill_value=9.9692e36,
-    )
-    if var in [s.variable, s.variable + "_orig"]:
-        for key, att in attributes.items():
-            ncvar.setncattr(key, att)
+    # open with netCDF4 for memory efficient writing
+    outfile = nc.Dataset(cfact_file, "a")
 
-
-outfile.setncattr("cfact_version", icounter.__version__)
-outfile.setncattr("runid", Path.cwd().name)
-
-for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
-
-    df = pp.read_from_disk(dfpath)
     for var in s.report_to_netcdf:
-        ts = df[vardict[var]]
-        outfile.variables[var][:, i, j] = np.array(ts)
-    print("wrote data from", dfpath, "to", i, j)
+        ncvar = outfile.createVariable(
+            var,
+            "f4",
+            ("time", "lat", "lon"),
+            chunksizes=(len(coords["time"]), 1, 1),
+            fill_value=9.9692e36,
+        )
+        if var in [s.variable, s.variable + "_orig"]:
+            for key, att in attributes.items():
+                ncvar.setncattr(key, att)
 
-outfile.close()
 
-print("Successfully wrote", cfact_file, "file. Took")
-print(
-    "Writing took {0:.1f} minutes.".format(
-        (datetime.now() - TIME0).total_seconds() / 60
-    )
+    outfile.setncattr("cfact_version", icounter.__version__)
+    outfile.setncattr("runid", Path.cwd().name)
+
+    for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
+
+        df = pp.read_from_disk(dfpath)
+        for var in s.report_to_netcdf:
+            ts = df[vardict[var]]
+            outfile.variables[var][:, i, j] = np.array(ts)
+        print("wrote data from", dfpath, "to", i, j)
+
+    outfile.close()
+
+    print("Successfully wrote", cfact_file, "file. Took")
+    print(
+        "Writing took {0:.1f} minutes.".format(
+            (datetime.now() - TIME0).total_seconds() / 60
+        )
 )
+
 
 if rechunk:
     cfact_rechunked = pp.rechunk_netcdf(cfact_file)
