@@ -1023,7 +1023,6 @@ class RsdsNormal(icounter.distributions.Normal):
     """ Influence of GMT is modelled through a shift of
         mu and sigma parameters in a Beta distribution.
         """
-    # Todo implement appropriate quantile mapping
 
     def __init__(self, modes):
         super(RsdsNormal, self).__init__()
@@ -1081,8 +1080,8 @@ class RsdsNormal(icounter.distributions.Normal):
                 "lin_sigma",
                 a_sigma * gmtv + b_sigma
             )
-            alpha = 1e-30
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
+            alpha = 1e-6
+            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha * tt.exp(lin-alpha)))
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
