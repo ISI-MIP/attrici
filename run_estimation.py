@@ -12,6 +12,7 @@ import settings as s
 from pymc3.parallel_sampling import ParallelSamplingError
 import logging
 
+s.output_dir.mkdir(parents=True,exist_ok=True)
 logging.basicConfig(
     filename=s.output_dir / "failing_cells.log",
     level=logging.ERROR,

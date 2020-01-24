@@ -11,7 +11,6 @@
 #SBATCH --error=./log/%x.err
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=mengel@pik-potsdam.de
-# #SBATCH --time=00-23:50:00
 
 # block one node to have enough memory
 #SBATCH --ntasks=1
