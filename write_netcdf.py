@@ -10,6 +10,7 @@ import netCDF4 as nc
 import xarray as xr
 
 import numpy as np
+
 # import pandas as pd
 from datetime import datetime
 import subprocess
@@ -23,7 +24,7 @@ rechunk = True
 cdo_processing = False
 
 # append later with more variables if needed
-vardict = {s.variable: "cfact", s.variable+"_orig": "y"}
+vardict = {s.variable: "cfact", s.variable + "_orig": "y"}
 
 TIME0 = datetime.now()
 
@@ -64,7 +65,7 @@ outfile = source_data.drop_vars(s.variable)
 outfile.to_netcdf(cfact_file)
 
 # open with netCDF4 for memory efficient writing
-outfile = nc.Dataset(cfact_file,"a")
+outfile = nc.Dataset(cfact_file, "a")
 
 for var in s.report_to_netcdf:
     ncvar = outfile.createVariable(
@@ -72,10 +73,10 @@ for var in s.report_to_netcdf:
         "f4",
         ("time", "lat", "lon"),
         chunksizes=(len(coords["time"]), 1, 1),
-        fill_value=9.9692e+36,
+        fill_value=9.9692e36,
     )
-    if var in [s.variable, s.variable+"_orig"]:
-        for key,att in attributes.items():
+    if var in [s.variable, s.variable + "_orig"]:
+        for key, att in attributes.items():
             ncvar.setncattr(key, att)
 
 
@@ -93,7 +94,11 @@ for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list)
 outfile.close()
 
 print("Successfully wrote", cfact_file, "file. Took")
-print("Writing took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
+print(
+    "Writing took {0:.1f} minutes.".format(
+        (datetime.now() - TIME0).total_seconds() / 60
+    )
+)
 
 if rechunk:
     cfact_rechunked = pp.rechunk_netcdf(cfact_file)
@@ -112,7 +117,9 @@ if cdo_processing:
 
         outfile = str(cfact_file).rstrip(".nc4") + "_" + cdo_op + ".nc4"
         if "trend" in cdo_op:
-            outfile = outfile.rstrip(".nc4") + "_1.nc4 " + outfile.rstrip(".nc4") + "_2.nc4"
+            outfile = (
+                outfile.rstrip(".nc4") + "_1.nc4 " + outfile.rstrip(".nc4") + "_2.nc4"
+            )
         try:
             cmd = "cdo " + cdo_ops[cdo_op] + " " + cfact_rechunked + " " + outfile
             print(cmd)

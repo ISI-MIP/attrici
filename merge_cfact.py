@@ -51,7 +51,7 @@ lat = obs.variables["lat"][:]
 lon = obs.variables["lon"][:]
 
 # append later with more variables if needed
-variables_to_report = {s.variable: "cfact", s.variable+"_orig": "y"}
+variables_to_report = {s.variable: "cfact", s.variable + "_orig": "y"}
 
 #  get headers and form empty netCDF file with all meatdata
 headers = pp.read_from_disk(data_list[0]).keys()
@@ -91,7 +91,9 @@ if cdo_processing:
 
         outfile = str(cfact_file).rstrip(".nc4") + "_" + cdo_op + ".nc4"
         if "trend" in cdo_op:
-            outfile = outfile.rstrip(".nc4") + "_1.nc4 " + outfile.rstrip(".nc4") + "_2.nc4"
+            outfile = (
+                outfile.rstrip(".nc4") + "_1.nc4 " + outfile.rstrip(".nc4") + "_2.nc4"
+            )
         try:
             cmd = "cdo " + cdo_ops[cdo_op] + " " + cfact_rechunked + " " + outfile
             print(cmd)

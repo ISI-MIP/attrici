@@ -24,7 +24,7 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "tas"  # select variable to detrend
+variable = "pr"  # select variable to detrend
 
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
@@ -38,7 +38,7 @@ subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 dataset = "GSWP3"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 20
+lateral_sub = 80
 
 # start and end date are the time period used to construct
 # the reference distribution for quantile mapping.
@@ -57,7 +57,7 @@ storage_format = ".h5"
 report_variables = "all"
 # reporting to netcdf can include all report variables
 # "cfact" is translated to variable, and "y" to variable_orig
-report_to_netcdf = [variable, variable+"_orig"]
+report_to_netcdf = [variable, variable + "_orig"]
 
 save_trace = True
 skip_if_data_exists = True
