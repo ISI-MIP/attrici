@@ -81,30 +81,8 @@ The configuration is very much tailored to the PIK supercomputer at the moment. 
 You may optionally
 `cp config/theanorc ~/.theanorc`
 
-## Comments for each variable
+## Comments for datasets
 
-#### tas
-data checked
-Works using Normal distribution
-
-#### rlds
-data checked
-Works using Normal distribution
-Needs a restart to finish some hanging runs
-
-#### psl / ps
-data checked
-Works using Normal distribution
-
-#### rsds
-Deviationg approach from Lange et al. 2019, using Normal distribution
-This is because the yearly cycle is handled inherently here, so no need for specific treatment.
-FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
-
-#### hurs (relative humidity)
-data checked
-With Beta distribution, working
-Needs to be rerun so some holes are filled.
 
 GSWP: needs preprocessing to rename from rhs to hurs, and mask invalid values below zero:
 
@@ -113,42 +91,6 @@ ncrename -O -v rhs,hurs fname1.nc fname2.nc
 
 cdo setrtomiss,-1e20,0 fname2.nc fname3.nc
 ```
-
-#### tasskew
-tasskew = (tas-tasmin)/tasrange
-
-data checked
-Works using Beta distribution
-
-
-#### prsnratio
-Beta distribution
-Snow included in GSWP3
-
-#### tasrange
-tasrange = tasmin - tasmax
-
-With Rice distribution
-ADVI introduces strong positive trend.
-Possible issue: use real mu, not nu for quantile mapping.
-
-#### tasmin
-Constructed from tas, tasskew and tasrange
-To do in postprocessing
-
-#### tasmax
-Constructed from tas, tasskew and tasrange
-To do in postprocessing
-
-#### pr
-Mixed Bernoulli-Gamma distribution
-Does not remove all regional trends with NUTS.
-Fails with ADVI.
-Low latitudes are particularly most difficult.
-
-#### wind
-Works using Weibull distribution
-FIXME: does not seem to detrend. Seems we rather chose the parameter that adjusted the variability range
 
 
 ## Credits
