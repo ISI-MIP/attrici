@@ -1,5 +1,7 @@
 import pandas as pd
 import subprocess
+from datetime import datetime
+
 
 def read_from_disk(data_path):
 
@@ -15,6 +17,8 @@ def read_from_disk(data_path):
 
 
 def form_global_nc(ds, time, lat, lon, vnames, torigin):
+
+    # FIXME: can be deleted once merge_cfact is fully replaced by write_netcdf
 
     ds.createDimension("time", None)
     ds.createDimension("lat", lat.shape[0])
@@ -47,9 +51,11 @@ def rechunk_netcdf(ncfile):
 
     ncfile_rechunked = str(ncfile).rstrip(".nc4") + "_rechunked.nc4"
 
+    TIME0 = datetime.now()
+
     try:
         cmd = (
-            "ncks -4 -O -L 0 "
+            "ncks -4 -O --deflate 5 "
             + "--cnk_plc=g3d --cnk_dmn=time,1024 --cnk_dmn=lat,64 --cnk_dmn=lon,128 "
             + str(ncfile)
             + " "
@@ -61,5 +67,7 @@ def rechunk_netcdf(ncfile):
         cmd = "module load nco & module load intel/2018.1 && " + cmd
         print(cmd)
         subprocess.check_call(cmd, shell=True)
+
+    print("Rechunking took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
 
     return ncfile_rechunked

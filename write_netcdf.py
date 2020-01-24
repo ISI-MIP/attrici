@@ -18,7 +18,7 @@ import icounter.postprocess as pp
 import settings as s
 
 ### options for postprocess
-rechunk = False
+rechunk = True
 # cdo_processing needs rechunk
 cdo_processing = False
 
@@ -93,7 +93,7 @@ for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list)
 outfile.close()
 
 print("Successfully wrote", cfact_file, "file. Took")
-print("It took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
+print("Writing took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
 
 if rechunk:
     cfact_rechunked = pp.rechunk_netcdf(cfact_file)
