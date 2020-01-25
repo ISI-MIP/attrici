@@ -47,9 +47,8 @@ def form_global_nc(ds, time, lat, lon, vnames, torigin):
     longitudes[:] = lon
     times[:] = time
 
-def rechunk_netcdf(ncfile):
+def rechunk_netcdf(ncfile, ncfile_rechunked):
 
-    ncfile_rechunked = str(ncfile).rstrip(".nc4") + "_rechunked.nc4"
 
     TIME0 = datetime.now()
 

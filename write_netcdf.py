@@ -22,10 +22,20 @@ import settings as s
 write_netcdf = False
 rechunk = True
 # cdo_processing needs rechunk
-cdo_processing = False
+cdo_processing = True
 
 # append later with more variables if needed
 vardict = {s.variable: "cfact", s.variable + "_orig": "y"}
+
+cdo_ops = {
+    "monmean": "monmean ",
+    "yearmean": "yearmean ",
+    #    "monmean_valid": "monmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+    #    "yearmean_valid": "yearmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+    "trend": "trend ",
+    #    "trend_valid": "trend -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+}
+
 
 TIME0 = datetime.now()
 
@@ -33,6 +43,7 @@ source_file = Path(s.input_dir) / s.dataset / s.source_file.lower()
 ts_dir = s.output_dir / "timeseries" / s.variable
 cfact_dir = s.output_dir / "cfact" / s.variable
 cfact_file = cfact_dir / s.cfact_file
+cfact_rechunked = str(cfact_file).rstrip(".nc4") + "_rechunked.nc4"
 
 if write_netcdf:
 
@@ -103,19 +114,10 @@ if write_netcdf:
         )
 )
 
-
 if rechunk:
-    cfact_rechunked = pp.rechunk_netcdf(cfact_file)
+    cfact_rechunked = pp.rechunk_netcdf(cfact_file, cfact_rechunked)
 
 if cdo_processing:
-    cdo_ops = {
-        "monmean": "monmean -selvar,cfact,y",
-        "yearmean": "yearmean -selvar,cfact,y",
-        #    "monmean_valid": "monmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
-        #    "yearmean_valid": "yearmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
-        "trend": "trend -selvar,cfact,y",
-        #    "trend_valid": "trend -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
-    }
 
     for cdo_op in cdo_ops:
 
