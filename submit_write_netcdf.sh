@@ -16,4 +16,4 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 
-/p/projects/tumble/condaenvs/cfact_gnu/bin/python -u write_netcdf.py
+/p/tmp/mengel/condaenvs/isi-cfact/bin/python -u write_netcdf.py

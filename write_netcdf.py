@@ -19,7 +19,7 @@ import icounter.postprocess as pp
 import settings as s
 
 ### options for postprocess
-write_netcdf = False
+write_netcdf = True
 rechunk = True
 # cdo_processing needs rechunk
 cdo_processing = True
