@@ -65,13 +65,17 @@ df_specs["index_lon"] = jgrid[ls_mask == 1]
 print("A total of", len(df_specs), "grid cells to estimate.")
 
 if len(df_specs) % (njobarray) == 0:
-    print("Grid cells can be equally distributed to slurm tasks")
+    print("Grid cells can be equally distributed to Slurm tasks")
     calls_per_arrayjob = np.ones(njobarray) * len(df_specs) // (njobarray)
 else:
-    print("Slurm tasks not a divisor of number of grid cells")
-    calls_per_arrayjob = np.ones(njobarray) * len(df_specs) // (njobarray-1)
-    calls_per_arrayjob[-1] = len(df_specs) % (njobarray-1)
+    print("Slurm tasks not a divisor of number of grid cells, discard some cores.")
+    calls_per_arrayjob = np.ones(njobarray) * len(df_specs) // (njobarray) + 1
+    discarded_jobs = np.where(np.cumsum(calls_per_arrayjob) > len(df_specs))
+    calls_per_arrayjob[discarded_jobs] = 0
+    calls_per_arrayjob[discarded_jobs[0][0]] = len(df_specs) - calls_per_arrayjob.sum()
 
+assert calls_per_arrayjob.sum() == len(df_specs)
+# print(calls_per_arrayjob)
 
 # Calculate the starting and ending values for this task based
 # on the SLURM task and the number of runs per task.
