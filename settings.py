@@ -38,7 +38,7 @@ subset = 10  # only use every subset datapoint for bayes estimation for speedup
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 dataset = "GSWP3"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 80
+lateral_sub = 20
 
 # start and end date are the time period used to construct
 # the reference distribution for quantile mapping.
