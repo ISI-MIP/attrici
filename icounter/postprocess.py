@@ -1,7 +1,9 @@
+import shutil
+import numpy as np
 import pandas as pd
 import subprocess
 from datetime import datetime
-
+import netCDF4 as nc
 
 def read_from_disk(data_path):
 
@@ -70,3 +72,39 @@ def rechunk_netcdf(ncfile, ncfile_rechunked):
     print("Rechunking took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
 
     return ncfile_rechunked
+
+
+def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
+
+    def replace(var, var_orig):
+
+        isinf = np.where(np.isinf(var))
+        isnan = np.where(np.isnan(var))
+
+        var[isinf] = var_orig[isinf]
+        var[isnan] = var_orig[isnan]
+
+        print(f"Replaced {np.isinf(var).sum()} Inf values." )
+        print(f"Replaced {np.isnan(var).sum()} NaN values." )
+
+    ncfile_valid = ncfile_rechunked.rstrip(".nc4") + "_valid.nc4"
+    shutil.copy(ncfile_rechunked, ncfile_valid)
+
+    print(f"Replace invalid values in {ncfile_rechunked} with original values from {source_file}")
+
+    ncs = nc.Dataset(source_file, "r")
+    ncf = nc.Dataset(ncfile_valid, "a")
+
+    var_orig = ncs.variables[variable]
+    var = ncf.variables[variable]
+
+    chunklen = 36
+    for xi in range(0,var.shape[1],chunklen):
+        for yi in range(0,var.shape[2],chunklen):
+            print(xi, yi)
+            replace(var[xi:xi+chunklen,yi:yi+chunklen],
+                    var_orig[xi:xi+chunklen,yi:yi+chunklen])
+
+    ncs.close()
+    ncf.close()
+    return ncfile_valid

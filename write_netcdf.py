@@ -19,8 +19,9 @@ import icounter.postprocess as pp
 import settings as s
 
 ### options for postprocess
-write_netcdf = True
-rechunk = True
+write_netcdf = False
+rechunk = False
+replace_invalid=True
 # cdo_processing needs rechunk
 cdo_processing = True
 
@@ -116,6 +117,10 @@ if write_netcdf:
 
 if rechunk:
     cfact_rechunked = pp.rechunk_netcdf(cfact_file, cfact_rechunked)
+
+if replace_invalid:
+    cfact_rechunked = pp.replace_nan_inf_with_orig(s.variable, source_file, cfact_rechunked)
+
 
 if cdo_processing:
 
