@@ -79,8 +79,9 @@ assert calls_per_arrayjob.sum() == len(df_specs)
 
 # Calculate the starting and ending values for this task based
 # on the SLURM task and the number of runs per task.
-start_num = int(task_id * calls_per_arrayjob[task_id])
-end_num = int((task_id + 1) * calls_per_arrayjob[task_id] - 1)
+cum_calls_per_arrayjob = calls_per_arrayjob.cumsum()
+start_num = 0 if task_id == 0 else cum_calls_per_arrayjob[task_id-1]
+end_num = cum_calls_per_arrayjob[task_id] - 1
 run_numbers = np.arange(start_num, end_num + 1, 1, dtype=np.int)
 print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
