@@ -154,9 +154,9 @@ class estimator(object):
 
         # df = df.replace([np.inf, -np.inf], np.nan)
         # if df["y"].isna().sum() > 0:
-        yna = df["y"].isna().sum()
-        yinf = (df["y"] == np.inf).sum()
-        yminf = (df["y"] == -np.inf).sum()
+        yna = df["cfact"].isna().sum()
+        yinf = (df["cfact"] == np.inf).sum()
+        yminf = (df["ctact"] == -np.inf).sum()
         print(f"There are {yna} NaN values from quantile mapping.")
         print(f"There are {yinf} Inf values from quantile mapping.")
         print(f"There are {yminf} -Inf values from quantile mapping.")
