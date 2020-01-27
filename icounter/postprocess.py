@@ -57,7 +57,7 @@ def rechunk_netcdf(ncfile, ncfile_rechunked):
     try:
         cmd = (
             "ncks -4 -O --deflate 5 "
-            + "--cnk_plc=g3d --cnk_dmn=time,1024 --cnk_dmn=lat,64 --cnk_dmn=lon,128 "
+            + "--cnk_plc=g3d --cnk_dmn=lat,360 --cnk_dmn=lon,720 "
             + str(ncfile)
             + " "
             + ncfile_rechunked
