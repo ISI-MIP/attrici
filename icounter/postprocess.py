@@ -81,11 +81,12 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
         isinf = np.where(np.isinf(var))
         isnan = np.where(np.isnan(var))
 
+        print(f"Replace {np.isinf(var).sum()} Inf values." )
+        print(f"Replace {np.isnan(var).sum()} NaN values." )
+
         var[isinf] = var_orig[isinf]
         var[isnan] = var_orig[isnan]
 
-        print(f"Replaced {np.isinf(var).sum()} Inf values." )
-        print(f"Replaced {np.isnan(var).sum()} NaN values." )
 
     ncfile_valid = ncfile_rechunked.rstrip(".nc4") + "_valid.nc4"
     shutil.copy(ncfile_rechunked, ncfile_valid)
@@ -102,8 +103,8 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     for xi in range(0,var.shape[1],chunklen):
         for yi in range(0,var.shape[2],chunklen):
             print(xi, yi)
-            replace(var[xi:xi+chunklen,yi:yi+chunklen],
-                    var_orig[xi:xi+chunklen,yi:yi+chunklen])
+            replace(var[:,xi:xi+chunklen,yi:yi+chunklen],
+                    var_orig[:,xi:xi+chunklen,yi:yi+chunklen])
 
     ncs.close()
     ncf.close()
