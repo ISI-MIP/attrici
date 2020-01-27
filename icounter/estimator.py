@@ -154,12 +154,15 @@ class estimator(object):
 
         # df = df.replace([np.inf, -np.inf], np.nan)
         # if df["y"].isna().sum() > 0:
-        yna = df["cfact"].isna().sum()
-        yinf = (df["cfact"] == np.inf).sum()
-        yminf = (df["ctact"] == -np.inf).sum()
-        print(f"There are {yna} NaN values from quantile mapping.")
-        print(f"There are {yinf} Inf values from quantile mapping.")
-        print(f"There are {yminf} -Inf values from quantile mapping.")
+        yna = df["cfact"].isna()
+        yinf = df["cfact"] == np.inf
+        yminf = df["cfact"] == -np.inf
+        print(f"There are {yna.sum()} NaN values from quantile mapping. Replace.")
+        print(f"There are {yinf.sum()} Inf values from quantile mapping. Replace.")
+        print(f"There are {yminf.sum()} -Inf values from quantile mapping. Replace.")
+
+        df.loc[yna | yinf | yminf, "cfact"] = df.loc[yna | yinf | yminf, "y"]
+
 
         # todo: unifiy indexes so .values can be dropped
         for v in df_params.columns:

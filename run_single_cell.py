@@ -13,8 +13,8 @@ import settings as s
 print("Version", icounter.__version__)
 
 
-lat = 29.75
-lon = 30.25
+lat = 69.75
+lon = -139.75
 submitted = False
 njobarray = 1
 task_id = 0
