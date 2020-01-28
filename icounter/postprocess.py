@@ -76,18 +76,6 @@ def rechunk_netcdf(ncfile, ncfile_rechunked):
 
 def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
 
-    def replace(var, var_orig):
-
-        isinf = np.where(np.isinf(var))
-        isnan = np.where(np.isnan(var))
-
-        print(f"Replace {np.isinf(var).sum()} Inf values." )
-        print(f"Replace {np.isnan(var).sum()} NaN values." )
-
-        var[isinf] = var_orig[isinf]
-        var[isnan] = var_orig[isnan]
-
-
     ncfile_valid = ncfile_rechunked.rstrip(".nc4") + "_valid.nc4"
     shutil.copy(ncfile_rechunked, ncfile_valid)
 
@@ -99,12 +87,16 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     var_orig = ncs.variables[variable]
     var = ncf.variables[variable]
 
-    chunklen = 36
-    for xi in range(0,var.shape[1],chunklen):
-        for yi in range(0,var.shape[2],chunklen):
-            print(xi, yi)
-            replace(var[:,xi:xi+chunklen,yi:yi+chunklen],
-                    var_orig[:,xi:xi+chunklen,yi:yi+chunklen])
+    chunklen = 1000
+    for ti in range(0,var.shape[0],chunklen):
+        v = var[ti:ti+chunklen,:,:]
+        v_orig = var_orig[ti:ti+chunklen,:,:]
+        isinf = np.isinf(v)
+        isnan = np.isnan(v)
+        print(ti, ", replace", isinf.sum(), " inf and ", isnan.sum(), " nan values.")
+
+        v[isinf | isnan] = v_orig[isinf | isnan]
+        var[ti:ti+v.shape[0],:,:] = v
 
     ncs.close()
     ncf.close()
