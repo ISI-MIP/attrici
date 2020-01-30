@@ -81,8 +81,44 @@ The configuration is very much tailored to the PIK supercomputer at the moment. 
 You may optionally
 `cp config/theanorc ~/.theanorc`
 
-## Comments for datasets
+## Comments for each variable
 
+#### daily mean temperature (tas)
+Two cells fail in complete dataset.
+67418 of 6420 cells.
+
+#### tasskew
+Work in progress. See #59
+
+#### tasrange
+Calculation alsmost complete on full dataset.
+Some cells do not detrend as expected. Need assessment.
+See #60.
+
+#### precipiation (pr)
+Calculatio complete.
+67339 of 67420 work.
+
+#### sea level pressure (ps)
+Calculation complete on full dataset.
+See #65
+
+#### wind
+Calculation complete on full dataset.
+Minor issues on the coast of the Arabic Peninsula.
+See #66
+
+#### longwave radiation (rlds)
+Calculation complete on full dataset.
+Need check of trend removal.
+
+#### shortwave radiation (rsds)
+
+#### relative humidity (hurs)
+
+
+
+## Comments for datasets
 
 GSWP: needs preprocessing to rename from rhs to hurs, and mask invalid values below zero:
 
