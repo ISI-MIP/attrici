@@ -1304,6 +1304,60 @@ class Tasrange(icounter.distributions.Rice):
                 "lin_nu",
                 (a_nu + det_dot(xf1, fctrend_nu)) * gmtv + b_nu + det_dot(xf0, fc_nu),
             )
+            nu = pm.Deterministic("nu", pm.math.switch(lin_nu > 0, lin_nu, 0))
+
+            # sigma
+            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
+
+            lin = pm.Deterministic(
+                "lin_sigma",
+                a_sigma * gmtv + b_sigma
+            )
+            cutoff = 1e-15
+            sigma = pm.Deterministic("sigma", pm.math.switch(lin > cutoff, lin, cutoff))
+
+            if not self.test:
+                pm.Rice("obs", nu=nu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class TasrangeConstSigma(icounter.distributions.Rice):
+
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Beta distribution.
+    """
+
+    def __init__(self, modes):
+        super(TasrangeConstSigma, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # nu
+            # b_nu = pm.Lognormal("b_nu", mu=0.0, sigma=1)
+            b_nu = pm.HalfCauchy("b_nu", 0.1, testval=1)
+            a_nu = pm.Normal("a_nu", mu=0, sigma=0.1)
+
+            fc_nu = pm.Normal("fc_nu", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
+            fctrend_nu = pm.Normal("fctrend_nu", mu=0.0, sigma=0.1, shape=xf1.dshape[1])
+
+            lin_nu = pm.Deterministic(
+                "lin_nu",
+                (a_nu + det_dot(xf1, fctrend_nu)) * gmtv + b_nu + det_dot(xf0, fc_nu),
+            )
             cutoff = 1e-6
             nu = pm.Deterministic("nu", pm.math.switch(lin_nu > cutoff, lin_nu, cutoff))
             # sigma
