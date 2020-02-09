@@ -1436,12 +1436,67 @@ class Wind(icounter.distributions.Weibull):
 
     """ Influence of GMT is modelled through a shift of
     the scale parameter beta in the Weibull distribution. The shape
-    parameter alpha is assumed free of a trend.
+    parameter alpha is assumed to be a function of beta.
 
     """
 
     def __init__(self, modes):
         super(Wind, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # beta
+            b_beta = pm.Lognormal("b_beta", mu=-1, sigma=0.4, testval=1.0)
+            a_beta = pm.Normal("a_beta", mu=0, sigma=.1)
+
+            fc_beta = pm.Normal("fc_beta", mu=0.0, sd=.1, shape=xf0.dshape[1])
+            fctrend_beta = pm.Normal("fctrend_beta", mu=0.0, sd=.1, shape=xf1.dshape[1])
+
+            lin_beta = pm.Deterministic(
+                "lin_beta",
+                (a_beta + det_dot(xf1, fctrend_beta)) * gmtv
+                + b_beta
+                + det_dot(xf0, fc_beta)
+            )
+            cutoff = 1e-6
+            beta = pm.Deterministic("beta", pm.math.switch(lin_beta > cutoff, lin_beta, cutoff))
+
+            # beta
+            # a alpha and b alpha could also be a function of GMT
+            a_alpha = pm.Normal("a_alpha", mu=0.0, sd=.1)
+            b_alpha = pm.Normal("b_alpha", mu=0.0, sd=.1)
+            lin_alpha = a_alpha * beta + b_alpha
+            cutoff = 1e-6
+            alpha = pm.Deterministic("alpha", pm.math.switch(lin_alpha > cutoff, lin_alpha, cutoff))
+
+            if not self.test:
+                pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class WindLogistic(icounter.distributions.Weibull):
+
+    """ Influence of GMT is modelled through a shift of
+    the scale parameter beta in the Weibull distribution. The shape
+    parameter alpha is assumed free of a trend.
+
+    """
+
+    def __init__(self, modes):
+        super(WindLogistic, self).__init__()
         self.modes = modes
         self.test = False
 
