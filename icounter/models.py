@@ -1358,6 +1358,64 @@ class Tasrange(icounter.distributions.Rice):
             xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
 
             # nu
+            # b_nu = pm.HalfCauchy("b_nu", 0.1,testval=0.5)
+            b_nu = pm.Lognormal("b_nu", mu=0, sigma=.5, testval=1)
+            a_nu = pm.Normal("a_nu", mu=0, sigma=0.05, testval=0)
+
+            lin = pm.Deterministic(
+                "lin_nu",
+                a_nu * gmtv + b_nu
+            )
+
+            nu = pm.Deterministic("nu", pm.math.switch(lin > 1e-6, lin, 1e-6))
+            # nu = pm.HalfCauchy("nu", .1, testval=.5)
+
+            # sigma
+            # sigma = pm.Lognormal("sigma", mu=1, sigma=.5, testval=1)
+            b_sigma = pm.Lognormal("b_sigma", mu=0, sigma=.5, testval=1)
+            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.01, testval=0)
+
+            fc_sigma = pm.Normal("fc_sigma", mu=0.0, sigma=.1, shape=xf0.dshape[1], testval=0)
+            fctrend_sigma = pm.Normal("fctrend_sigma", mu=0.0, sigma=0.1, shape=xf1.dshape[1],testval=0)
+
+            lin_sigma = pm.Deterministic(
+                "lin_sigma",
+                (a_sigma + det_dot(xf1, fctrend_sigma)) * gmtv + b_sigma + det_dot(xf0, fc_sigma),
+            )
+            cutoff = tt.sqrt(nu)/5 # otherwise x*nu/sigma**2 gets larger then 25 which may lead to inf value in logp
+            #cutoff = 1e-3
+            sigma = pm.Deterministic("sigma", pm.math.switch(lin_sigma > cutoff, lin_sigma, cutoff))
+
+            if not self.test:
+                pm.Rice("obs", nu=nu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class TasrangeConstSigma(icounter.distributions.Rice):
+
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Beta distribution.
+    """
+
+    def __init__(self, modes):
+        super(TasrangeConstSigma, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # nu
             # b_nu = pm.Lognormal("b_nu", mu=0.0, sigma=1)
             b_nu = pm.HalfCauchy("b_nu", 0.1, testval=1)
             a_nu = pm.Normal("a_nu", mu=0, sigma=0.1)
