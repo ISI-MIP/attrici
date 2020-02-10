@@ -1610,7 +1610,7 @@ class Wind(icounter.distributions.Weibull):
             # beta
             # a alpha and b alpha could also be a function of GMT
             a_alpha = pm.Normal("a_alpha", mu=0.0, sd=.1)
-            b_alpha = pm.Normal("b_alpha", mu=0, sd=5)
+            b_alpha = pm.Normal("b_alpha", mu=2, sd=1)
             lin_alpha = a_alpha * beta + b_alpha
             cutoff = 1e-10
             alpha = pm.Deterministic("alpha", pm.math.switch(lin_alpha > cutoff, lin_alpha, cutoff))
