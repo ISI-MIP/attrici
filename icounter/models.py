@@ -1443,6 +1443,67 @@ class Tasrange(icounter.distributions.Normal):
             )
 
             # sigma
+            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
+
+
+            if not self.test:
+                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+        return model
+
+
+class TasrangeSigmaTrend(icounter.distributions.Normal):
+
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Beta distribution.
+    """
+
+    def __init__(self, modes):
+        super(TasrangeSigmaTrend, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def quantile_mapping(self, d, y_scaled):
+
+        """
+        specific for normally distributed variables.
+        """
+        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
+        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
+        x_mapped[x_mapped <= 0] = np.nan
+        # values are not alowed to become non-negative. If that would happen, do not quantile map
+        return x_mapped
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # FIXME: We can assume that all tas values are valid i think,
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # mu
+            # b_mu is in the interval (-inf,inf)
+            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
+            # a_mu in (-inf, inf)
+            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
+
+            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
+            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
+
+            # in (-inf, inf)
+            mu = pm.Deterministic(
+                "mu",
+                a_mu * gmtv
+                + b_mu
+                + det_dot(xf0, fc_mu)
+                + gmtv * det_dot(xf1, fctrend_mu),
+            )
+
+            # sigma
             # b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
             # a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
             #
@@ -1524,14 +1585,14 @@ class TasrangeRice(icounter.distributions.Rice):
         return model
 
 
-class TasrangeConstSigma(icounter.distributions.Rice):
+class TasrangeRiceConstSigma(icounter.distributions.Rice):
 
     """ Influence of GMT is modelled through a shift of
     mu and sigma parameters in a Beta distribution.
     """
 
     def __init__(self, modes):
-        super(TasrangeConstSigma, self).__init__()
+        super(TasrangeRiceConstSigma, self).__init__()
         self.modes = modes
         self.test = False
 
