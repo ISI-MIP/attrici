@@ -15,7 +15,7 @@ model_for_var = {
     "tasskew": models.Tasskew,
     "pr": models.PrecipitationLongterm,
     "prsnratio": models.Beta,
-    "hurs": models.HursCensored,
+    "hurs": models.Hurs,
     "wind": models.Wind,
     "ps": models.Ps,
     "rsds": models.RsdsNormal,
