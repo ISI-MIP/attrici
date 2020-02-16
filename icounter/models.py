@@ -464,15 +464,7 @@ class Tas(icounter.distributions.Normal):
             )
 
             # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
-
-            lin = pm.Deterministic(
-                "lin_sigma",
-                a_sigma * gmtv + b_sigma
-            )
-            alpha = 1e-10
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
+            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
@@ -569,15 +561,7 @@ class Rlds(icounter.distributions.Normal):
                 + gmtv * det_dot(xf1, fctrend_mu),
             )
             # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
-
-            lin = pm.Deterministic(
-                "lin_sigma",
-                a_sigma * gmtv + b_sigma
-            )
-            alpha = 1e-6
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
+            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
@@ -676,15 +660,7 @@ class Ps(icounter.distributions.Normal):
             )
 
             # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
-
-            lin = pm.Deterministic(
-                "lin_sigma",
-                a_sigma * gmtv + b_sigma
-            )
-            alpha = 1e-6
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
+            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
