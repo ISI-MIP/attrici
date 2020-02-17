@@ -57,6 +57,58 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
             mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
 
             # sigma
+            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
+
+            if not self.test:
+                pm.Bernoulli(
+                    "bernoulli", p=pbern, observed=df_subset["is_dry_day"].astype(int)
+                )
+                pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class PrecipitationLongtermTrendSigma(icounter.distributions.BernoulliGamma):
+
+    """ Influence of GMT is modelled through the parameters of the Gamma
+    distribution. Example: precipitation """
+
+    def __init__(self, modes):
+        super(PrecipitationLongtermTrendSigma, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+
+        model = pm.Model()
+
+        with model:
+            # todo broken as pbern is not in (0, 1)
+
+            # dropna to make sampling possible for the precipitation amounts.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
+            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
+
+            # pbern
+            # b is in the interval (0,2)
+            b = pm.Beta(
+                "pbern_b", alpha=2, beta=2
+            )  # beta(2, 2) is symmetric with mode at 0.5 b is in
+            # a is in the interval (-b,1-b)
+            a = tt.sub(pm.Beta("pbern_a", alpha=2, beta=2), b)
+            # pbern is in the interval (0,1)
+            pbern = a * gmt + b  # pbern is a linear model of gmt
+            pbern = pm.Deterministic("pbern", pbern)
+
+            # mu
+            # b_mu is in the interval (0,inf)
+            b_mu = pm.Exponential("b_mu", lam=1)
+            # a_mu in (-b, inf)
+            a_mu = pm.Deterministic("a_mu", pm.Exponential("am", lam=1) - b_mu)
+            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)  # in (0, inf)
+
+            # sigma
             # should be same for b and a, so that a is symmetric around zero
             lam = 1
             # b_sigma is in the interval (0,inf)
