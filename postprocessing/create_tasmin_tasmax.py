@@ -30,6 +30,6 @@ cmd = p+"-chname,tas,tasmin -chname,tas_orig,tasmin_orig -sub "+d("tas")+" -mul 
 print(cmd)
 print("")
 subprocess.check_call(cmd, shell=True)
-cmd = p+"-chname,tas,tasmax -chname,tas_orig,tasmax_orig -add "+dout("tasmin")+d("tasrange")+dout("tasmax")
+cmd = p+"-chname,tasmin,tasmax -chname,tasmin_orig,tasmax_orig -add "+dout("tasmin")+d("tasrange")+dout("tasmax")
 print(cmd)
 subprocess.check_call(cmd, shell=True)
