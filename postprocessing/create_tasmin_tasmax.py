@@ -16,20 +16,20 @@ def d(var):
     """ get file strings from cfact calculation """
     tdict = {"tas":tas_runid, "tasrange":tasrange_runid, "tasskew":tasskew_runid}
     dpath = output_base/tdict[var]/"cfact"/var
-    return str(dpath)+"/"+var+"_"+dataset+"_cfactual_rechunked.nc4 "
+    return str(dpath)+"/"+var+"_"+dataset+"_cfactual_rechunked_valid.nc4 "
 
 def dout(var):
     """ get file strings for output data """
     dpath = output_base/dataset
     dpath.mkdir(parents=True,exist_ok=True)
-    return str(dpath)+"/"+var+"_"+dataset.lower()+"_cfactual_rechunked.nc4 "
+    return str(dpath)+"/"+var+"_"+dataset.lower()+"_cfactual_rechunked_valid.nc4 "
 
 p = "module load cdo && cdo -O "
 
-cmd = p+"-selvar,tasmin -setname,tasmin -sub "+d("tas")+" -mul "+d("tasskew")+d("tasrange")+dout("tasmin")
+cmd = p+"-chname,tas,tasmin -chname,tas_orig,tasmin_orig -sub "+d("tas")+" -mul "+d("tasskew")+d("tasrange")+dout("tasmin")
 print(cmd)
 print("")
 subprocess.check_call(cmd, shell=True)
-cmd = p+"-selvar,tasmax -setname,tasmax -add "+dout("tasmin")+d("tasrange")+dout("tasmax")
+cmd = p+"-chname,tas,tasmax -chname,tas_orig,tasmax_orig -add "+dout("tasmin")+d("tasrange")+dout("tasmax")
 print(cmd)
 subprocess.check_call(cmd, shell=True)
