@@ -16,7 +16,7 @@ model_for_var = {
     "pr": models.PrecipitationLongtermTrendSigma,
     "prsnratio": models.Beta,
     "hurs": models.Hurs,
-    "wind": models.Wind,
+    "wind": models.WindLogistic,
     "ps": models.Ps,
     "rsds": models.Rsds,
     "rlds": models.Rlds,
