@@ -13,7 +13,7 @@ model_for_var = {
     "tas": models.Tas,
     "tasrange": models.Tasrange,
     "tasskew": models.Tasskew,
-    "pr": models.PrecipitationLongterm,
+    "pr": models.PrecipitationLongtermTrendSigma,
     "prsnratio": models.Beta,
     "hurs": models.Hurs,
     "wind": models.Wind,
