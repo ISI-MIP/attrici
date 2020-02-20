@@ -711,8 +711,7 @@ class Ps(icounter.distributions.Normal):
                 + gmtv * det_dot(xf1, fctrend_mu),
             )
 
-            # sigma
-            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
+            sigma = pm.HalfCauchy("sigma", 0.5, testval=1)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
