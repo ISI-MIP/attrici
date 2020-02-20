@@ -32,7 +32,7 @@ def main(runid, tag, lat, lon, rolling_window):
         raise ValueError(
             f'No data for the point: lat={avail_cell["lat"]}, lon={avail_cell["lon"]}'
         )
-    data["cfact"] *= 1.0e6  # Todo @matthias why is that? and for which variable?
+    data["cfact"] *= 1.0e6
     data["y"] *= 1.0e6
     # plotting
     figure_dir = data_dir / "figures" / runid

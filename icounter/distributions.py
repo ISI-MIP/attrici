@@ -178,7 +178,6 @@ class Rice(Distribution):
         self.parameter_bounds = {"nu": [0, None], "sigma": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
-        # fixme why not scale=sigma**2 ?
         quantile = stats.rice.cdf(y_scaled, b=d["nu"] / d["sigma"], scale=d["sigma"])
         x_mapped = stats.rice.ppf(
             quantile, b=d["nu_ref"] / d["sigma_ref"], scale=d["sigma_ref"]

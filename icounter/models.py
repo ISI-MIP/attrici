@@ -31,8 +31,6 @@ class PrecipitationLongterm(icounter.distributions.BernoulliGamma):
         model = pm.Model()
 
         with model:
-            # todo broken as pbern is not in (0, 1)
-
             # dropna to make sampling possible for the precipitation amounts.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
@@ -83,8 +81,6 @@ class PrecipitationLongtermTrendSigma(icounter.distributions.BernoulliGamma):
         model = pm.Model()
 
         with model:
-            # todo broken as pbern is not in (0, 1)
-
             # dropna to make sampling possible for the precipitation amounts.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
@@ -157,7 +153,6 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
             a_pbern = pm.Normal("pbern_a", mu=0, sigma=0.2, testval=0)
             # pbern is a linear model of gmt
             pbern_linear = pm.Deterministic("pbern_linear", a_pbern * gmt + b_pbern)
-            # todo check if cutoff is ok
             pbern = pm.Deterministic("pbern", tt.clip(pbern_linear, 0.001, 0.999))
             # pbern = pm.Deterministic("pbern", tt.nnet.hard_sigmoid(pbern_linear))
             # pbern = pm.Beta("pbern", alpha=2, beta=2)
@@ -201,9 +196,7 @@ class PrecipitationLongtermRelu(icounter.distributions.BernoulliGamma):
 #             gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
 #             xf0v = pm.Data("xf0v", df_valid.filter(like="mode_0_").values)
 #
-#             # Todo rename a_pbern and b_pbern into intercept and slope
 #             # pbern
-#             # FIXME: very slow so far.
 #             # Unclear if we need scaling of b_pbern_yearly
 #             # Does not provide improved results as compared to longterm,
 #             # though more than 25x the CPU time
@@ -321,7 +314,6 @@ class TasCycle(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -374,7 +366,6 @@ class TasCycleRelu(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -433,7 +424,6 @@ class TasLogistic(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -540,7 +530,6 @@ class TasCauchySigmaPrior(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -637,7 +626,6 @@ class RldsConstSigma(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -686,7 +674,6 @@ class Ps(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -735,7 +722,6 @@ class HursBeta(icounter.distributions.Beta):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -910,7 +896,6 @@ class TasLogisticTrend(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1160,7 +1145,6 @@ class TasskewBetaLogistic(icounter.distributions.Beta):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1563,7 +1547,6 @@ class Tasrange(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1624,7 +1607,6 @@ class TasrangeSigmaTrend(icounter.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1689,7 +1671,6 @@ class TasrangeRice(icounter.distributions.Rice):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1747,7 +1728,6 @@ class TasrangeRiceConstSigma(icounter.distributions.Rice):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1793,7 +1773,6 @@ class TasrangeLogistic(icounter.distributions.Rice):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1847,7 +1826,6 @@ class Wind(icounter.distributions.Weibull):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1897,7 +1875,6 @@ class WindFull(icounter.distributions.Weibull):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -1952,7 +1929,6 @@ class WindLogistic(icounter.distributions.Weibull):
         model = pm.Model()
 
         with model:
-            # FIXME: We can assume that all tas values are valid i think,
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
@@ -2123,7 +2099,6 @@ class Weibull(object):
 
     def __init__(self, modes=3):
 
-        # TODO: allow this to be changed by argument to __init__
         self.modes = modes
         self.mu_intercept = 0.0
         self.sigma_intercept = 1.0
