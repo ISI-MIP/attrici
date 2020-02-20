@@ -12,9 +12,9 @@ import settings as s
 
 print("Version", icounter.__version__)
 
-lat = -20.25
-lon = -49.75
 
+lat = 69.75
+lon = -139.75
 submitted = False
 njobarray = 1
 task_id = 0
@@ -55,16 +55,23 @@ data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
 df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
 
 try:
-    trace = func_timeout(
+    trace, dff = func_timeout(
         s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
     )
 except (FunctionTimedOut, ValueError) as error:
-    print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
-    print(error)
+    if str(error) == "Modes larger 1 are not allowed for the censored model.":
+        raise error
+    else:
+        print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
+        print(error)
     # continue
 
-df_with_cfact = estimator.estimate_timeseries(df, trace, datamin, scale)
-dh.save_to_disk(df_with_cfact, s, sp["lat"], sp["lon"], dformat=s.storage_format)
+df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)
+outdir_for_cell = dh.make_cell_output_dir(
+    s.output_dir, "timeseries", sp["lat"], sp["lon"], s.variable
+)
+fname_cell = dh.get_cell_filename(outdir_for_cell, sp["lat"], sp["lon"], s)
+dh.save_to_disk(df_with_cfact, fname_cell, sp["lat"], sp["lon"], s.storage_format)
 
 obs_data.close()
 # nc_lsmask.close()

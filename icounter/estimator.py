@@ -8,19 +8,18 @@ import icounter.datahandler as dh
 import icounter.const as c
 import icounter.models as models
 import icounter.fourier as fourier
-import icounter.gammabernoulli as gb
 
 model_for_var = {
-    "tas": models.Normal,
-    "tasrange": models.Rice,
-    "tasskew": models.Beta,
-    "pr": gb.GammaBernoulli,
+    "tas": models.Tas,
+    "tasrange": models.Tasrange,
+    "tasskew": models.Tasskew,
+    "pr": models.PrecipitationLongtermTrendSigma,
     "prsnratio": models.Beta,
-    "hurs": models.Beta,
-    "wind": models.Weibull,
-    "ps": models.Normal,
-    "rsds": models.Normal,
-    "rlds": models.Normal,
+    "hurs": models.Hurs,
+    "wind": models.WindLogistic,
+    "ps": models.Ps,
+    "rsds": models.Rsds,
+    "rlds": models.RldsConstSigma,
 }
 
 
@@ -37,20 +36,15 @@ class estimator(object):
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
         self.modes = cfg.modes
-        self.scale_variability = cfg.scale_variability
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.qm_ref_period = cfg.qm_ref_period
         self.save_trace = cfg.save_trace
-        self.report_mu_sigma = cfg.report_mu_sigma
-        self.mu_model = cfg.mu_model
-        self.sigma_model = cfg.sigma_model
+        self.report_variables = cfg.report_variables
         self.inference = cfg.inference
-        self.bernoulli_model = cfg.bernoulli_model
 
         try:
-            self.statmodel = model_for_var[self.variable](
-                self.modes, self.mu_model, self.sigma_model, self.bernoulli_model
-            )
+            self.statmodel = model_for_var[self.variable](self.modes)
+
         except KeyError as error:
             print(
                 "No statistical model for this variable. Probably treated as part of other variables."
@@ -60,14 +54,16 @@ class estimator(object):
     def estimate_parameters(self, df, lat, lon):
 
         x_fourier = fourier.get_fourier_valid(df, self.modes)
+        x_fourier_01 = (x_fourier + 1) / 2
+        x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
 
-        df = pd.concat([df, x_fourier], axis=1)
-        df_valid = dh.get_valid_subset(df, self.subset, self.seed)
+        dff = pd.concat([df, x_fourier, x_fourier_01], axis=1)
+        df_subset = dh.get_subset(dff, self.subset, self.seed)
 
-        self.model = self.statmodel.setup(df_valid, df)
+        self.model = self.statmodel.setup(df_subset)
 
         outdir_for_cell = dh.make_cell_output_dir(
-            self.output_dir, "traces", lat, lon, variable=self.variable
+            self.output_dir, "traces", lat, lon, self.variable
         )
 
         # FIXME: Rework loading old traces
@@ -94,7 +90,7 @@ class estimator(object):
             if self.save_trace:
                 pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
-        return trace
+        return trace, dff
 
     def sample(self):
 
@@ -108,7 +104,9 @@ class estimator(object):
                     chains=self.chains,
                     tune=self.tune,
                     progressbar=self.progressbar,
+                    target_accept=.95
                 )
+            # could set target_accept=.95 to get smaller step size if warnings appear
         elif self.inference == "ADVI":
             with self.model:
                 mean_field = pm.fit(
@@ -131,72 +129,46 @@ class estimator(object):
 
     def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
 
-        trace_for_qm = trace[-subtrace:]
-
-        if trace["mu"].shape[1] < df.shape[0]:
-            print("Trace is not complete due to masked data. Resample missing.")
-            print(
-                "Trace length:", trace["mu"].shape[1], "Dataframe length", df.shape[0]
-            )
-
-            xf0 = fourier.rescale(df, self.modes[0])
-            xf1 = fourier.rescale(df, self.modes[1])
-            xf2 = fourier.rescale(df, self.modes[2])
-            if self.sigma_model == "full":
-                xf3 = fourier.rescale(df, self.modes[3])
-
-            with self.model:
-                pm.set_data({"xf0v": xf0})
-                pm.set_data({"xf2v": xf2})
-                pm.set_data({"gmtv": df["gmt_scaled"].values})
-
-                if self.mu_model == "full":
-                    pm.set_data({"xf1v": xf1})
-
-                if self.sigma_model == "full":
-                    pm.set_data({"xf3v": xf3})
-
-                trace_for_qm = pm.sample_posterior_predictive(
-                    trace[-subtrace:],
-                    samples=subtrace,
-                    var_names=["obs", "mu", "sigma", "pbern"],
-                    progressbar=self.progressbar,
-                )
-
-        is_precip = self.variable == "pr"
-        df_mu_sigma = dh.create_ref_df(
-            df, trace_for_qm, self.qm_ref_period, self.scale_variability, is_precip
+        # print(trace["mu"].shape, df.shape)
+        trace_for_qm = self.statmodel.resample_missing(
+            trace, df, subtrace, self.model, self.progressbar
         )
 
-        cfact_scaled = self.statmodel.quantile_mapping(df_mu_sigma, df["y_scaled"])
-
-        # drops indices that were masked as out of range before
-        valid_index = df.index
-        print("Length of valid index:", len(valid_index))
-        # populate cfact with original values
-        df.loc[:, "cfact_scaled"] = df.loc[:, "y_scaled"]
-        df.loc[valid_index, "cfact_scaled"] = cfact_scaled[valid_index]
-
-        if (cfact_scaled == np.inf).sum() > 0:
-            print(
-                "There are",
-                (cfact_scaled == np.inf).sum(),
-                "values out of range for quantile mapping. Keep original values.",
-            )
-            df.loc[valid_index[cfact_scaled == np.inf], "cfact_scaled"] = df.loc[
-                valid_index[cfact_scaled == np.inf], "y_scaled"
-            ]
-
-        # populate cfact with original values
-        df.loc[:, "cfact"] = df.loc[:, "y"]
-        # overwrite only values adjusted through cfact calculation
-        df.loc[valid_index, "cfact"] = self.f_rescale(
-            df.loc[valid_index, "cfact_scaled"], datamin, scale
+        df_params = dh.create_ref_df(
+            df, trace_for_qm, self.qm_ref_period, self.statmodel.params
         )
 
-        if self.report_mu_sigma:
-            # todo: unifiy indexes so .values can be dropped
-            for v in ["mu", "sigma", "mu_ref", "sigma_ref", "pbern", "pbern_ref"]:
-                df.loc[:, v] = df_mu_sigma.loc[:, v].values
+        cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
+        print("Done with quantile mapping.")
+
+        # fill cfact_scaled as is from quantile mapping
+        # for easy checking later
+        df.loc[:, "cfact_scaled"] = cfact_scaled
+
+        # rescale all scaled values back to original, invalids included
+        df.loc[:, "cfact"] = self.f_rescale(df.loc[:, "cfact_scaled"], datamin, scale)
+
+        # populate invalid values originating from y_scaled with with original values
+        invalid_index = df.index[df["y_scaled"].isna()]
+        df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
+
+        # df = df.replace([np.inf, -np.inf], np.nan)
+        # if df["y"].isna().sum() > 0:
+        yna = df["cfact"].isna()
+        yinf = df["cfact"] == np.inf
+        yminf = df["cfact"] == -np.inf
+        print(f"There are {yna.sum()} NaN values from quantile mapping. Replace.")
+        print(f"There are {yinf.sum()} Inf values from quantile mapping. Replace.")
+        print(f"There are {yminf.sum()} -Inf values from quantile mapping. Replace.")
+
+        df.loc[yna | yinf | yminf, "cfact"] = df.loc[yna | yinf | yminf, "y"]
+
+
+        # todo: unifiy indexes so .values can be dropped
+        for v in df_params.columns:
+            df.loc[:, v] = df_params.loc[:, v].values
+
+        if self.report_variables != "all":
+            df = df.loc[:, self.report_variables]
 
         return df

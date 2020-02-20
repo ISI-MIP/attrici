@@ -83,28 +83,42 @@ You may optionally
 
 ## Comments for each variable
 
-#### tas
-data checked
-Works using Normal distribution
+#### daily mean temperature (tas)
+Two cells fail in complete dataset.
+67418 of 6420 cells.
 
-#### rlds
-data checked
-Works using Normal distribution
-Needs a restart to finish some hanging runs
+#### tasskew
+Work in progress. See #59
 
-#### psl / ps
-data checked
-Works using Normal distribution
+#### tasrange
+Calculation alsmost complete on full dataset.
+Some cells do not detrend as expected. Need assessment.
+See #60.
 
-#### rsds
-Deviationg approach from Lange et al. 2019, using Normal distribution
-This is because the yearly cycle is handled inherently here, so no need for specific treatment.
-FIXME: produces unrealistic incoming radiation below zero. Needs a different approach
+#### precipiation (pr)
+Calculatio complete.
+67339 of 67420 work.
 
-#### hurs (relative humidity)
-data checked
-With Beta distribution, working
-Needs to be rerun so some holes are filled.
+#### sea level pressure (ps)
+Calculation complete on full dataset.
+See #65
+
+#### wind
+Calculation complete on full dataset.
+Minor issues on the coast of the Arabic Peninsula.
+See #66
+
+#### longwave radiation (rlds)
+Calculation complete on full dataset.
+Need check of trend removal.
+
+#### shortwave radiation (rsds)
+
+#### relative humidity (hurs)
+
+
+
+## Comments for datasets
 
 GSWP: needs preprocessing to rename from rhs to hurs, and mask invalid values below zero:
 
@@ -113,37 +127,6 @@ ncrename -O -v rhs,hurs fname1.nc fname2.nc
 
 cdo setrtomiss,-1e20,0 fname2.nc fname3.nc
 ```
-
-#### tasskew
-data checked
-Works using Beta distribution
-
-#### prsnratio
-Beta distribution
-Snow included in GSWP3
-
-#### tasrange
-With Rice distribution
-ADVI introduces strong positive trend.
-Possible issue: use real mu, not nu for quantile mapping.
-
-#### tasmin
-Constructed from tas, tasskew and tasrange
-To do in postprocessing
-
-#### tasmax
-Constructed from tas, tasskew and tasrange
-To do in postprocessing
-
-#### pr
-Gamma distribution
-Does not remove all regional trends with NUTS.
-Fails with ADVI.
-Low latitudes are particularly most difficult.
-
-#### wind
-Works using Weibull distribution
-FIXME: does not seem to detrend. Seems we rather chose the parameter that adjusted the variability range
 
 
 ## Credits

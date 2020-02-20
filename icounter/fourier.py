@@ -8,6 +8,8 @@ def series(t, p, modes):
     # 2 pi n / p * t
     x = x * t[:, None]
     x = np.concatenate((np.cos(x), np.sin(x)), axis=1)
+    # scale to range [0, 1]
+    # x = (x + 1) / 2
     return x
 
 
