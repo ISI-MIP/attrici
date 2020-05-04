@@ -3,7 +3,6 @@ import pymc3 as pm
 from scipy import stats
 import pandas as pd
 import theano.tensor as tt
-import attrici.logistic as l
 import attrici.distributions
 
 
