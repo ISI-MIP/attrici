@@ -87,12 +87,16 @@ In the root package directory.
 Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
 for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
-### Calculating tasmin and tasmax
+### Calculating tasmin, tasmax and huss
 
 Counterfactual _tasmin_ and _tasmax_ can be derived based on the counterfactual _tas_, _tasrange_ and _tasskew_.
 Use 
 `postprocessing/create_tasmin_tasmax.py`
 with adjusted paths for the _tas_, _tasrange_ and _tasskew_ counterfactuals.
+
+A counterfactual _huss_ can be derived from the counterfactual _hurs_, _ps_ and _tas_. Use
+`postprocessing/derive_huss.sh`
+with adjusted file names and the required time range.
 
 ## Install
 
