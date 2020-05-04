@@ -3,8 +3,8 @@ import pandas as pd
 import pathlib
 import sys
 import netCDF4 as nc
-import icounter.const as c
-import icounter.fourier as fourier
+import attrici.const as c
+import attrici.fourier as fourier
 
 
 def create_output_dirs(output_dir):
@@ -87,6 +87,78 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
     return tdf, datamin, scale
 
+
+def create_dataframe_extended(nct_array,
+                              units,
+                              dataframe_nonextended,
+                              data_extended,
+                              last_gmt_value,
+                              variable):
+
+    if variable in ['pr', 'wind']:
+        raise NotImplementedError('extension for precipitation is not implemented yet')
+
+    # todo mv asserts to a unittest
+    ds = pd.to_datetime(
+        nct_array, unit="D", origin=pd.Timestamp(units.lstrip("days since"))
+    )
+
+    # gmt extension
+    # take old gmt up to the last index in the old time series
+    # take the last gmt_value in the new time series
+    # interpolate linearly between the last gmt value of the old time series -
+    # and the last gmt value of the new time series.
+    dataframe_extended = pd.DataFrame(data={'gmt': np.nan}, index=ds)
+    dataframe_extended['gmt'] = dataframe_nonextended['gmt']
+    dataframe_extended.iloc[-1]['gmt'] = last_gmt_value
+    dataframe_extended.interpolate(inplace=True)
+    # assert gmt is equal up to the extended period
+    np.testing.assert_allclose(
+        dataframe_nonextended['gmt'],
+        dataframe_extended.loc[:dataframe_nonextended.index[-1], 'gmt']
+    )
+
+    # rescale gmt
+    shift = dataframe_nonextended['gmt'].min()
+    scale = dataframe_nonextended['gmt'].max() - dataframe_extended['gmt'].min()
+    dataframe_extended['gmt_scaled'] = (dataframe_extended['gmt'] - shift) / scale
+    np.testing.assert_allclose(dataframe_nonextended['gmt_scaled'],
+                               dataframe_extended.loc[:dataframe_nonextended.index[-1], 'gmt_scaled'])
+
+    # get scaling parameters from the old time series
+    c.check_bounds(data_extended, variable)
+    try:
+        f_scale = c.mask_and_scale[variable][0]
+    except KeyError as error:
+        print(
+            "Error:",
+            variable,
+            "is not implement (yet). Please check if part of the ISIMIP set.",
+        )
+        raise error
+    _, datamin, scale = f_scale(dataframe_nonextended.loc[:,'y'].copy(), variable)
+
+
+    # rescale extended climate variable
+    y_scaled_extended, _, _ = f_scale(pd.Series(data_extended), variable, datamin=datamin, scale=scale)
+    # add the extended climate variable
+    dataframe_extended['y'] = data_extended
+    dataframe_extended['y_scaled'] = y_scaled_extended.to_numpy()
+    dataframe_extended.replace([np.inf, -np.inf], np.nan, inplace=True)
+    try:
+        np.testing.assert_allclose(
+            dataframe_extended.loc[:dataframe_nonextended.index[-1], 'y'],
+            dataframe_nonextended.loc[:, 'y']
+        )
+        np.testing.assert_allclose(
+            dataframe_extended.loc[:dataframe_nonextended.index[-1], 'y_scaled'],
+            dataframe_nonextended.loc[:, 'y_scaled']
+        )
+    except AssertionError as error:
+        print("Ignoring AssertionError:")
+        print(error)
+
+    return dataframe_extended, datamin, scale
 
 def create_ref_df(df, trace_for_qm, ref_period, params):
 
