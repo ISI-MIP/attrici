@@ -24,18 +24,18 @@ We model the different climatic variables using the statistical distributions li
 
 | Variable | Short name | Unit | Statistical distributions |
 | -------- | ---------- | ---- | ----------------- |
-| Near-Surface Air Temperature | tas | K | Gaussian |
-| Range of daily temperature | tasrange | K | Gaussian |
-| Skewness of daily temperature | tasskew | 1 | Gaussian |
-| Daily Minimum Near-Surface Air Temperature | tasmin | K | Derived from tas, tasrange and tasskew |
+| Daily Mean Near-Surface Air Temperature | tas | K | Gaussian |
+| Daily Near-Surface Temperature Range | tasrange | K | Gaussian |
+| Daily Near-Surface Temperature Skewness | tasskew | 1 | Gaussian |
+|Daily Minimum Near-Surface Air Temperature | tasmin | K | Derived from tas, tasrange and tasskew |
 | Daily Maximum Near-Surface Air Temperature | tasmax | K | Derived from tas, tasrange and tasskew |
-| Precipitation | pr | kg / m² s | Bernoulli-Gamma |
-| Surface Downwelling Longwave Radiation | rlds | W / m² | Gaussian |
-| Surface Downwelling Shortwave Radiation | rsds | W / m²| Gaussian |
+| Precipitation | pr | kg  m<sup>-2</sup> s<sup>-1</sup> | Bernoulli-Gamma |
+| Surface Downwelling Shortwave Radiation | rsds | W m<sup>-2</sup> | Gaussian |
+| Surface Downwelling Longwave Radiation | rlds | W m<sup>-2</sup> | Gaussian |
 | Surface Air Pressure | ps | Pa | Gaussian |
-| Near-Surface Wind Speed | sfcWind | m / s | Weibull |
+| Near-Surface Wind Speed | sfcWind | m s<sup>-1</sup> | Weibull |
 | Near-Surface Relative Humidity | hurs | % | Gaussian |
-| Near-Surface Specific Humidity | huss | kg / kg | Derived from hurs ps and tas |
+| Near-Surface Specific Humidity | huss | kg kg<sup>-1</sup> | Derived from hurs ps and tas |
 
 *Table 1: Specs of climate variables for the ISIMIP3b counterfactual climate datasets. The variables tasrange and tasskew are auxiliary variables to calculate tasmin and tasmax*
 
