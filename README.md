@@ -1,6 +1,6 @@
 # ATTRICI - counterfactual climate for impact attribution
 
-Code implementing the methods of as discussed in Mengel et al. (submitted) [insert link to preprint].
+Code implementing the methods discussed in Mengel et al. (submitted) [insert link to preprint].
 
 ## Summary
 
@@ -10,9 +10,9 @@ Climate has changed over the past century due to anthropogenic greenhouse gas em
 
 Assuming that "climate change refers to any long-term trend in climate, irrespective of its cause" (IPCC 2014, chap. 18) we here present a method to develop time series of stationary “no climate change” climate data from observational daily data by removing the long-term trend while preserving the internal day-to-day variability.
 
-We use a functional form (finite number of periodic Fourier modes) to model the annual cycle of each climate variable. We set up probability models, [models.py](attrici/models.py), with explicit representations of the statistical distribution of the climate variables, which allows for non-normal distributions to represent our data. This is particularly important for a probability model of precipitation that can account for positivity constraints and separate trends in the number of wet days and the intensity of precipitation on wet days. We use global mean temperature instead of time as a predictor of the long-term changes in the different climate variables.
+We use a functional form (finite number of periodic Fourier modes) to model the annual cycle of each climate variable. We set up probability models, see [models.py](attrici/models.py), with explicit representations of the statistical distribution of the climate variables, which allows for non-normal distributions to represent our data. This is particularly important for a probability model of precipitation that can account for positivity constraints and separate trends in the number of wet days and the intensity of precipitation on wet days. We use global mean temperature instead of time as a predictor of the long-term changes in the different climate variables.
 
-We aim to capture the statistics of a climate variable in the historical record with a parametric distribution **A**. We call this distribution the factual distribution of the climate variable. This distribution evolves in time through the time dependence of its parameters. We model the parameters as linear functions of both the global mean temperature *T* and the annual cycle. We produce a counterfactual distribution **B** from the factual distribution **A** by restricting *T* to the early period in which it does not deviate significantly from zero. The probabilistic model is illustrated for daily temperatures at an exemplary grid cell in panel A of Figure 1.
+We aim to capture the statistics of a climate variable in the historical record with a parametric distribution **A**. This distribution evolves in time through the time dependence of its parameters. We model the parameters as linear functions of both the global mean temperature *T* and the annual cycle. We produce a counterfactual distribution **B** from the factual distribution **A** by restricting *T* to the early period in which it does not deviate significantly from zero. The probabilistic model is illustrated for daily temperatures at an exemplary grid cell in panel A of Figure 1.
 
 We utilize the distributions **A** and **B** to quantile-map each value from the observed dataset to a counterfactual value. Quantile mapping is different for each day of the time series because our approach accounts for the annual cycle and a change in the annual cycle. In Figure 1 the quantile mapping step is shown for an exemplary day. We obtain the percentile of the factual (i.e. observed) temperature (blue dot in panel A) at that day from the factual cumulative distribution function (CDF) (blue line in panel B). We then obtain the counterfactual temperature (orange dot in panel A) from the counterfactual CDF (orange line in panel B) at the same percentile.
 
@@ -50,10 +50,10 @@ with adjusted file names and the required time range.
 
 
 ## Project Structure
-* All general settings are defined in `settings.py`.
-* The model can be run with the `run_estimation.py` script.
-* Model definitions for different climate variables are specified in `attrici/models.py`
-* The choice of a specific model for a variable is specified in `attrici/estimator.py`
+* All general settings are defined in [settings.py](settings.py).
+* The code can be run with `run_estimation.py` or [run_single_cell.py](run_single_cell.py).
+* Model definitions for different climate variables are specified in [models.py](attrici/models.py)
+* The choice of a specific model for a variable is specified in [estimator.py](attrici/estimator.py)
 
 ## Usage
 
