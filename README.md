@@ -51,9 +51,9 @@ with adjusted file names and the required time range.
 
 ## Project Structure
 * All general settings are defined in [settings.py](settings.py).
-* The code can be run with `run_estimation.py` or [run_single_cell.py](run_single_cell.py).
-* Model definitions for different climate variables are specified in [models.py](attrici/models.py)
-* The choice of a specific model for a variable is specified in [estimator.py](attrici/estimator.py)
+* The code can be run with [run_estimation.py](run_estimation.py) or [run_single_cell.py](run_single_cell.py).
+* The probability model for different climate variables is specified in [models.py](attrici/models.py)
+* The choice of the probability model for a variable is specified in [estimator.py](attrici/estimator.py)
 
 ## Usage
 
