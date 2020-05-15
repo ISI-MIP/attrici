@@ -8,11 +8,13 @@ Climate has changed over the past century due to anthropogenic greenhouse gas em
 
 ## Approach
 
-Preserving the events of the historical record is a key objective of the climate counterfactual presented here. In summary, we construct the counterfactual by removing shifts in the historical dataset that can be linked to global mean temperature change.
+Assuming that "climate change refers to any long-term trend in climate, irrespective of its cause" (IPCC 2014, chap. 18) we here present a method to develop time series of stationary “no climate change” climate data from observational daily data by removing the long-term trend while preserving the internal day-to-day variability.
 
-Our method relies on quantile mapping and thus on two statistical distributions: a distribution **A** that captures the evolution of the statistics of a climate variable due to climate change and a reference distribution **B** that approximates such evolution in the absence of climate change. Both distributions are dependent on time. Distribution **A** varies with a long-term global mean temperature trend, the yearly cycle, and a global-mean-temperature related distortion of the yearly cycle. The reference distribution **B** varies with the yearly cycle only. The type of the distribution depends on the climate variable and is the same for **A** and **B**.
+We use a functional form (finite number of periodic Fourier modes) to model the annual cycle of each climate variable. We set up probability models, [models.py](attrici/models.py), with explicit representations of the statistical distribution of the climate variables, which allows for non-normal distributions to represent our data. This is particularly important for a probability model of precipitation that can account for positivity constraints and separate trends in the number of wet days and the intensity of precipitation on wet days. We use global mean temperature instead of time as a predictor of the long-term changes in the different climate variables.
 
-The probabilistic model is illustrated for daily temperatures at an exemplary grid cell in panel A of Fig. 1. The difference between the expected values of distribution **A** (blue line) and **B** (orange line) is due to a vertical shift and a distortion of the  annual cycle. In panel B, the quantile mapping step is shown for an exemplary day. We obtain the percentile of the factual (i.e. observed) temperature (blue dot in panel A) at that day from the factual cumulative distribution function (CDF) (blue line in panel B). We then obtain the counterfactual temperature (orange dot in panel A) from the counterfactual CDF (orange line in panel B) at the same percentile.
+We aim to capture the statistics of a climate variable in the historical record with a parametric distribution **A**. We call this distribution the factual distribution of the climate variable. This distribution evolves in time through the time dependence of its parameters. We model the parameters as linear functions of both the global mean temperature *T* and the annual cycle. We produce a counterfactual distribution **B** from the factual distribution **A** by restricting *T* to the early period in which it does not deviate significantly from zero. The probabilistic model is illustrated for daily temperatures at an exemplary grid cell in panel A of Figure 1.
+
+We utilize the distributions **A** and **B** to quantile-map each value from the observed dataset to a counterfactual value. Quantile mapping is different for each day of the time series because our approach accounts for the annual cycle and a change in the annual cycle. In Figure 1 the quantile mapping step is shown for an exemplary day. We obtain the percentile of the factual (i.e. observed) temperature (blue dot in panel A) at that day from the factual cumulative distribution function (CDF) (blue line in panel B). We then obtain the counterfactual temperature (orange dot in panel A) from the counterfactual CDF (orange line in panel B) at the same percentile.
 
 ![Counterfactual example](illustrative_plot.png)
 *Figure 1: Illustration of quantile mapping sensitive to the annual cycle. Panel A shows factual (blue points) and counterfactual (orange points) daily mean near-surface air temperature for the year 2016 of the GSWP3-W5E5 for a single grid cell in the Mediterranean region at 43.25°N, 5.25°E. In panel A, the blue and orange lines show the temporal evolution of the expected value μ (50th percentile) of the factual and the counterfactual distribution. In panel B, the blue and orange lines show the factual and counterfactual cumulative distribution function (CDF) for a single day (October 25th, 2016). The large blue and orange points in panel A show the factual and counterfactual daily mean temperature on October 25th. They correspond to the 95th percentile in their respective distributions.*
@@ -39,11 +41,19 @@ We model the different climatic variables using the statistical distributions li
 
 *Table 1: Specs of climate variables for the ISIMIP3b counterfactual climate datasets. The variables tasrange and tasskew are auxiliary variables to calculate tasmin and tasmax*
 
-For tasmin and tasmax, we do not estimate counterfactual time series individually to avoid large relative errors in the daily temperature range as pointed out by (Piani et al. 2010). Following (Piani et al. 2010), we estimate counterfactuals of the daily temperature range tasrange = tasmax - tasmin and the skewness of the daily temperature tasskew = (tas - tasmin) / tasrange.
+For tasmin and tasmax, we do not estimate counterfactual time series individually to avoid large relative errors in the daily temperature range as pointed out by (Piani et al. 2010). Following (Piani et al. 2010), we estimate counterfactuals of the daily temperature range tasrange = tasmax - tasmin and the skewness of the daily temperature tasskew = (tas - tasmin) / tasrange. Use [create_tasmin_tasmax.py](postprocessing/create_tasmin_tasmax.py)
+with adjusted paths for the _tas_, _tasrange_ and _tasskew_ counterfactuals.
 
-A counterfactual huss is derived from the counterfacual tas, ps and hurs using the equations of Buck (1981) as described in Weedon et al. (2010).
-huss = f(tas, pr ,hurs)
 
+A counterfactual huss is derived from the counterfacual tas, ps and hurs using the equations of Buck (1981) as described in Weedon et al. (2010). Use [derive_huss.sh](postprocessing/derive_huss.sh)
+with adjusted file names and the required time range.
+
+
+## Project Structure
+* All general settings are defined in `settings.py`.
+* The model can be run with the `run_estimation.py` script.
+* Model definitions for different climate variables are specified in `attrici/models.py`
+* The choice of a specific model for a variable is specified in `attrici/estimator.py`
 
 ## Usage
 
@@ -87,24 +97,6 @@ In the root package directory.
 Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
 for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
-### Project Structure
-* All general settings are defined in `settings.py`.
-* The model can be run with the `run_estimation.py` script.
-* Model definitions for different climate variables are specified in `attrici/models.py`
-* The choice of a specific model for a variable is specified in `attrici/estimator.py`
-
-
-### Calculating tasmin, tasmax and huss
-
-Counterfactual _tasmin_ and _tasmax_ can be derived based on the counterfactual _tas_, _tasrange_ and _tasskew_.
-Use 
-`postprocessing/create_tasmin_tasmax.py`
-with adjusted paths for the _tas_, _tasrange_ and _tasskew_ counterfactuals.
-
-A counterfactual _huss_ can be derived from the counterfactual _hurs_, _ps_ and _tas_. Use
-`postprocessing/derive_huss.sh`
-with adjusted file names and the required time range.
-
 ## Install
 
 We use the jobarray feature of slurm to run many jobs in parallel.
@@ -142,5 +134,7 @@ Hagemann, S., and Haerter, J. O.: Statistical bias correction
 of global simulated daily precipitation and temperature for the
 application of hydrological models, J. Hydrol., 395, 199–215,
 https://doi.org/10.1016/j.jhydrol.2010.10.024, 2010.
+- IPCC 2014: Climate Change 2014 – Impacts, Adaptation and Vulnerability: Global and Sectoral Aspects. Cambridge
+University Press. https://doi.org/10.1017/CBO9781107415379.
 - Salvatier J., Wiecki T.V., Fonnesbeck C. (2016) Probabilistic programming in Python using PyMC3. PeerJ Computer Science 2:e55 DOI: 10.7717/peerj-cs.55.
 - Weedon, G. P., Gomes, S., Viterbo, P., Österle, H., Adam, J. C., Bellouin, N., Boucher, O., and Best, M.: The WATCH forcing data 1958–2001: A meteorological forcing dataset for land surface and hydrological models, in: Technical Report no 22., available at: http://www.eu-watch.org/publications/technical-reports (last access: July 2016), 2010.
