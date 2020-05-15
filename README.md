@@ -4,7 +4,7 @@ Code implementing the methods of as discussed in Mengel et al. (submitted) [inse
 
 ## Summary
 
-Climate has changed over the past century due to anthropogenic greenhouse gas emissions. In parallel, societies and their environment have evolved rapidly. To identify the impacts of climate change on human or natural systems, it is therefore necessary to separate the effect of different drivers. By definition this is done by comparing the observed situation to a counterfactual one in which climate change is absent and other drivers change according to observations. As this counterfactual baseline cannot be observed it has to be estimated by process-based or empirical models. We here present methods to remove the signal of climate change from observational climate data to generate “no-climate change” climate forcing data that can be used to simulate the counterfactual baseline of impact indicators. Our method identifies the interannual and yearly-cycle shifts that are correlated to global mean temperature change. We use quantile mapping to a reference distribution without the global-mean-temperature related shifts to find the counterfactual value for the observed daily climate data. Applied to each variable in the GSWP3 and GSWP3-W5E5 climate datasets, we produce two counterfactual datasets that are made available through ISIMIP along with the original datasets. Our method preserves the internal variability of the observed data in the sense that the applied transfer functions are monotonous. That makes it possible to compare observed impact events and counterfactual impact events in a world that would have been without climate change. Our approach captures the long-term trends associated with global warming but does not address the attribution of climate change to anthropogenic greenhouse gas emissions.
+Climate has changed over the past century due to anthropogenic greenhouse gas emissions. In parallel, societies and their environment have evolved rapidly. To identify the impacts of historical climate change on human or natural systems, it is therefore necessary to separate the effect of different drivers. By definition this is done by comparing the observed situation to a counterfactual one in which climate change is absent and other drivers change according to observations. As such a counterfactual baseline cannot be observed it has to be estimated by process-based or empirical models. We here present ATTRICI (ATTRIbuting Climate Impacts), an approach  to remove the signal of global warming from observational climate data to generate forcing data for the simulation of a counterfactual baseline of impact indicators. Our method identifies the interannual and annual cycle shifts that are correlated to global mean temperature change. We use quantile mapping to a baseline distribution that removes the global mean temperature related shifts to find counterfactual values for the observed daily climate data. Applied to each variable of two climate datasets, we produce two counterfactual datasets that are made available through the Inter-Sectoral Impact Model Intercomparison Project (ISIMIP) along with the original datasets. Our method preserves the internal variability of the observed data in the sense that observed (factual) and counterfactual data for a given day remain in the same quantile in their respective statistical distribution. That makes it possible to compare observed impact events and counterfactual impact events. Our approach adjusts for the long-term trends associated with global warming but does not address the attribution of climate change to anthropogenic greenhouse gas emissions.
 
 ## Approach
 
@@ -12,10 +12,10 @@ Preserving the events of the historical record is a key objective of the climate
 
 Our method relies on quantile mapping and thus on two statistical distributions: a distribution **A** that captures the evolution of the statistics of a climate variable due to climate change and a reference distribution **B** that approximates such evolution in the absence of climate change. Both distributions are dependent on time. Distribution **A** varies with a long-term global mean temperature trend, the yearly cycle, and a global-mean-temperature related distortion of the yearly cycle. The reference distribution **B** varies with the yearly cycle only. The type of the distribution depends on the climate variable and is the same for **A** and **B**.
 
-The approach is illustrated below for near-surface air temperature (tas) at a single grid cell in the Mediterranean. We estimate the evolving distribution **A** from the data (blue dots) through an evolving parameter, in the case of tas this is the expected value of the Gaussian distribution (blue line). The counterfactual distribution **B** evolves through its time-dependent parameter without the global-mean-temperature dependent part (orange dashed line). Quantile mapping based on these distributions produces a counterfactual (orange dots) for each observation (blue dots).
+The probabilistic model is illustrated for daily temperatures at an exemplary grid cell in panel A of Fig. 2. The difference between the expected values of distribution **A** (blue line) and **B** (orange line) is due to a vertical shift and a distortion of the  annual cycle. In panel B, the quantile mapping step is shown for an exemplary day. We obtain the percentile of the factual (i.e. observed) temperature (blue dot in panel A) at that day from the factual cumulative distribution function (CDF) (blue line in panel B). We then obtain the counterfactual temperature (orange dot in panel A) from the counterfactual CDF (orange line in panel B) at the same percentile.
 
-![Counterfactual example](image01.png)
-*Figure 1: Example for a single grid cell*
+![Counterfactual example](illustrative_plot.png)
+*Figure 1: Illustration of quantile mapping sensitive to the annual cycle. Panel A shows factual (blue points) and counterfactual (orange points) daily mean near-surface air temperature for the year 2016 of the GSWP3-W5E5 for a single grid cell in the Mediterranean region at 43.25°N, 5.25°E. In panel A, the blue and orange lines show the temporal evolution of the expected value μ (50th percentile) of the factual and the counterfactual distribution. In panel B, the blue and orange lines show the factual and counterfactual cumulative distribution function (CDF) for a single day (October 25th, 2016). The large blue and orange points in panel A show the factual and counterfactual daily mean temperature on October 25th. They correspond to the 95th percentile in their respective distributions. *
 
 ### Variables
 
@@ -86,6 +86,13 @@ In the root package directory.
 
 Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
 for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
+
+### Project Structure
+* All general settings are defined in `settings.py`.
+* The model can be run with the `run_estimation.py` script.
+* Model definitions for different climate variables are specified in `attrici/models.py`
+* The choice of a specific model for a variable is specified in `attrici/estimator.py`
+
 
 ### Calculating tasmin, tasmax and huss
 
