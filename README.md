@@ -1,3 +1,9 @@
+
+
+[![DOI](https://zenodo.org/badge/189257871.svg)](https://zenodo.org/badge/latestdoi/189257871)
+
+
+
 # ATTRICI - counterfactual climate for impact attribution
 
 Code implementing the methods discussed in Mengel et al. (submitted) [insert link to preprint].
