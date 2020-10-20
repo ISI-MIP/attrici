@@ -15,6 +15,10 @@ def det_dot(a, b):
     return (a * b[None, :]).sum(axis=-1)
 
 
+def logit(eta):
+    return 1 / (1 + tt.exp(-eta))
+
+
 class PrecipitationLongterm(attrici.distributions.BernoulliGamma):
 
     """ Influence of GMT is modelled through the parameters of the Gamma
@@ -701,6 +705,56 @@ class Ps(attrici.distributions.Normal):
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class HursBetaRegression(attrici.distributions.Beta):
+    """ Influence of GMT on relative humidity (hurs) is modelled with Beta regression as proposed in
+    https://www.tandfonline.com/doi/abs/10.1080/0266476042000214501
+    """
+
+    def __init__(self, modes):
+        super(HursBetaRegression, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+        model = pm.Model()
+
+        with model:
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
+
+            # mu
+
+            # phi
+            phi = pm.Exponential("phi", lam=0.5)
+            # phi = pm.Lognormal("phi", mu=1.0, sigma=1.5, testval=1)
+
+            b_GMT = pm.Normal("b_GMT", mu=0, sigma=1.0, testval=0)
+            a_GMT = pm.Normal("a_GMT", mu=0, sigma=1.0, testval=0)
+
+            b_yearly_cylce = pm.Normal("b_yearly_cylce", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
+            a_yearly_cycle = pm.Normal(
+                "a_yearly_cycle", mu=0.0, sigma=1.0, shape=xf1.dshape[1]
+            )
+            eta = b_GMT + a_GMT * gmtv \
+                  + det_dot(xf0, b_yearly_cylce) \
+                  + gmtv * det_dot(xf1, a_yearly_cycle)
+            mu = logit(eta)
+
+            # alpha
+            alpha = pm.Deterministic("alpha", mu * phi)
+
+            # beta = pm.HalfCauchy("beta", 0.5, testval=1)
+            beta = pm.Deterministic("beta", (1 - mu) * phi)
+
+            if not self.test:
+                pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
 
         return model
 
