@@ -11,7 +11,7 @@ class Distribution(object):
     def resample_missing(self, trace, df, subtrace, model, progressbar, map_estimate):
         # FIXME: this breaks if first parameter does not have time dimension
         # but second parameter has. It therefore requires an order in self.params
-        if map_estimate and trace[self.params[0]].shape[0] < df.shape[0]:
+        if map_estimate:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:",
