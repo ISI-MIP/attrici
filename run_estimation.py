@@ -118,7 +118,7 @@ for n in run_numbers[:]:
 
     try:
         trace, dff = func_timeout(
-            s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
+            s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"], s.map_estimate)
         )
     except (FunctionTimedOut, ParallelSamplingError, ValueError) as error:
         if str(error) == "Modes larger 1 are not allowed for the censored model.":
@@ -138,7 +138,7 @@ for n in run_numbers[:]:
             )
         continue
 
-    df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)
+    df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale, s.map_estimate)
     dh.save_to_disk(df_with_cfact, fname_cell, sp["lat"], sp["lon"], s.storage_format)
 
 obs_data.close()

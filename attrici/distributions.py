@@ -8,11 +8,52 @@ class Distribution(object):
 
         print(f"Using {type(self).__name__} distribution model.")
 
-    def resample_missing(self, trace, df, subtrace, model, progressbar):
-        trace_for_qm = trace[-subtrace:]
+    def resample_missing(self, trace, df, subtrace, model, progressbar, map_estimate):
         # FIXME: this breaks if first parameter does not have time dimension
         # but second parameter has. It therefore requires an order in self.params
-        if trace[self.params[0]].shape[1] < df.shape[0]:
+        if map_estimate and trace[self.params[0].shape[0] < df.shape[0]]:
+            print("Trace is not complete due to masked data. Resample missing.")
+            print(
+                "Trace length:",
+                trace[self.params[0]].shape[1],
+                "Dataframe length",
+                df.shape[0],
+            )
+
+            with model:
+                # use all data for the model specific data-inputs
+                # if input is available in the model
+                input_vars = {"gmt": "gmt_scaled", "gmtv": "gmt_scaled"}
+                fourier_vars = {
+                    "xf0": "^mode_0_",
+                    "xf0v": "^mode_0_",
+                    "xf1": "^mode_1_",
+                    "xf2": "^mode_2_",
+                    "xf3": "^mode_3_",
+                    "posxf0": "posmode_0_",
+                }
+                for key, df_key in input_vars.items():
+                    try:
+                        pm.set_data({key: df[df_key].values})
+                        print(f"replaced {key} in model with full data-set")
+                    except KeyError as e:
+                        pass
+
+                for key, df_key in fourier_vars.items():
+                    try:
+                        pm.set_data({key: df.filter(regex=df_key).values})
+                        print(f"replaced {key} in model with full data-set")
+                    except KeyError as e:
+                        pass
+
+                trace_for_qm = pm.sample_posterior_predictive(
+                    [trace],
+                    samples=subtrace,
+                    var_names=self.params,  # + ["obs"],
+                    progressbar=progressbar,
+                )
+            print("Resampled missing.")
+        elif trace[self.params[0]].shape[1] < df.shape[0]:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:",
@@ -54,6 +95,8 @@ class Distribution(object):
                     progressbar=progressbar,
                 )
             print("Resampled missing.")
+        else:
+            trace_for_qm = trace[-subtrace:]
         return trace_for_qm
 
 

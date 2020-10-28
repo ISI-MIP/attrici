@@ -56,7 +56,7 @@ df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variabl
 
 try:
     trace, dff = func_timeout(
-        s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"])
+        s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"], s.map_estimate)
     )
 except (FunctionTimedOut, ValueError) as error:
     if str(error) == "Modes larger 1 are not allowed for the censored model.":
@@ -66,7 +66,7 @@ except (FunctionTimedOut, ValueError) as error:
         print(error)
     # continue
 
-df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale)
+df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale, s.map_estimate)
 outdir_for_cell = dh.make_cell_output_dir(
     s.output_dir, "timeseries", sp["lat"], sp["lon"], s.variable
 )

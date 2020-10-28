@@ -14,7 +14,7 @@ model_for_var = {
     "tasrange": models.Tasrange,
     "tasskew": models.Tasskew,
     "pr": models.PrecipitationLongtermTrendSigma,
-    "hurs": models.HursBetaRegression,
+    "hurs": models.HursGLM,
     "wind": models.WindLogistic,
     "ps": models.Ps,
     "rsds": models.Rsds,
@@ -50,8 +50,7 @@ class estimator(object):
             )
             raise error
 
-    def estimate_parameters(self, df, lat, lon):
-
+    def estimate_parameters(self, df, lat, lon, map_estimate):
         x_fourier = fourier.get_fourier_valid(df, self.modes)
         x_fourier_01 = (x_fourier + 1) / 2
         x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
@@ -64,30 +63,32 @@ class estimator(object):
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, self.variable
         )
-
-        # FIXME: Rework loading old traces
-        # print("Search for trace in\n", outdir_for_cell)
-        # As load_trace does not throw an error when no saved data exists, we here
-        # test this manually. FIXME: Could be improved, as we check for existence
-        # of names and number of chains only, but not that the data is not corrupted.
-        try:
-            trace = pm.load_trace(outdir_for_cell, model=self.model)
-            print(trace.varnames)
-            #     for var in self.statmodel.vars_to_estimate:
-            #         if var not in trace.varnames:
-            #             print(var, "is not in trace, rerun sampling.")
-            #             raise IndexError
-            #     if trace.nchains != self.chains:
-            #         raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data from")
-            print(outdir_for_cell)
-            print("Skip this for sampling.")
-        except Exception as e:
-            print("Problem with saved trace:", e, ". Redo parameter estimation.")
-            trace = self.sample()
-            # print(pm.summary(trace))  # takes too much memory
-            if self.save_trace:
-                pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
+        if map_estimate:
+            trace = pm.find_MAP(model=self.model)
+        else:
+            # FIXME: Rework loading old traces
+            # print("Search for trace in\n", outdir_for_cell)
+            # As load_trace does not throw an error when no saved data exists, we here
+            # test this manually. FIXME: Could be improved, as we check for existence
+            # of names and number of chains only, but not that the data is not corrupted.
+            try:
+                trace = pm.load_trace(outdir_for_cell, model=self.model)
+                print(trace.varnames)
+                #     for var in self.statmodel.vars_to_estimate:
+                #         if var not in trace.varnames:
+                #             print(var, "is not in trace, rerun sampling.")
+                #             raise IndexError
+                #     if trace.nchains != self.chains:
+                #         raise IndexError("Sample data not completely saved. Rerun.")
+                print("Successfully loaded sampled data from")
+                print(outdir_for_cell)
+                print("Skip this for sampling.")
+            except Exception as e:
+                print("Problem with saved trace:", e, ". Redo parameter estimation.")
+                trace = self.sample()
+                # print(pm.summary(trace))  # takes too much memory
+                if self.save_trace:
+                    pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
         return trace, dff
 
@@ -126,11 +127,11 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
+    def estimate_timeseries(self, df, trace, datamin, scale, map_estimate, subtrace=1000):
 
         # print(trace["mu"].shape, df.shape)
         trace_for_qm = self.statmodel.resample_missing(
-            trace, df, subtrace, self.model, self.progressbar
+            trace, df, subtrace, self.model, self.progressbar, map_estimate
         )
 
         df_params = dh.create_ref_df(
@@ -161,7 +162,6 @@ class estimator(object):
         print(f"There are {yminf.sum()} -Inf values from quantile mapping. Replace.")
 
         df.loc[yna | yinf | yminf, "cfact"] = df.loc[yna | yinf | yminf, "y"]
-
 
         # todo: unifiy indexes so .values can be dropped
         for v in df_params.columns:

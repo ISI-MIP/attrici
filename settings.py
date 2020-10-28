@@ -24,13 +24,15 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "pr"  # select variable to detrend
+variable = "hurs"  # select variable to detrend
 
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
 modes = [1, 1, 1, 1]
 # NUTS or ADVI
 inference = "NUTS"
+# Compute maximum approximate posterior # todo is this equivalent to maximum likelihood?
+map_estimate = False
 
 seed = 0  # for deterministic randomisation
 subset = 10  # only use every subset datapoint for bayes estimation for speedup
