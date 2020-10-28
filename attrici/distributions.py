@@ -15,7 +15,7 @@ class Distribution(object):
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:",
-                trace[self.params[0]].shape[1],
+                trace[self.params[0]].shape[0],
                 "Dataframe length",
                 df.shape[0],
             )
