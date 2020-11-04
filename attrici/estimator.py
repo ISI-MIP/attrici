@@ -14,7 +14,7 @@ model_for_var = {
     "tasrange": models.Tasrange,
     "tasskew": models.Tasskew,
     "pr": models.PrecipitationLongtermTrendSigma,
-    "hurs": models.HursGLM,
+    "hurs": models.HursGLM_both_params,
     "wind": models.WindLogistic,
     "ps": models.Ps,
     "rsds": models.Rsds,

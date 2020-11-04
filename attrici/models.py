@@ -746,7 +746,7 @@ class HursGLM(attrici.distributions.Beta):
             # definition of priors
 
             # phi is called the precision parameter
-            phi = pm.Exponential("phi", lam=10)
+            phi = pm.Exponential("phi", lam=0.01)
             # phi = pm.Lognormal("phi", mu=1.0, sigma=1.5, testval=1)
 
             # mu
@@ -764,6 +764,67 @@ class HursGLM(attrici.distributions.Beta):
             # weights = pm.Normal('weights', mu=mu_weights, sd=sigma_weights, shape=2+2*xf0.dshape[1])
             # ----------------------------------------------------------
             # weights are the parameters that are learned by the model
+            # eta is a linear model of the predictors
+            eta = tt.dot(covariates, weights)
+            # mu models the expected value of the target data.
+            # The logit function is the link function in the Generalized Linear Model
+            mu = pm.math.invlogit(eta)
+
+            # alpha and beta are the parameters for the
+            alpha = pm.Deterministic("alpha", mu * phi)
+
+            beta = pm.Deterministic("beta", (1 - mu) * phi)
+
+            if not self.test:
+                pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
+
+        return model
+
+
+class HursGLM_both_params(attrici.distributions.Beta):
+    """ Influence of GMT on relative humidity (hurs) is modelled with Beta regression as proposed in
+    https://www.tandfonline.com/doi/abs/10.1080/0266476042000214501
+    """
+
+    def __init__(self, modes):
+        super(HursGLM_both_params, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+        model = pm.Model()
+
+        with model:
+            # The best is to read the model from the bottom up.
+
+            # getting the predictors
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            # covariates is a [n x d] matrix with all (d-1) predictors it contains the following columns:
+            # column of ones which is equivalent to the intercept term in a linear model
+            # scaled gmt values
+            # 2 columns (sin and cos) for each mode for the yearly cycle that does not depend on GMT
+            # 2 columns (sin*GMT and cos*GMT) for each mode for the gmt-dependent change in the yearly cycle
+            covariates = pm.math.concatenate(
+                [tt.ones_like(gmtv)[:, None],
+                 gmtv[:, None],
+                 xf0,
+                 tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
+                 ],
+                axis=1
+            )
+            # --------------------------------------------------------
+            # definition of priors
+
+            # phi is called the precision parameter
+            weights_phi = pm.Normal("weights_phi", mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
+            eta_phi = tt.dot(covariates, weights_phi)
+            phi = pm.Deterministic("phi", pm.math.exp(eta_phi))
+
+            # mu
+
+            weights = pm.Normal("weights", mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
             # eta is a linear model of the predictors
             eta = tt.dot(covariates, weights)
             # mu models the expected value of the target data.
