@@ -824,7 +824,7 @@ class HursGLM_both_params(attrici.distributions.Beta):
 
             # mu
 
-            weights = pm.Normal("weights", mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
+            weights = pm.Normal("weights", mu=0, sd=0.1, shape=2 + 2 * xf0.dshape[1])
             # eta is a linear model of the predictors
             eta = tt.dot(covariates, weights)
             # mu models the expected value of the target data.
