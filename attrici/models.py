@@ -1875,6 +1875,118 @@ class Tasrange(attrici.distributions.Normal):
         return model
 
 
+class TasrangeGamma(attrici.distributions.Gamma):
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Beta distribution.
+    """
+
+    def __init__(self, modes):
+        super(TasrangeGamma, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def quantile_mapping(self, d, y_scaled):
+        """
+        specific for normally distributed variables.
+        """
+        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
+        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
+        x_mapped[x_mapped <= 0] = np.nan
+        # values are not alowed to become non-negative. If that would happen, do not quantile map
+        return x_mapped
+
+    def setup(self, df_subset):
+        model = pm.Model()
+
+        with model:
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+
+            # covariates is a [n x d] matrix with all (d-1) predictors it contains the following columns:
+            # column of ones which is equivalent to the intercept term in a linear model
+            # scaled gmt values
+            # 2 columns (sin and cos) for each mode for the yearly cycle that does not depend on GMT
+            # 2 columns (sin*GMT and cos*GMT) for each mode for the gmt-dependent change in the yearly cycle
+            covariates = pm.math.concatenate(
+                [
+                    # tt.ones_like(gmtv)[:, None],
+                    # gmtv[:, None],
+                    xf0,
+                    tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
+                ],
+                axis=1
+            )
+
+            # alpha_mle, beta_mle, _, _ = scipy.stats.beta.fit(df_valid["y_scaled"], floc=0, fscale=1)
+            # --------------------------------------------------------
+            # definition of priors
+
+            # nu is called the precision parameter
+
+            # nu = pm.Exponential("nu", lam=0.01)
+            weights_nu_longterm_intercept = pm.Normal("weights_nu_longterm_intercept", mu=0, sd=1)
+            weights_nu_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_nu_fc_intercept_{i}", mu=0, sd=1 / (i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
+            )
+
+            eta_nu = tt.dot(xf0, weights_nu_fc_intercept) + weights_nu_longterm_intercept
+            nu = pm.math.exp(eta_nu)
+            # weights_nu = pm.Normal("weights_nu",mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
+            # eta_nu = tt.dot(covariates, weights_nu)
+            # nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
+
+            # decentralized model
+            # mu
+            # mu_weights = pm.Normal('mu_weights', mu=0., sd=0.1)
+            # sigma_weights = pm.HalfCauchy('sigma_weights', 1)
+
+            # mu offset is a reparametrization to get a decentralized model,
+            # see https://twiecki.io/blog/2017/02/08/bayesian-hierchical-non-centered/
+            # and discussion in https://github.com/pymc-devs/pymc3/issues/3132
+            # mu_weights_offset = pm.Normal('mu_weights_offset', mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
+            # weights = pm.Deterministic("weights", mu_weights + mu_weights_offset * sigma_weights)
+
+            # centralized model
+            # weights = pm.Normal('weights', mu=mu_weights, sd=sigma_weights, shape=2+2*xf0.dshape[1])
+
+            # nonhierarchical model (I think)
+            weights_longterm_intercept = pm.Normal("weights_longterm_intercept", mu=0, sd=1)
+            weights_longterm_trend = pm.Normal("weights_longterm_trend", mu=0, sd=0.1)
+            weights_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
+            )
+            weights_fc_trend = pm.Normal("weights_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_fc = pm.math.concatenate([
+                weights_fc_intercept,
+                weights_fc_trend
+            ])
+            # weights = pm.Normal("weights", mu=0, sd=1, shape=2 + 2 * xf0.dshape[1])
+
+            # ----------------------------------------------------------
+            # weights are the parameters that are learned by the model
+            # eta is a linear model of the predictors
+            eta = tt.dot(covariates, weights_fc) + weights_longterm_intercept + weights_longterm_trend * gmtv
+
+            # mu models the expected value of the target data.
+            # The logit function is the link function in the Generalized Linear Model
+            mu = pm.Deterministic("mu", pm.math.exp(eta))
+            nu = pm.math.exp(eta_nu)
+            sigma = pm.Deterministic("sigma", mu * mu / nu)
+            # sigma = pm.Deterministic("sigma", mu * (1 - mu) / (1 + nu))
+
+            # mu = tt.printing.Print('mu')(mu)
+            # nu = tt.printing.Print('nu')(nu)
+
+            if not self.test:
+                pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+
+        return model
+
+
 class TasrangeSigmaTrend(attrici.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of

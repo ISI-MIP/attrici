@@ -198,6 +198,28 @@ class BernoulliGamma(Distribution):
         return cfact
 
 
+class Gamma(Distribution):
+    def __init__(self):
+        super(Gamma, self).__init__()
+        self.params = ["mu", "sigma"]
+        self.parameter_bounds = {"mu": [0, None], "sigma": [0, None]}
+
+
+    def quantile_mapping(self, d, y_scaled):
+        quantile = stats.gamma.cdf(
+                y_scaled,
+                d["mu"] ** 2.0 / d["sigma"] ** 2.0,
+                scale=d["sigma"] ** 2.0 / d["mu"],
+            )
+        x_mapped = stats.gamma.ppf(
+                quantile,
+                d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
+                scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
+            )
+
+        return x_mapped
+
+
 class Beta(Distribution):
     def __init__(self):
 

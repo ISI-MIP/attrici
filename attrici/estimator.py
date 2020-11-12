@@ -11,7 +11,7 @@ import attrici.fourier as fourier
 
 model_for_var = {
     "tas": models.Tas,
-    "tasrange": models.Tasrange,
+    "tasrange": models.TasrangeGamma,
     "tasskew": models.Tasskew,
     "pr": models.PrecipitationLongtermTrendSigma,
     "hurs": models.HursGLMInteractiveModification,
