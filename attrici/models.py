@@ -1976,6 +1976,7 @@ class TasrangeGamma(attrici.distributions.Gamma):
             mu = pm.Deterministic("mu", pm.math.exp(eta))
             nu = pm.math.exp(eta_nu)
             sigma = pm.Deterministic("sigma", mu * mu / nu)
+            logp_ = pm.Deterministic("logp", model.logpt)
             # sigma = pm.Deterministic("sigma", mu * (1 - mu) / (1 + nu))
 
             # mu = tt.printing.Print('mu')(mu)

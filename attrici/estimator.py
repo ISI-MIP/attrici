@@ -167,6 +167,10 @@ class estimator(object):
         for v in df_params.columns:
             df.loc[:, v] = df_params.loc[:, v].values
 
+        if map_estimate:
+            df.loc[:, "logp"] = trace_for_qm['logp'].mean(axis=0)
+            
+
         if self.report_variables != "all":
             df = df.loc[:, self.report_variables]
 
