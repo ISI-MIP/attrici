@@ -943,6 +943,7 @@ class HursGLMInteractiveModification(attrici.distributions.Beta):
             alpha = pm.Deterministic("alpha", mu * phi)
 
             beta = pm.Deterministic("beta", (1 - mu) * phi)
+            logp_ = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
