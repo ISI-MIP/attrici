@@ -1886,16 +1886,6 @@ class TasrangeGamma(attrici.distributions.Gamma):
         self.modes = modes
         self.test = False
 
-    def quantile_mapping(self, d, y_scaled):
-        """
-        specific for normally distributed variables.
-        """
-        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
-        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
-        x_mapped[x_mapped <= 0] = np.nan
-        # values are not alowed to become non-negative. If that would happen, do not quantile map
-        return x_mapped
-
     def setup(self, df_subset):
         model = pm.Model()
 
