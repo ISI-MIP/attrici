@@ -260,6 +260,102 @@ class PrecipitationLongtermYearlycycle(attrici.distributions.BernoulliGamma):
         return model
 
 
+class PrInteractiveModification(attrici.distributions.BernoulliGamma):
+    """ Influence of GMT is modelled through a shift of
+    mu and sigma parameters in a Beta distribution.
+    """
+
+    def __init__(self, modes):
+        super(PrInteractiveModification, self).__init__()
+        self.modes = modes
+        self.test = False
+
+    def setup(self, df_subset):
+        model = pm.Model()
+
+        with model:
+            # so use df_subset directly.
+            df_valid = df_subset.dropna(axis=0, how="any")
+
+            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_subset.filter(regex="^mode_0_").values)
+
+            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
+            xf0v = pm.Data("xf0v", df_valid.filter(regex="^mode_0_").values)
+
+            # covariates is a [n x d] matrix with all (d-1) predictors it contains the following columns:
+            # column of ones which is equivalent to the intercept term in a linear model
+            # scaled gmt values
+            # 2 columns (sin and cos) for each mode for the yearly cycle that does not depend on GMT
+            # 2 columns (sin*GMT and cos*GMT) for each mode for the gmt-dependent change in the yearly cycle
+            covariates = pm.math.concatenate(
+                [
+                    # tt.ones_like(gmtv)[:, None],
+                    # gmtv[:, None],
+                    xf0,
+                    tt.tile(gmt[:, None], (1, int(xf0.dshape[1]))) * xf0
+                ],
+                axis=1
+            )
+            covariatesv = pm.math.concatenate(
+                [
+                    # tt.ones_like(gmtv)[:, None],
+                    # gmtv[:, None],
+                    xf0v,
+                    tt.tile(gmtv[:, None], (1, int(xf0v.dshape[1]))) * xf0v
+                ],
+                axis=1
+            )
+            # pbern
+            weights_pbern_longterm_intercept = pm.Normal("weights_pbern_longterm_intercept", mu=0, sd=1)
+            weights_pbern_longterm_trend = pm.Normal("weights_pbern_longterm_trend", mu=0, sd=0.1)
+            weights_pbern_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_pbern_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
+            )
+            weights_pbern_fc_trend = pm.Normal("weights_pbern_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_pbern_fc = pm.math.concatenate([
+                weights_pbern_fc_intercept,
+                weights_pbern_fc_trend
+            ])
+            logit_pbern = pm.Deterministic("logit_pbern", tt.dot(covariates,
+                                                                 weights_pbern_fc) + weights_pbern_longterm_intercept + weights_pbern_longterm_trend * gmt)
+            pbern = pm.Deterministic("pbern", pm.math.invlogit(logit_pbern))
+            # mu
+            weights_mu_longterm_intercept = pm.Normal("weights_mu_longterm_intercept", mu=0, sd=1)
+            weights_mu_longterm_trend = pm.Normal("weights_mu_longterm_trend", mu=0, sd=0.1)
+            weights_mu_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_mu_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0v.dshape[1]) // 2)]
+            )
+            weights_mu_fc_trend = pm.Normal("weights_mu_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_mu_fc = pm.math.concatenate([
+                weights_mu_fc_intercept,
+                weights_mu_fc_trend
+            ])
+            eta_mu = tt.dot(covariatesv,
+                            weights_mu_fc) + weights_mu_longterm_intercept + weights_mu_longterm_trend * gmtv
+            mu = pm.Deterministic("mu", pm.math.exp(eta_mu))
+            # nu
+            weights_nu_longterm_intercept = pm.Normal("weights_nu_longterm_intercept", mu=0, sd=1)
+            weights_nu_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_nu_fc_intercept_{i}", mu=0, sd=1 / (i + 1), shape=2)
+                 for i in range(int(xf0v.dshape[1]) // 2)]
+            )
+            eta_nu = tt.dot(xf0v, weights_nu_fc_intercept) + weights_nu_longterm_intercept
+            nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
+            sigma = pm.Deterministic("sigma", mu * mu / nu)
+
+            _logp = pm.Deterministic("logp", model.logpt)
+
+            if not self.test:
+                pm.Bernoulli(
+                    "bernoulli", logit_p=logit_pbern, observed=df_subset["is_dry_day"].astype(int)
+                )
+                pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
+        return model
+
+
 class TasLongterm(attrici.distributions.Normal):
 
     """ Influence of GMT is modelled through a shift of
