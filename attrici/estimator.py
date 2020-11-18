@@ -40,7 +40,7 @@ class estimator(object):
         self.save_trace = cfg.save_trace
         self.report_variables = cfg.report_variables
         self.inference = cfg.inference
-        self.startdate = cfg.start_date
+        self.startdate = cfg.startdate
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes)
