@@ -36,6 +36,7 @@ map_estimate = False
 
 seed = 0  # for deterministic randomisation
 subset = 10  # only use every subset datapoint for bayes estimation for speedup
+startdate = None  # only use data up from this date to fit the model
 
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
 dataset = "GSWP3"

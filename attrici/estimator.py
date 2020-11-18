@@ -40,6 +40,7 @@ class estimator(object):
         self.save_trace = cfg.save_trace
         self.report_variables = cfg.report_variables
         self.inference = cfg.inference
+        self.startdate = cfg.start_date
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes)
@@ -56,7 +57,7 @@ class estimator(object):
         x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
 
         dff = pd.concat([df, x_fourier, x_fourier_01], axis=1)
-        df_subset = dh.get_subset(dff, self.subset, self.seed)
+        df_subset = dh.get_subset(dff, self.subset, self.seed, self.startdate)
 
         self.model = self.statmodel.setup(df_subset)
 
