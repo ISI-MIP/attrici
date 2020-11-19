@@ -356,216 +356,7 @@ class PrInteractiveModification(attrici.distributions.BernoulliGamma):
         return model
 
 
-class TasLongterm(attrici.distributions.Normal):
-
-    """ Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(TasLongterm, self).__init__()
-        self.modes = modes
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-            # in (-inf, inf)
-            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu)
-
-            # should be same for b and a, so that a is symmetric around zero
-            lam = 1
-            # b_sigma is in the interval (0,inf)
-            b_sigma = pm.Exponential("b_sigma", lam=lam)
-            # a_sigma is in the interval (-b, inf), mode at 0
-            a_sigma = pm.Deterministic(
-                "a_sigma", tt.sub(pm.Exponential("as", lam=lam), b_sigma)
-            )
-            # sigma in (0, inf)
-            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma)
-
-            pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class TasCycle(attrici.distributions.Normal):
-
-    """ Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(TasCycle, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(like="mode_0_").values)
-
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            yearly_mu = pm.Normal("yearly_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
-            # in (-inf, inf)
-            mu = pm.Deterministic("mu", a_mu * gmtv + b_mu + det_dot(xf0, yearly_mu))
-
-            # should be same for b and a, so that a is symmetric around zero
-            lam = 1
-            # b_sigma is in the interval (0,inf)
-            b_sigma = pm.Lognormal("b_sigma", mu=-3, sigma=1)
-            yearly_sigma = pm.Lognormal(
-                "yearly_sigma", mu=-3, sigma=1, shape=xf0.dshape[1]
-            )
-            ys = det_dot(xf0, yearly_sigma)
-            # a_sigma is in the interval (-b_sigma - ys, inf), mode at 0
-            a_sigma = pm.Deterministic(
-                "a_sigma", pm.Lognormal("as", mu=-3, sigma=1) - b_sigma
-            )
-
-            # sigma in (0, inf)
-            sigma = pm.Deterministic("sigma", a_sigma * gmtv + b_sigma + ys)
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class TasCycleRelu(attrici.distributions.Normal):
-
-    """ Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(TasCycleRelu, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            posxf0 = pm.Data("posxf0", df_valid.filter(like="posmode_0_").values)
-
-            # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            fourier_coefficients_mu = pm.Normal(
-                "fourier_coefficients_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1]
-            )
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu", a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu)
-            )
-
-            # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
-
-            fourier_coefficients_sigma = pm.Lognormal(
-                "fourier_coefficients_sigma", mu=0.0, sd=0.1, shape=posxf0.dshape[1]
-            )
-            # in (-inf, inf)
-            lin = pm.Deterministic(
-                "lin",
-                a_sigma * gmtv + b_sigma + det_dot(posxf0, fourier_coefficients_sigma),
-            )
-            alpha = 1e-4
-            sigma = pm.Deterministic("sigma", tt.nnet.elu(lin, alpha)) + 2 * alpha
-            # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class TasLogistic(attrici.distributions.Normal):
-
-    """ Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(TasLogistic, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            # xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-            xf2 = pm.Data("xf2", df_valid.filter(regex="^mode_2_").values)
-            # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            fourier_coefficients_mu = pm.Normal(
-                "fourier_coefficients_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1]
-            )
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu", a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu)
-            )
-
-            # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=0.0, sigma=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1.0)
-
-            fourier_coeffs_sigma = pm.Lognormal(
-                "fourier_coeffs_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1]
-            )
-            # in (-inf, inf)
-            logistic = b_sigma / (
-                1 + tt.exp(-1.0 * (a_sigma * gmtv + det_dot(xf2, fourier_coeffs_sigma)))
-            )
-
-            sigma = pm.Deterministic("sigma", logistic)
-            # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
 class Tas(attrici.distributions.Normal):
-
     """ Influence of GMT is modelled through a shift of
     mu parameter in the Normal distribution.
     """
@@ -576,7 +367,6 @@ class Tas(attrici.distributions.Normal):
         self.test = False
 
     def setup(self, df_subset):
-
         model = pm.Model()
 
         with model:
@@ -584,76 +374,38 @@ class Tas(attrici.distributions.Normal):
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
             # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
 
-            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
-            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
-
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv
-                + b_mu
-                + det_dot(xf0, fc_mu)
-                + gmtv * det_dot(xf1, fctrend_mu),
+            weights_longterm_intercept = pm.Normal("weights_longterm_intercept", mu=0, sd=1)
+            weights_longterm_trend = pm.Normal("weights_longterm_trend", mu=0, sd=0.1)
+            weights_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
+            weights_fc_trend = pm.Normal("weights_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_fc = pm.math.concatenate([
+                weights_fc_intercept,
+                weights_fc_trend
+            ])
+            # weights are the parameters that are learned by the model
+            # eta is a linear model of the predictors
+            eta = tt.dot(pm.math.concatenate([
+                xf0,
+                tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
+            ], axis=1),
+                weights_fc) + weights_longterm_intercept + weights_longterm_trend * gmtv
+            mu = pm.Deterministic("mu", eta)
 
             # sigma
-            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class TasCauchySigmaPrior(attrici.distributions.Normal):
-
-    """ Influence of GMT is modelled through a shift of
-    mu parameter in the Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(TasCauchySigmaPrior, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
-            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
-
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv
-                + b_mu
-                + det_dot(xf0, fc_mu)
-                + gmtv * det_dot(xf1, fctrend_mu),
+            weights_sigma_longterm_intercept = pm.Normal("weights_sigma_longterm_intercept", mu=0, sd=1)
+            weights_sigma_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_sigma_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
 
-            sigma = pm.HalfCauchy("sigma", 0.5, testval=1)
+            eta_sigma = tt.dot(xf0, weights_sigma_fc_intercept) + weights_sigma_longterm_intercept
+            sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
+            logp_ = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
@@ -805,139 +557,6 @@ class Ps(attrici.distributions.Normal):
         return model
 
 
-class HursGLM(attrici.distributions.Beta):
-    """ Influence of GMT on relative humidity (hurs) is modelled with Beta regression as proposed in
-    https://www.tandfonline.com/doi/abs/10.1080/0266476042000214501
-    """
-
-    def __init__(self, modes):
-        super(HursGLM, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-        model = pm.Model()
-
-        with model:
-            # The best is to read the model from the bottom up.
-
-            # getting the predictors
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            # covariates is a [n x d] matrix with all (d-1) predictors it contains the following columns:
-            # column of ones which is equivalent to the intercept term in a linear model
-            # scaled gmt values
-            # 2 columns (sin and cos) for each mode for the yearly cycle that does not depend on GMT
-            # 2 columns (sin*GMT and cos*GMT) for each mode for the gmt-dependent change in the yearly cycle
-            covariates = pm.math.concatenate(
-                [tt.ones_like(gmtv)[:, None],
-                 gmtv[:, None],
-                 xf0,
-                 tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
-                 ],
-                axis=1
-            )
-            # --------------------------------------------------------
-            # definition of priors
-
-            # phi is called the precision parameter
-            phi = pm.Exponential("phi", lam=0.01)
-            # phi = pm.Lognormal("phi", mu=1.0, sigma=1.5, testval=1)
-
-            # mu
-            mu_weights = pm.Normal('mu_weights', mu=0., sd=0.1)
-            sigma_weights = pm.HalfCauchy('sigma_weights', 1)
-
-            # mu offset is a reparametrization to get a decentralized model,
-            # see https://twiecki.io/blog/2017/02/08/bayesian-hierchical-non-centered/
-            # and discussion in https://github.com/pymc-devs/pymc3/issues/3132
-            mu_weights_offset = pm.Normal('mu_weights_offset', mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
-
-            # decentralized model
-            weights = pm.Deterministic("weights", mu_weights + mu_weights_offset * sigma_weights)
-            # centralized model
-            # weights = pm.Normal('weights', mu=mu_weights, sd=sigma_weights, shape=2+2*xf0.dshape[1])
-            # ----------------------------------------------------------
-            # weights are the parameters that are learned by the model
-            # eta is a linear model of the predictors
-            eta = tt.dot(covariates, weights)
-            # mu models the expected value of the target data.
-            # The logit function is the link function in the Generalized Linear Model
-            mu = pm.math.invlogit(eta)
-
-            # alpha and beta are the parameters for the
-            alpha = pm.Deterministic("alpha", mu * phi)
-
-            beta = pm.Deterministic("beta", (1 - mu) * phi)
-
-            if not self.test:
-                pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class HursGLM_both_params(attrici.distributions.Beta):
-    """ Influence of GMT on relative humidity (hurs) is modelled with Beta regression as proposed in
-    https://www.tandfonline.com/doi/abs/10.1080/0266476042000214501
-    """
-
-    def __init__(self, modes):
-        super(HursGLM_both_params, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-        model = pm.Model()
-
-        with model:
-            # The best is to read the model from the bottom up.
-
-            # getting the predictors
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            # covariates is a [n x d] matrix with all (d-1) predictors it contains the following columns:
-            # column of ones which is equivalent to the intercept term in a linear model
-            # scaled gmt values
-            # 2 columns (sin and cos) for each mode for the yearly cycle that does not depend on GMT
-            # 2 columns (sin*GMT and cos*GMT) for each mode for the gmt-dependent change in the yearly cycle
-            covariates = pm.math.concatenate(
-                [tt.ones_like(gmtv)[:, None],
-                 gmtv[:, None],
-                 xf0,
-                 tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
-                 ],
-                axis=1
-            )
-            # --------------------------------------------------------
-            # definition of priors
-
-            # phi is called the precision parameter
-            weights_phi = pm.Normal("weights_phi", mu=0, sd=10, shape=2 + 2 * xf0.dshape[1])
-            eta_phi = tt.dot(covariates, weights_phi)
-            phi = pm.Deterministic("phi", pm.math.exp(eta_phi))
-
-            # mu
-
-            weights = pm.Normal("weights", mu=0, sd=0.1, shape=2 + 2 * xf0.dshape[1])
-            # eta is a linear model of the predictors
-            eta = tt.dot(covariates, weights)
-            # mu models the expected value of the target data.
-            # The logit function is the link function in the Generalized Linear Model
-            mu = pm.math.invlogit(eta)
-
-            # alpha and beta are the parameters for the
-            alpha = pm.Deterministic("alpha", mu * phi)
-
-            beta = pm.Deterministic("beta", (1 - mu) * phi)
-
-            if not self.test:
-                pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
-
-        return model
-
-
 class HursGLMInteractiveModification(attrici.distributions.Beta):
     """ Influence of GMT on relative humidity (hurs) is modelled with Beta regression as proposed in
     https://www.tandfonline.com/doi/abs/10.1080/0266476042000214501
@@ -965,8 +584,6 @@ class HursGLMInteractiveModification(attrici.distributions.Beta):
             # 2 columns (sin*GMT and cos*GMT) for each mode for the gmt-dependent change in the yearly cycle
             covariates = pm.math.concatenate(
                 [
-                    # tt.ones_like(gmtv)[:, None],
-                    # gmtv[:, None],
                     xf0,
                     tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
                 ],
@@ -1265,76 +882,6 @@ class HursTrendSigma(attrici.distributions.Normal):
             )
             alpha = 1e-6
             sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha))
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class TasLogisticTrend(attrici.distributions.Normal):
-
-    """ Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(TasLogisticTrend, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-            xf2 = pm.Data("xf2", df_valid.filter(regex="^mode_2_").values)
-            xf3 = pm.Data("xf3", df_valid.filter(regex="^mode_3_").values)
-            # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=1.0, shape=xf0.dshape[1])
-            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=1.0, shape=xf1.dshape[1])
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv
-                + b_mu
-                + det_dot(xf0, fc_mu)
-                + gmtv * det_dot(xf1, fctrend_mu),
-            )
-
-            # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=0.0, sigma=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=1.0)
-
-            fc_sigma = pm.Lognormal("fc_sigma", mu=0.0, sd=5.0, shape=xf2.dshape[1])
-            fctrend_sigma = pm.Normal(
-                "fctrend_sigma", mu=0.0, sd=1.0, shape=xf3.dshape[1]
-            )
-            # in (-inf, inf)
-            logistic = b_sigma / (
-                1
-                + tt.exp(
-                    -1.0
-                    * (
-                        a_sigma * gmtv
-                        + det_dot(xf2, fc_sigma)
-                        + gmtv * det_dot(xf3, fctrend_sigma)
-                    )
-                )
-            )
-
-            sigma = pm.Deterministic("sigma", logistic)
-            # sigma = pm.Lognormal("sigma", mu=-1, sigma=1)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
