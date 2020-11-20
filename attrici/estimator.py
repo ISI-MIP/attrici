@@ -15,7 +15,7 @@ model_for_var = {
     "tasskew": models.Tasskew,
     "pr": models.PrInteractiveModification,
     "hurs": models.HursGLMInteractiveModification,
-    "wind": models.WindLogistic,
+    "wind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
     "rlds": models.RldsConstSigma,

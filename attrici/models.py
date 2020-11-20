@@ -1687,7 +1687,6 @@ class TasrangeLogistic(attrici.distributions.Rice):
 
 
 class Wind(attrici.distributions.Weibull):
-
     """ Influence of GMT is modelled through a shift of
     the scale parameter beta in the Weibull distribution. The shape
     parameter alpha is assumed free of a trend.
@@ -1700,141 +1699,44 @@ class Wind(attrici.distributions.Weibull):
         self.test = False
 
     def setup(self, df_subset):
-
         model = pm.Model()
 
         with model:
-            # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
 
             # beta
-            b_beta = pm.Lognormal("b_beta", mu=-1, sigma=0.4, testval=1.0)
-            a_beta = pm.Normal("a_beta", mu=0, sigma=.01)
-
-            fc_beta = pm.Normal("fc_beta", mu=0.0, sd=.01, shape=xf0.dshape[1])
-            fctrend_beta = pm.Normal("fctrend_beta", mu=0.0, sd=.01, shape=xf1.dshape[1])
-
-            lin_beta = pm.Deterministic(
-                "lin_beta",
-                (a_beta + det_dot(xf1, fctrend_beta)) * gmtv
-                + b_beta
-                + det_dot(xf0, fc_beta)
+            weights_longterm_intercept = pm.Normal("weights_longterm_intercept", mu=0, sd=1)
+            weights_longterm_trend = pm.Normal("weights_longterm_trend", mu=0, sd=0.1)
+            weights_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
-            cutoff = 1e-10
-            beta = pm.Deterministic("beta", pm.math.switch(lin_beta > cutoff, lin_beta, cutoff))
+            weights_fc_trend = pm.Normal("weights_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_fc = pm.math.concatenate([
+                weights_fc_intercept,
+                weights_fc_trend
+            ])
+            # weights are the parameters that are learned by the model
+            # eta is a linear model of the predictors
+            eta = tt.dot(pm.math.concatenate([
+                xf0,
+                tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
+            ], axis=1),
+                weights_fc) + weights_longterm_intercept + weights_longterm_trend * gmtv
+            beta = pm.Deterministic("beta", pm.math.exp(eta))
 
             # alpha
-            alpha = pm.Lognormal("alpha", mu=-1, sigma=0.4, testval=1.0)
-
-            if not self.test:
-                pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class WindFull(attrici.distributions.Weibull):
-
-    """ Influence of GMT is modelled through a shift of
-    the scale parameter beta in the Weibull distribution. The shape
-    parameter alpha is assumed to be a function of beta.
-
-    """
-
-    def __init__(self, modes):
-        super(WindFull, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            # beta
-            b_beta = pm.Lognormal("b_beta", mu=-1, sigma=0.4, testval=1.0)
-            a_beta = pm.Normal("a_beta", mu=0, sigma=.01)
-
-            fc_beta = pm.Normal("fc_beta", mu=0.0, sd=.01, shape=xf0.dshape[1])
-            fctrend_beta = pm.Normal("fctrend_beta", mu=0.0, sd=.01, shape=xf1.dshape[1])
-
-            lin_beta = pm.Deterministic(
-                "lin_beta",
-                (a_beta + det_dot(xf1, fctrend_beta)) * gmtv
-                + b_beta
-                + det_dot(xf0, fc_beta)
-            )
-            cutoff = 1e-10
-            beta = pm.Deterministic("beta", pm.math.switch(lin_beta > cutoff, lin_beta, cutoff))
-
-            # alpha
-            # a alpha and b alpha could also be a function of GMT
-            a_alpha = pm.Normal("a_alpha", mu=0.0, sd=.1)
-            b_alpha = pm.Normal("b_alpha", mu=2, sd=1)
-            lin_alpha = a_alpha * beta + b_alpha
-            cutoff = 1e-10
-            alpha = pm.Deterministic("alpha", pm.math.switch(lin_alpha > cutoff, lin_alpha, cutoff))
-
-            if not self.test:
-                pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class WindLogistic(attrici.distributions.Weibull):
-
-    """ Influence of GMT is modelled through a shift of
-    the scale parameter beta in the Weibull distribution. The shape
-    parameter alpha is assumed free of a trend.
-
-    """
-
-    def __init__(self, modes):
-        super(WindLogistic, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            b_beta = pm.HalfCauchy("b_beta", 0.1, testval=1)
-            a_beta = pm.Normal("a_beta", mu=0, sigma=0.1)
-
-            fc_beta = pm.Normal("fc_beta", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            fctrend_beta = pm.Normal(
-                "fctrend_beta", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
-            )
-            # in (-inf, inf)
-            logistic = b_beta / (
-                1
-                + tt.exp(
-                    -1.0
-                    * (
-                        a_beta * gmtv
-                        + det_dot(xf0, fc_beta)
-                        + gmtv * det_dot(xf1, fctrend_beta)
-                    )
-                )
+            weights_alpha_longterm_intercept = pm.Normal("weights_alpha_longterm_intercept", mu=0, sd=1)
+            weights_alpha_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_alpha_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
 
-            beta = pm.Deterministic("beta", logistic)
-            alpha = pm.HalfCauchy("alpha", 0.1, testval=1)
+            eta_alpha = tt.dot(xf0, weights_alpha_fc_intercept) + weights_alpha_longterm_intercept
+            alpha = pm.Deterministic("alpha", pm.math.exp(eta_alpha))
+            logp_ = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
