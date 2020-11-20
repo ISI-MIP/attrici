@@ -414,7 +414,6 @@ class Tas(attrici.distributions.Normal):
 
 
 class Rlds(attrici.distributions.Normal):
-
     """ Influence of GMT on longwave downwelling shortwave radiation
     is modelled through a shift of mu parameter in the Normal distribution.
     """
@@ -425,83 +424,44 @@ class Rlds(attrici.distributions.Normal):
         self.test = False
 
     def setup(self, df_subset):
-
         model = pm.Model()
 
         with model:
-            # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
             # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
 
-            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
-            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
-
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv
-                + b_mu
-                + det_dot(xf0, fc_mu)
-                + gmtv * det_dot(xf1, fctrend_mu),
+            weights_longterm_intercept = pm.Normal("weights_longterm_intercept", mu=0, sd=1)
+            weights_longterm_trend = pm.Normal("weights_longterm_trend", mu=0, sd=0.1)
+            weights_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
+            weights_fc_trend = pm.Normal("weights_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_fc = pm.math.concatenate([
+                weights_fc_intercept,
+                weights_fc_trend
+            ])
+            # weights are the parameters that are learned by the model
+            # eta is a linear model of the predictors
+            eta = tt.dot(pm.math.concatenate([
+                xf0,
+                tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
+            ], axis=1),
+                weights_fc) + weights_longterm_intercept + weights_longterm_trend * gmtv
+            mu = pm.Deterministic("mu", eta)
+
             # sigma
-            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class RldsConstSigma(attrici.distributions.Normal):
-
-    """ Influence of GMT on longwave downwelling shortwave radiation
-    is modelled through a shift of mu parameter in the Normal distribution.
-    """
-
-    def __init__(self, modes):
-        super(RldsConstSigma, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            # mu
-            # b_mu is in the interval (-inf,inf)
-            b_mu = pm.Normal("b_mu", mu=0.5, sigma=1)
-            # a_mu in (-inf, inf)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=1)
-
-            fc_mu = pm.Normal("fc_mu", mu=0.0, sd=2.0, shape=xf0.dshape[1])
-            fctrend_mu = pm.Normal("fctrend_mu", mu=0.0, sd=2.0, shape=xf1.dshape[1])
-
-            # in (-inf, inf)
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv
-                + b_mu
-                + det_dot(xf0, fc_mu)
-                + gmtv * det_dot(xf1, fctrend_mu),
+            weights_sigma_longterm_intercept = pm.Normal("weights_sigma_longterm_intercept", mu=0, sd=1)
+            weights_sigma_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_sigma_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
 
-            sigma = pm.HalfCauchy("sigma", 0.5, testval=1)
+            eta_sigma = tt.dot(xf0, weights_sigma_fc_intercept) + weights_sigma_longterm_intercept
+            sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
+            logp_ = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])

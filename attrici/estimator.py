@@ -18,7 +18,7 @@ model_for_var = {
     "wind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
-    "rlds": models.RldsConstSigma,
+    "rlds": models.Rlds,
 }
 
 
