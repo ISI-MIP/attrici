@@ -928,7 +928,7 @@ class Tasskew(attrici.distributions.Normal):
 
 class Rsds(attrici.distributions.Normal):
     """ Influence of GMT is modelled through a shift of
-        mu and sigma parameters in a Beta distribution.
+        mu and sigma parameters in a Normal distribution.
         """
 
     def __init__(self, modes):
@@ -936,326 +936,57 @@ class Rsds(attrici.distributions.Normal):
         self.modes = modes
         self.test = False
 
-
     def quantile_mapping(self, d, y_scaled):
         """
-        specific for censored normal values
-        rsds can not be smaller than zero
-        all values equal to zero are masked out for training
-        those masked values are replaced by random values, sampled from the trained model
-
-        those random values are quantile-mapped
-        after quantile mapping negative c-fact values are mapped to zero
+        nan values are not quantile-mapped. 0 rsds happens mainly in the polar night.
         """
-        random_values = stats.norm.rvs(loc=d["mu"], scale=d["sigma"])
-        # the random values should not be larger than 0 (any value smaller 0 is possible)
-        np.minimum(random_values, 0, random_values)
-        y_filled = y_scaled.fillna(pd.Series(random_values))
 
-        quantile = stats.norm.cdf(y_filled, loc=d["mu"], scale=d["sigma"])
+        quantile = stats.norm.cdf(y_scaled, loc=d["mu"], scale=d["sigma"])
         x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
-        np.maximum(x_mapped, 0, x_mapped)
+
+        x_mapped[x_mapped <= 0] = np.nan
+
         return x_mapped
 
     def setup(self, df_subset):
         model = pm.Model()
 
         with model:
-            # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            if (np.array(self.modes) > 1).any():
-                raise ValueError('Modes larger 1 are not allowed for the censored model.')
-
             # mu
-            b_mu = pm.Lognormal("b_mu", mu=-1, sigma=0.4, testval=1.0)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=0.05, testval=0)
-            fourier_coefficients_mu = pm.Normal(
-                "fourier_coefficients_mu", mu=0.0, sd=0.1, shape=xf0.dshape[1]
+
+            weights_longterm_intercept = pm.Normal("weights_longterm_intercept", mu=0, sd=1)
+            weights_longterm_trend = pm.Normal("weights_longterm_trend", mu=0, sd=0.1)
+            weights_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu),
-            )
+            weights_fc_trend = pm.Normal("weights_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_fc = pm.math.concatenate([
+                weights_fc_intercept,
+                weights_fc_trend
+            ])
+            # weights are the parameters that are learned by the model
+            # eta is a linear model of the predictors
+            eta = tt.dot(pm.math.concatenate([
+                xf0,
+                tt.tile(gmtv[:, None], (1, int(xf0.dshape[1]))) * xf0
+            ], axis=1),
+                weights_fc) + weights_longterm_intercept + weights_longterm_trend * gmtv
+            mu = pm.Deterministic("mu", eta)
 
             # sigma
-            sigma = pm.Lognormal("sigma", mu=-1, sigma=0.4, testval=1.0)
-
-            if not self.test:
-                pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class RsdsBeta(attrici.distributions.Beta):
-    """ Influence of GMT is modelled through a shift of
-        mu and sigma parameters in a Beta distribution.
-        """
-
-    def __init__(self, modes):
-        super(RsdsBeta, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            # alpha
-            b_alpha = pm.Lognormal("b_alpha", mu=1.0, sigma=1.5, testval=1)
-            a_alpha = pm.Normal("a_alpha", mu=0, sigma=1.0)
-
-            fc_alpha = pm.Normal("fc_alpha", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            fctrend_alpha = pm.Normal(
-                "fctrend_alpha", mu=0.0, sigma=1.0, shape=xf1.dshape[1]
-            )
-            # in (-inf, inf)
-            logistic = b_alpha / (
-                1
-                + tt.exp(
-                    -1.0
-                    * (
-                        a_alpha * gmtv
-                        + det_dot(xf0, fc_alpha)
-                        + gmtv * det_dot(xf1, fctrend_alpha)
-                    )
-                )
+            weights_sigma_longterm_intercept = pm.Normal("weights_sigma_longterm_intercept", mu=0, sd=1)
+            weights_sigma_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_sigma_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
 
-            alpha = pm.Deterministic("alpha", logistic)
-
-            # beta
-            b_beta = pm.Lognormal("b_beta", mu=1.0, sigma=1.5, testval=1)
-            a_beta = pm.Normal("a_beta", mu=0, sigma=1.0)
-
-            fc_beta = pm.Normal("fc_beta", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            fctrend_beta = pm.Normal(
-                "fctrend_beta", mu=0.0, sigma=1.0, shape=xf1.dshape[1]
-            )
-            # in (-inf, inf)
-            logistic = b_beta / (
-                1
-                + tt.exp(
-                    -1.0
-                    * (
-                        a_beta * gmtv
-                        + det_dot(xf0, fc_beta)
-                        + gmtv * det_dot(xf1, fctrend_beta)
-                    )
-                )
-            )
-
-            beta = pm.Deterministic("beta", logistic)
-            # beta = pm.HalfCauchy("beta", 0.5, testval=1)
-            # beta = pm.Lognormal("beta", mu=1.0, sigma=1.5, testval=1)
-
-            if not self.test:
-                pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class RsdsRiceLogistic(attrici.distributions.Rice):
-    """ Influence of GMT is modelled through a shift of
-        mu and sigma parameters in a Beta distribution.
-        """
-
-    def __init__(self, modes):
-        super(RsdsRiceLogistic, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            # nu
-            # b_nu = pm.Lognormal("b_nu", mu=0.0, sigma=1)
-            b_nu = pm.HalfCauchy("b_nu", 0.1, testval=1)
-            a_nu = pm.Normal("a_nu", mu=0, sigma=0.1)
-
-            fc_nu = pm.Normal("fc_nu", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            fctrend_nu = pm.Normal(
-                "fctrend_nu", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
-            )
-            # in (-inf, inf)
-            logistic = b_nu / (
-                    1
-                    + tt.exp(
-                -1.0
-                * (
-                        a_nu * gmtv
-                        + det_dot(xf0, fc_nu)
-                        + gmtv * det_dot(xf1, fctrend_nu)
-                )
-            )
-            )
-
-            nu = pm.Deterministic("nu", logistic)
-
-            # sigma
-            # b_sigma = pm.Lognormal("b_sigma", mu=0.0, sigma=1)
-            b_sigma = pm.HalfCauchy("b_sigma", 0.1, testval=1)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.1)
-
-            fc_sigma = pm.Normal("fc_sigma", mu=0.0, sigma=1.0, shape=xf0.dshape[1])
-            # fctrend_sigma = pm.Normal(
-            #     "fctrend_sigma", mu=0.0, sigma=0.1, shape=xf1.dshape[1]
-            # )
-            # in (-inf, inf)
-            logistic = b_sigma / (
-                    1
-                    + tt.exp(
-                -1.0
-                * (
-                        a_sigma * gmtv
-                        + det_dot(xf0, fc_sigma)
-                        # + gmtv * det_dot(xf1, fctrend_sigma)
-                )
-            )
-            )
-
-            sigma = pm.Deterministic("sigma", logistic)
-            # sigma = pm.HalfCauchy("sigma", 0.1, testval=1)
-
-            if not self.test:
-                pm.Rice("obs", nu=nu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class RsdsRice(attrici.distributions.Rice):
-    """ Influence of GMT is modelled through a shift of
-        mu and sigma parameters in a Beta distribution.
-        """
-
-    def __init__(self, modes):
-        super(RsdsRice, self).__init__()
-        self.modes = modes
-        self.test = False
-
-    def setup(self, df_subset):
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            xf1 = pm.Data("xf1", df_valid.filter(regex="^mode_1_").values)
-
-            # nu
-            b_nu = pm.Lognormal("b_nu", mu=-1, sigma=0.4, testval=1.0)
-            a_nu = pm.Normal("a_nu", mu=0, sigma=0.05, testval=0)
-
-            fourier_coefficients_nu = pm.Normal(
-                "fourier_coefficients_nu", mu=0.0, sd=0.1, shape=xf0.dshape[1]
-            )
-            # in (-inf, inf)
-            lin = pm.Deterministic(
-                "lin_nu",
-                a_nu * gmtv + b_nu + det_dot(xf0, fourier_coefficients_nu),
-            )
-            nu = pm.Deterministic("nu", pm.math.switch(lin>1e-3,lin, 1e-3))
-            #nu = pm.Deterministic("nu", tt.nnet.elu(lin, alpha)) + 2 * alpha
-
-            # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
-
-            fourier_coefficients_sigma = pm.Normal(
-                "fourier_coefficients_sigma", mu=0.0, sd=0.1, shape=xf0.dshape[1]
-            )
-            # in (-inf, inf)
-            lin = pm.Deterministic(
-                "lin_sigma",
-                a_sigma * gmtv + b_sigma + det_dot(xf0, fourier_coefficients_sigma),
-            )
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > 1e-1, lin, 1e-1))
-            #sigma = pm.Deterministic("sigma", tt.nnet.elu(lin, alpha)) + 2 * alpha
-
-            if not self.test:
-                pm.Rice("obs", nu=nu, sigma=sigma, observed=df_valid["y_scaled"])
-
-        return model
-
-
-class RsdsTrendSigma(attrici.distributions.Normal):
-    """ Influence of GMT is modelled through a shift of
-        mu and sigma parameters in a Beta distribution.
-        """
-
-    def __init__(self, modes):
-        super(RsdsTrendSigma, self).__init__()
-        self.modes = modes
-        self.test = False
-
-
-    def quantile_mapping(self, d, y_scaled):
-        """
-        specific for censored normal values
-        rsds can not be smaller than zero
-        all values equal to zero are masked out for training
-        those masked values are replaced by random values, sampled from the trained model
-
-        those random values are quantile-mapped
-        after quantile mapping negative c-fact values are mapped to zero
-        """
-        random_values = stats.norm.rvs(loc=d["mu"], scale=d["sigma"])
-        # the random values should not be larger than 0 (any value smaller 0 is possible)
-        np.minimum(random_values, 0, random_values)
-        y_filled = y_scaled.fillna(pd.Series(random_values))
-
-        quantile = stats.norm.cdf(y_filled, loc=d["mu"], scale=d["sigma"])
-        x_mapped = stats.norm.ppf(quantile, loc=d["mu_ref"], scale=d["sigma_ref"])
-        np.maximum(x_mapped, 0, x_mapped)
-        return x_mapped
-
-    def setup(self, df_subset):
-        model = pm.Model()
-
-        with model:
-            # so use df_subset directly.
-            df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-            if (np.array(self.modes) > 1).any():
-                raise ValueError('Modes larger 1 are not allowed for the censored model.')
-
-            # mu
-            b_mu = pm.Lognormal("b_mu", mu=-1, sigma=0.4, testval=1.0)
-            a_mu = pm.Normal("a_mu", mu=0, sigma=0.05, testval=0)
-            fourier_coefficients_mu = pm.Normal(
-                "fourier_coefficients_mu", mu=0.0, sd=0.1, shape=xf0.dshape[1]
-            )
-            mu = pm.Deterministic(
-                "mu",
-                a_mu * gmtv + b_mu + det_dot(xf0, fourier_coefficients_mu),
-            )
-
-            # sigma
-            b_sigma = pm.Lognormal("b_sigma", mu=-1, sigma=0.4, testval=1.0)
-            a_sigma = pm.Normal("a_sigma", mu=0, sigma=0.05, testval=0)
-
-            lin = pm.Deterministic(
-                "lin_sigma",
-                a_sigma * gmtv + b_sigma
-            )
-            alpha = 1e-6
-            sigma = pm.Deterministic("sigma", pm.math.switch(lin > alpha, lin, alpha * tt.exp(lin-alpha)))
+            eta_sigma = tt.dot(xf0, weights_sigma_fc_intercept) + weights_sigma_longterm_intercept
+            sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
+            logp_ = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
