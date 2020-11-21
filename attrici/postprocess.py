@@ -17,7 +17,6 @@ def read_from_disk(data_path):
     return df
 
 
-
 def form_global_nc(ds, time, lat, lon, vnames, torigin):
 
     # FIXME: can be deleted once merge_cfact is fully replaced by write_netcdf
@@ -91,11 +90,15 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     for ti in range(0,var.shape[0],chunklen):
         v = var[ti:ti+chunklen,:,:]
         v_orig = var_orig[ti:ti+chunklen,:,:]
+        logp = ncf['logp'][ti:ti+chunklen, :, :]
+        # This threshold for logp is to ensure that the model fits the data at all. It is mainly to catch values
+        # for logp like -7000
+        small_logp = logp < -300
         isinf = np.isinf(v)
         isnan = np.isnan(v)
-        print(ti, ", replace", isinf.sum(), " inf and ", isnan.sum(), " nan values.")
+        print(ti, ", replace", isinf.sum(), " inf and ", isnan.sum(), f" nan values and {small_logp.sum()}.")
 
-        v[isinf | isnan] = v_orig[isinf | isnan]
+        v[isinf | isnan | small_logp] = v_orig[isinf | isnan | small_logp]
         var[ti:ti+v.shape[0],:,:] = v
 
     ncs.close()
