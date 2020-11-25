@@ -11,10 +11,10 @@ import attrici.fourier as fourier
 
 model_for_var = {
     "tas": models.Tas,
-    "tasrange": models.TasrangeGamma,
+    "tasrange": models.Tasrange,
     "tasskew": models.Tasskew,
-    "pr": models.PrInteractiveModification,
-    "hurs": models.HursGLMInteractiveModification,
+    "pr": models.Pr,
+    "hurs": models.Hurs,
     "wind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
