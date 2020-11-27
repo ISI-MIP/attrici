@@ -151,7 +151,7 @@ class estimator(object):
 
         # populate invalid values originating from y_scaled with with original values
         if self.variable == 'pr':
-            df['cfact'] = df['cfact'].fillna(0)
+            df.loc[df['cfact_scaled'] == 0, 'cfact'] = 0
         else:
             invalid_index = df.index[df["y_scaled"].isna()]
             df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
