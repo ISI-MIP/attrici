@@ -150,8 +150,11 @@ class estimator(object):
         df.loc[:, "cfact"] = self.f_rescale(df.loc[:, "cfact_scaled"], datamin, scale)
 
         # populate invalid values originating from y_scaled with with original values
-        invalid_index = df.index[df["y_scaled"].isna()]
-        df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
+        if self.variable == 'pr':
+            df['cfact'] = df['cfact'].fillna(0)
+        else:
+            invalid_index = df.index[df["y_scaled"].isna()]
+            df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
 
         # df = df.replace([np.inf, -np.inf], np.nan)
         # if df["y"].isna().sum() > 0:

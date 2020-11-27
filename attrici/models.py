@@ -89,7 +89,7 @@ class Pr(attrici.distributions.BernoulliGamma):
             )
             eta_nu = tt.dot(xf0v, weights_nu_fc_intercept) + weights_nu_longterm_intercept
             nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
-            sigma = pm.Deterministic("sigma", mu * mu / nu)
+            sigma = pm.Deterministic("sigma", mu / nu)  # nu^2 = k -> k shape parameter
 
             _logp = pm.Deterministic("logp", model.logpt)
 
@@ -662,8 +662,7 @@ class Tasrange(attrici.distributions.Gamma):
             # mu models the expected value of the target data.
             # The logit function is the link function in the Generalized Linear Model
             mu = pm.Deterministic("mu", pm.math.exp(eta))
-            nu = pm.math.exp(eta_nu)
-            sigma = pm.Deterministic("sigma", mu * mu / nu)
+            sigma = pm.Deterministic("sigma", mu / nu)
             logp_ = pm.Deterministic("logp", model.logpt)
             # sigma = pm.Deterministic("sigma", mu * (1 - mu) / (1 + nu))
 
