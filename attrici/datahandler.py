@@ -90,26 +90,14 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     return tdf, datamin, scale
 
 
-def create_ref_df(df, trace_for_qm, ref_period, params):
+def create_ref_df(df, trace_obs, trace_cfact, params):
 
     df_params = pd.DataFrame(index=df.index)
-
-    for p in params:
-        df_params.loc[:, p] = trace_for_qm[p].mean(axis=0)
-
     df_params.index = df["ds"]
 
-    df_params_ref = df_params.loc[ref_period[0] : ref_period[1]]
-    # mean over all years for each day
-    df_params_ref = df_params_ref.groupby(df_params_ref.index.dayofyear).mean()
-
-    # write the average values for the reference period to each day of the
-    # whole timeseries
-    for day in df_params_ref.index:
-        for p in params:
-            df_params.loc[
-                df_params.index.dayofyear == day, p + "_ref"
-            ] = df_params_ref.loc[day, p]
+    for p in params:
+        df_params.loc[:, p] = trace_obs[p].mean(axis=0)
+        df_params.loc[:, f'{p}_ref'] = trace_cfact[p].mean(axis=0)
 
     return df_params
 

@@ -46,14 +46,21 @@ class Distribution(object):
                     except KeyError as e:
                         pass
 
-                trace_for_qm = pm.sample_posterior_predictive(
+                trace_obs = pm.sample_posterior_predictive(
                     [trace],
-                    samples=subtrace,
+                    samples=1,
+                    var_names=self.params + ['logp'],  # + ["obs"],
+                    progressbar=progressbar,
+                )
+                pm.set_data({'gmt': np.zeros_like(df['gmt_scaled']), 'gmtv': np.zeros_like(df['gmt_scaled'])})
+                trace_cfact = pm.sample_posterior_predictive(
+                    [trace],
+                    samples=1,
                     var_names=self.params + ['logp'],  # + ["obs"],
                     progressbar=progressbar,
                 )
             print("Resampled missing.")
-        elif trace[self.params[0]].shape[1] < df.shape[0]:
+        else:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:",
@@ -88,16 +95,21 @@ class Distribution(object):
                     except KeyError as e:
                         pass
 
-                trace_for_qm = pm.sample_posterior_predictive(
+                trace_obs = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=self.params,# + ["obs"],
+                    var_names=self.params + ['logp'],
+                    progressbar=progressbar,
+                )
+                pm.set_data({'gmt': np.zeros_like(df['gmt_scaled']), 'gmtv': np.zeros_like(df['gmt_scaled'])})
+                trace_cfact = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=self.params + ['logp'],
                     progressbar=progressbar,
                 )
             print("Resampled missing.")
-        else:
-            trace_for_qm = trace[-subtrace:]
-        return trace_for_qm
+        return trace_obs, trace_cfact
 
 
 class Normal(Distribution):
