@@ -52,7 +52,11 @@ class Distribution(object):
                     var_names=self.params + ['logp'],  # + ["obs"],
                     progressbar=progressbar,
                 )
-                pm.set_data({'gmt': np.zeros_like(df['gmt_scaled']), 'gmtv': np.zeros_like(df['gmt_scaled'])})
+                for gmt in ['gmt', 'gmtv']:
+                    try:
+                        pm.set_data({gmt: np.zeros_like(df['gmt_scaled'])})
+                    except KeyError as e:
+                        pass
                 trace_cfact = pm.sample_posterior_predictive(
                     [trace],
                     samples=1,
@@ -101,7 +105,11 @@ class Distribution(object):
                     var_names=self.params + ['logp'],
                     progressbar=progressbar,
                 )
-                pm.set_data({'gmt': np.zeros_like(df['gmt_scaled']), 'gmtv': np.zeros_like(df['gmt_scaled'])})
+                for gmt in ['gmt', 'gmtv']:
+                    try:
+                        pm.set_data({gmt: np.zeros_like(df['gmt_scaled'])})
+                    except KeyError as e:
+                        pass
                 trace_cfact = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
