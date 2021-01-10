@@ -5,12 +5,12 @@ from pathlib import Path
     tasskew. It runs independent from the attrici package.
     Copy anywhere and adjust the variables below. """
 
-output_base = Path("/p/tmp/mengel/isimip/isi-cfact/output/")
-dataset = "GSWP3"
+output_base = Path("/p/tmp/sitreu/isimip/isi-cfact/output/")
+dataset = "GSWP3-W5E5"
 
-tas_runid = "isicf022_gswp3_tas_sub20_simplecauchyprior"
-tasrange_runid = "isicf022_gswp3_tasrange_sub20_sharperslopepriors"
-tasskew_runid = "isicf022_gswp3_tasskew_sub20_widerpriors"
+tas_runid = f"isicf033_{dataset.lower()}_tas_sub01"
+tasskew_runid = f"isicf033_{dataset.lower()}_tasskew_sub01"
+tasrange_runid = f"isicf033_{dataset.lower()}_tasrange_sub01"
 
 def d(var):
     """ get file strings from cfact calculation """
@@ -20,9 +20,9 @@ def d(var):
 
 def dout(var):
     """ get file strings for output data """
-    dpath = output_base/dataset
+    dpath = output_base/f"isicf033_{dataset.lower()}_{var}_sub01"/"cfact"/var
     dpath.mkdir(parents=True,exist_ok=True)
-    return str(dpath)+"/"+var+"_"+dataset.lower()+"_cfactual_rechunked_valid.nc4 "
+    return str(dpath)+"/"+var+"_"+dataset+"_cfactual_rechunked_valid.nc4 "
 
 p = "module load cdo && cdo -O "
 

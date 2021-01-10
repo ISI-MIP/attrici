@@ -106,7 +106,7 @@ class Tas(attrici.distributions.Normal):
         model = pm.Model()
 
         with model:
-            # so use df_subset directly.
+
             df_valid = df_subset.dropna(axis=0, how="any")
             gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
             xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)

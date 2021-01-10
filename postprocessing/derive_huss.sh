@@ -1,5 +1,16 @@
 #!/bin/bash
 
+#SBATCH --qos=short
+#SBATCH --partition=standard
+#SBATCH --account=isimip
+#SBATCH --mail-user=sitreu@pik-potsdam.de
+#SBATCH --mail-type=ALL,TIME_LIMIT
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --job-name=derive_huss
+#SBATCH --output=log/derive_huss.%j.log
+#SBATCH --error=log/derive_huss.%j.log
+
 function get_cdoexpr_huss_Weedon2010style {
   # returns the cdo expression that calculates specific humidity from
   # relative humidity, air pressure and temperature using the equations of
@@ -53,11 +64,11 @@ function get_cdoexpr_huss_Weedon2010style {
 }
 
 
-
-prefix=gswp3_counterclim_
-postfix=_global_daily_1901_2010_intermediate.nc
-ofile=${prefix}huss$postfix
-years=$(seq 1901 2010)
+cd ..
+prefix=gswp3-w5e5_counterclim_
+postfix=_global_daily_1901_2016_intermediate.nc
+ofile=${prefix}huss_global_daily_1901_2016_intermediate.nc
+years=$(seq 1901 2016)
 cdo="cdo -O -f nc4c -z zip"
 
 var_limits_lower=.0000001

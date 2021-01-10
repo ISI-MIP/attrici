@@ -24,24 +24,24 @@ output_dir = Path(data_dir) / "output" / Path.cwd().name
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "hurs"  # select variable to detrend
+variable = "tas"  # select variable to detrend
 
 # number of modes for fourier series of model, only relevant if mu or sigma model
 # include yearly cycles
-modes = [1, 1, 1, 1]
+modes = [4, 4, 4, 4]
 # NUTS or ADVI
 inference = "NUTS"
 # Compute maximum approximate posterior # todo is this equivalent to maximum likelihood?
-map_estimate = False
+map_estimate = True
 
 seed = 0  # for deterministic randomisation
-subset = 10  # only use every subset datapoint for bayes estimation for speedup
-startdate = None  # only use data up from this date to fit the model
+subset = 1  # only use every subset datapoint for bayes estimation for speedup
+startdate = None # may at a date in the format '1950-01-01' to train only on date from after that date
 
 # out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
-dataset = "GSWP3"
+dataset = "GSWP3-W5E5"
 # use a dataset with only subset spatial grid points for testing
-lateral_sub = 80
+lateral_sub = 1
 
 # start and end date are the time period used to construct
 # the reference distribution for quantile mapping.
@@ -57,10 +57,11 @@ cfact_file = variable + "_" + dataset + "_cfactual.nc4"
 storage_format = ".h5"
 # "all" or list like ["y","y_scaled","mu","sigma"]
 # for productions runs, use ["cfact"]
-report_variables = "all"
+# report_variables = "all"
+report_variables = ["ds", "y", "cfact", "logp"]
 # reporting to netcdf can include all report variables
 # "cfact" is translated to variable, and "y" to variable_orig
-report_to_netcdf = [variable, variable + "_orig"]
+report_to_netcdf = [variable, variable + "_orig", "logp"]
 
 save_trace = True
 skip_if_data_exists = True
