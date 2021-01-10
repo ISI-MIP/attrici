@@ -8,11 +8,57 @@ class Distribution(object):
 
         print(f"Using {type(self).__name__} distribution model.")
 
-    def resample_missing(self, trace, df, subtrace, model, progressbar):
-        trace_for_qm = trace[-subtrace:]
+    def resample_missing(self, trace, df, subtrace, model, progressbar, map_estimate):
         # FIXME: this breaks if first parameter does not have time dimension
         # but second parameter has. It therefore requires an order in self.params
-        if trace[self.params[0]].shape[1] < df.shape[0]:
+        if map_estimate:
+            print("Trace is not complete due to masked data. Resample missing.")
+
+            with model:
+                # use all data for the model specific data-inputs
+                # if input is available in the model
+                input_vars = {"gmt": "gmt_scaled", "gmtv": "gmt_scaled"}
+                fourier_vars = {
+                    "xf0": "^mode_0_",
+                    "xf0v": "^mode_0_",
+                    "xf1": "^mode_1_",
+                    "xf2": "^mode_2_",
+                    "xf3": "^mode_3_",
+                    "posxf0": "posmode_0_",
+                }
+                for key, df_key in input_vars.items():
+                    try:
+                        pm.set_data({key: df[df_key].values})
+                        print(f"replaced {key} in model with full data-set")
+                    except KeyError as e:
+                        pass
+
+                for key, df_key in fourier_vars.items():
+                    try:
+                        pm.set_data({key: df.filter(regex=df_key).values})
+                        print(f"replaced {key} in model with full data-set")
+                    except KeyError as e:
+                        pass
+
+                trace_obs = pm.sample_posterior_predictive(
+                    [trace],
+                    samples=1,
+                    var_names=self.params + ['logp'],  # + ["obs"],
+                    progressbar=progressbar,
+                )
+                for gmt in ['gmt', 'gmtv']:
+                    try:
+                        pm.set_data({gmt: np.zeros_like(df['gmt_scaled'])})
+                    except KeyError as e:
+                        pass
+                trace_cfact = pm.sample_posterior_predictive(
+                    [trace],
+                    samples=1,
+                    var_names=self.params + ['logp'],  # + ["obs"],
+                    progressbar=progressbar,
+                )
+            print("Resampled missing.")
+        else:
             print("Trace is not complete due to masked data. Resample missing.")
             print(
                 "Trace length:",
@@ -47,14 +93,25 @@ class Distribution(object):
                     except KeyError as e:
                         pass
 
-                trace_for_qm = pm.sample_posterior_predictive(
+                trace_obs = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=self.params,# + ["obs"],
+                    var_names=self.params + ['logp'],
+                    progressbar=progressbar,
+                )
+                for gmt in ['gmt', 'gmtv']:
+                    try:
+                        pm.set_data({gmt: np.zeros_like(df['gmt_scaled'])})
+                    except KeyError as e:
+                        pass
+                trace_cfact = pm.sample_posterior_predictive(
+                    trace[-subtrace:],
+                    samples=subtrace,
+                    var_names=self.params + ['logp'],
                     progressbar=progressbar,
                 )
             print("Resampled missing.")
-        return trace_for_qm
+        return trace_obs, trace_cfact
 
 
 class Normal(Distribution):
@@ -153,6 +210,28 @@ class BernoulliGamma(Distribution):
         )
 
         return cfact
+
+
+class Gamma(Distribution):
+    def __init__(self):
+        super(Gamma, self).__init__()
+        self.params = ["mu", "sigma"]
+        self.parameter_bounds = {"mu": [0, None], "sigma": [0, None]}
+
+
+    def quantile_mapping(self, d, y_scaled):
+        quantile = stats.gamma.cdf(
+                y_scaled,
+                d["mu"] ** 2.0 / d["sigma"] ** 2.0,
+                scale=d["sigma"] ** 2.0 / d["mu"],
+            )
+        x_mapped = stats.gamma.ppf(
+                quantile,
+                d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
+                scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
+            )
+
+        return x_mapped
 
 
 class Beta(Distribution):

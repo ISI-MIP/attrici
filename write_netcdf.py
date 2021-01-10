@@ -19,22 +19,27 @@ import attrici.postprocess as pp
 import settings as s
 
 ### options for postprocess
-write_netcdf = False
-rechunk = False
+write_netcdf = True
+rechunk = True
 replace_invalid=True
 # cdo_processing needs rechunk
 cdo_processing = True
 
 # append later with more variables if needed
-vardict = {s.variable: "cfact", s.variable + "_orig": "y"}
+vardict = {s.variable: "cfact", s.variable + "_orig": "y",
+        # "mu":"mu",
+        # "y_scaled": "y_scaled",
+        # "pbern": "pbern",
+        "logp": "logp"}
 
 cdo_ops = {
-    "monmean": "monmean ",
+    # "monmean": "monmean ",
     "yearmean": "yearmean ",
     #    "monmean_valid": "monmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
-    #    "yearmean_valid": "yearmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+       # "yearmean_valid": "yearmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
     "trend": "trend ",
-    #    "trend_valid": "trend -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+    # "mse": "timmean -expr,'squared_error=sqr(mu-y_scaled)'"
+       # "trend_valid": "trend -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
 }
 
 

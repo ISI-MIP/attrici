@@ -8,17 +8,18 @@ import attrici.datahandler as dh
 import attrici.const as c
 import attrici.models as models
 import attrici.fourier as fourier
+import pickle
 
 model_for_var = {
     "tas": models.Tas,
     "tasrange": models.Tasrange,
     "tasskew": models.Tasskew,
-    "pr": models.PrecipitationLongtermTrendSigma,
+    "pr": models.Pr,
     "hurs": models.Hurs,
-    "wind": models.WindLogistic,
+    "wind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
-    "rlds": models.RldsConstSigma,
+    "rlds": models.Rlds,
 }
 
 
@@ -40,6 +41,7 @@ class estimator(object):
         self.save_trace = cfg.save_trace
         self.report_variables = cfg.report_variables
         self.inference = cfg.inference
+        self.startdate = cfg.startdate
 
         try:
             self.statmodel = model_for_var[self.variable](self.modes)
@@ -50,44 +52,55 @@ class estimator(object):
             )
             raise error
 
-    def estimate_parameters(self, df, lat, lon):
-
+    def estimate_parameters(self, df, lat, lon, map_estimate):
         x_fourier = fourier.get_fourier_valid(df, self.modes)
         x_fourier_01 = (x_fourier + 1) / 2
         x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
 
         dff = pd.concat([df, x_fourier, x_fourier_01], axis=1)
-        df_subset = dh.get_subset(dff, self.subset, self.seed)
+        df_subset = dh.get_subset(dff, self.subset, self.seed, self.startdate)
 
         self.model = self.statmodel.setup(df_subset)
 
         outdir_for_cell = dh.make_cell_output_dir(
             self.output_dir, "traces", lat, lon, self.variable
         )
-
-        # FIXME: Rework loading old traces
-        # print("Search for trace in\n", outdir_for_cell)
-        # As load_trace does not throw an error when no saved data exists, we here
-        # test this manually. FIXME: Could be improved, as we check for existence
-        # of names and number of chains only, but not that the data is not corrupted.
-        try:
-            trace = pm.load_trace(outdir_for_cell, model=self.model)
-            print(trace.varnames)
-            #     for var in self.statmodel.vars_to_estimate:
-            #         if var not in trace.varnames:
-            #             print(var, "is not in trace, rerun sampling.")
-            #             raise IndexError
-            #     if trace.nchains != self.chains:
-            #         raise IndexError("Sample data not completely saved. Rerun.")
-            print("Successfully loaded sampled data from")
-            print(outdir_for_cell)
-            print("Skip this for sampling.")
-        except Exception as e:
-            print("Problem with saved trace:", e, ". Redo parameter estimation.")
-            trace = self.sample()
-            # print(pm.summary(trace))  # takes too much memory
-            if self.save_trace:
-                pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
+        if map_estimate:
+            try:
+                with open(outdir_for_cell, 'rb') as handle:
+                    trace = pickle.load(handle)
+            except Exception as e:
+                print("Problem with saved trace:", e, ". Redo parameter estimation.")
+                trace = pm.find_MAP(model=self.model)
+                if self.save_trace:
+                    with open(outdir_for_cell, 'wb') as handle:
+                        free_params = {key: value for key, value in trace.items()
+                                       if key.startswith('weights') or key=='logp'}
+                        pickle.dump(free_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        else:
+            # FIXME: Rework loading old traces
+            # print("Search for trace in\n", outdir_for_cell)
+            # As load_trace does not throw an error when no saved data exists, we here
+            # test this manually. FIXME: Could be improved, as we check for existence
+            # of names and number of chains only, but not that the data is not corrupted.
+            try:
+                trace = pm.load_trace(outdir_for_cell, model=self.model)
+                print(trace.varnames)
+                #     for var in self.statmodel.vars_to_estimate:
+                #         if var not in trace.varnames:
+                #             print(var, "is not in trace, rerun sampling.")
+                #             raise IndexError
+                #     if trace.nchains != self.chains:
+                #         raise IndexError("Sample data not completely saved. Rerun.")
+                print("Successfully loaded sampled data from")
+                print(outdir_for_cell)
+                print("Skip this for sampling.")
+            except Exception as e:
+                print("Problem with saved trace:", e, ". Redo parameter estimation.")
+                trace = self.sample()
+                # print(pm.summary(trace))  # takes too much memory
+                if self.save_trace:
+                    pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
 
         return trace, dff
 
@@ -126,15 +139,15 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace, datamin, scale, subtrace=1000):
+    def estimate_timeseries(self, df, trace, datamin, scale, map_estimate, subtrace=1000):
 
         # print(trace["mu"].shape, df.shape)
-        trace_for_qm = self.statmodel.resample_missing(
-            trace, df, subtrace, self.model, self.progressbar
+        trace_obs, trace_cfact = self.statmodel.resample_missing(
+            trace, df, subtrace, self.model, self.progressbar, map_estimate
         )
 
         df_params = dh.create_ref_df(
-            df, trace_for_qm, self.qm_ref_period, self.statmodel.params
+            df, trace_obs, trace_cfact, self.statmodel.params
         )
 
         cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
@@ -148,8 +161,11 @@ class estimator(object):
         df.loc[:, "cfact"] = self.f_rescale(df.loc[:, "cfact_scaled"], datamin, scale)
 
         # populate invalid values originating from y_scaled with with original values
-        invalid_index = df.index[df["y_scaled"].isna()]
-        df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
+        if self.variable == 'pr':
+            df.loc[df['cfact_scaled'] == 0, 'cfact'] = 0
+        else:
+            invalid_index = df.index[df["y_scaled"].isna()]
+            df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
 
         # df = df.replace([np.inf, -np.inf], np.nan)
         # if df["y"].isna().sum() > 0:
@@ -162,10 +178,12 @@ class estimator(object):
 
         df.loc[yna | yinf | yminf, "cfact"] = df.loc[yna | yinf | yminf, "y"]
 
-
         # todo: unifiy indexes so .values can be dropped
         for v in df_params.columns:
             df.loc[:, v] = df_params.loc[:, v].values
+
+        if map_estimate:
+            df.loc[:, "logp"] = trace_obs['logp'].mean(axis=0)
 
         if self.report_variables != "all":
             df = df.loc[:, self.report_variables]
