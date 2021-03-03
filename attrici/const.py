@@ -13,6 +13,7 @@ threshold = {
     "rsds": (0, None),
     "rlds": (0, None),
     "wind": (0.01,),
+    "surfacewind": (0.01,),
 }
 
 bound = {
@@ -26,6 +27,7 @@ bound = {
     "rsds": (0, 501),
     "rlds": (0, None),
     "wind": (0.0, None),
+    "surfacewind": (0.0, None),
 }
 
 # for rsds, the global maximum is 500
@@ -132,6 +134,7 @@ mask_and_scale = {
     "rlds": [scale_to_unity, rescale_to_original],
     "rsds": [mask_and_scale_by_bounds, refill_and_rescale],
     "wind": [scale_and_mask, refill_and_rescale],
+    "surfacewind": [scale_and_mask, refill_and_rescale],
     "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
     "prsnratio": [mask_and_scale_by_bounds, refill_and_rescale],
     "tasskew": [mask_and_scale_by_bounds, refill_and_rescale],

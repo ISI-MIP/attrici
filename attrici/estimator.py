@@ -17,6 +17,7 @@ model_for_var = {
     "pr": models.Pr,
     "hurs": models.Hurs,
     "wind": models.Wind,
+    "surfacewind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
     "rlds": models.Rlds,
@@ -44,6 +45,7 @@ class estimator(object):
         self.startdate = cfg.startdate
 
         try:
+            #TODO remove modes from initialization
             self.statmodel = model_for_var[self.variable](self.modes)
 
         except KeyError as error:
