@@ -19,13 +19,13 @@ grouping = 1
 subset = 10
 
 dataset = "GSWP3-W5E5"
-output_base = Path("/p/tmp/sitreu/isimip/isi-cfact/input/")
+output_base = Path("/p/tmp/mengel/isimip/attrici/input/")
 output_dir = output_base / dataset
 
 input_file = output_dir / Path("tas_" + dataset.lower() + "_merged.nc4")
 mean_file = str(input_file).replace("_merged.nc4","_gmt.nc4")
-ssa_file = str(input_file).replace("/tas_","")
-
+ssa_file = str(mean_file).replace("tas_","").replace("_gmt","_ssa_gmt")
+print(ssa_file)
 cmd = "module load cdo && cdo fldmean "+str(input_file)+" "+str(mean_file)
 print(cmd)
 subprocess.check_call(cmd,shell=True)

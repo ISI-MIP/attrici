@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-output_base = Path("/p/tmp/sitreu/isimip/isi-cfact/input/")
+output_base = Path("/p/tmp/mengel/isimip/attrici/input/")
 
 dataset = "GSWP3-W5E5"
 qualifier = "_sub1"

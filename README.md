@@ -87,7 +87,7 @@ Example for GSWP3-W5E5 dataset, which is first priority in ISIMIP3a.
 Download decadal data and merge it into one file per variable.
 Adjust output paths and
 `python merge_data.py`
-Approximately 2 hours.
+Approximately 1 hour.
 
 Produce GMT from gridded surface air temperature and use SSA to smooth it.
 Use a separate conda env to cover SSA package dependencies.
