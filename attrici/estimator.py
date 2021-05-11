@@ -17,7 +17,7 @@ model_for_var = {
     "pr": models.Pr,
     "hurs": models.Hurs,
     "wind": models.Wind,
-    "surfacewind": models.Wind,
+    "sfcwind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
     "rlds": models.Rlds,
