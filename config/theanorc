@@ -3,7 +3,7 @@ root = /p/system/packages/cuda/9.2
 
 [global]
 device = cpu
-floatX = float32
+floatX = float64
 cxx = g++
 mode = FAST_RUN
 openmp = True

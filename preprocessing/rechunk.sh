@@ -1,59 +1,26 @@
 #!/bin/bash
 
+# copy this to your run folder, and replace runid with the
+# name of your run at all locations. Replace also --mail-user
+
 #SBATCH --qos=priority
+##SBATCH --qos=short
 #SBATCH --partition=priority
-#SBATCH --job-name=rechunk
-#SBATCH --account=isipedia
-#SBATCH --output=../output/%x.out
-#SBATCH --error=../output/%x.err
+##SBATCH --partition=standard
+#SBATCH --job-name=rechunking_gswp3
+#SBATCH --account=isimip
+#SBATCH --output=./log/%x.log
+#SBATCH --error=./log/%x.log
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=bschmidt@pik-potsdam.de
-#SBATCH --time=00-23:59:59
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-##SBATCH --cpus-per-task=16
-#SBATCH --mem=60000
-#SBATCH --exclusive
+#SBATCH --mail-user=sitreu@pik-potsdam.de
 
-module purge
-module load intel/2018.1
-module load netcdf-c/4.6.1/intel/serial
-module load nco/4.7.8
-preprocessing=$1
-# module load cdo/1.9.6/gnu-threadsafe
+# block one node to have enough memory
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
 
-if [ -e settings.py ]; then
-    settings_file=settings.py
-else
-    settings_file=../settings.py
-fi
 
-# Get information from settings file
-# sed gets rid of string markers (',")
-variable="$(grep 'variable =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
-# datafolder selections relies on the folder being wrapped in double quotation marks
-datafolder="$(grep 'data_dir =' ${settings_file} | grep $USER | cut -d'"' -f2 | sed "s/'//g" | sed 's/"//g')"
-
-dataset="$(grep 'dataset =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
-# startyear="$(grep 'startyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
-# endyear="$(grep 'endyear =' ${settings_file} | cut -d' ' -f3 | sed "s/'//g" | sed 's/"//g')"
-
-if [[ $preprocessing = 1 ]]; then
-    inputfile=${datafolder}/input/${variable}_${dataset}.nc4
-    outputfile=${datafolder}/input/${variable}_${dataset}_re.nc4
-    echo 'Rechunk the following variable to be optimised for timeseries access'
-    echo $variable
-    echo 'Inputfile:' ${inputfile}
-    echo 'Outputfile:' ${outputfile}
-    ncks -4 -O -L 0 --cnk_csh=45000000000 --cnk_plc=g3d --cnk_dmn=time,42369 --cnk_dmn=lat,1 --cnk_dmn=lon,1 ${inputfile} ${outputfile}
-else
-    inputfile=${datafolder}/output/tas/cfact/${variable}_${dataset}_cfactual.nc4
-    outputfile=${datafolder}/output/tas/cfact/${variable}_${dataset}_re.nc4
-    echo 'Rechunk the following variable to be optimised for access of spatial fields and one time slice.'
-    echo $variable
-    echo 'Inputfile:' ${inputfile}
-    echo 'Outputfile:' ${outputfile}
-    ncks -4 -O -L 0 --cnk_csh=45000000000 --cnk_plc=g3d --cnk_dmn=time,1 --cnk_dmn=lat,360 --cnk_dmn=lon,720 ${inputfile} ${outputfile}
-fi
-
-echo 'rechunked' $variable 'for faster access to full timeseries'
+var=$1
+ifile=/p/tmp/sitreu/isimip/isi-cfact/input/GSWP3-map_chunks/${var}_gswp3_sub1.nc4
+ofile=../$(basename ${ifile})
+n_times=$(ncks --trd -m -M $ifile | grep -E -i ": time, size =" | cut -f 7 -d ' ' | uniq)
+ncks -O --cnk_csh=15000000000 --cnk_plc=g3d --cnk_dmn=time,$n_times --cnk_dmn=lat,10 --cnk_dmn=lon,10 $ifile $ofile

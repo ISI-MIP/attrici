@@ -11,7 +11,7 @@ source_base = Path(
 
 source_dir = source_base / dataset
 
-output_base = Path("/p/tmp/sitreu/isimip/isi-cfact/input/")
+output_base = Path("/p/tmp/mengel/isimip/attrici/input/")
 
 output_dir = output_base / dataset
 output_dir.mkdir(exist_ok=True)

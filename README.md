@@ -79,6 +79,37 @@ For merging the single timeseries files to netcdf datasets
 
 `python merge_cfact.py`
 
+## Preprocessing
+
+Example for GSWP3-W5E5 dataset, which is first priority in ISIMIP3a.
+
+`cd preprocess` 
+Download decadal data and merge it into one file per variable.
+Adjust output paths and
+`python merge_data.py`
+Approximately 1 hour.
+
+Produce GMT from gridded surface air temperature and use SSA to smooth it.
+Use a separate conda env to cover SSA package dependencies.
+Adjust output paths and
+`python calc_gmt_by_ssa.py`
+Approximately less than an hour.
+
+Create tasrange and tasskew from tas variables.
+Adjust output paths and
+`python create_tasmin_tasmax.py`
+Approximately an hour.
+
+For testing smaller dataset, use
+`python subset_data.py`
+Add sub01 to filenames, if no subsetting is used.
+
+Land-sea file creation
+We use the ISIMIP2b land-sea mask to select only land cells for processing.
+Smaller datasets through subsetting were created using CDO.
+[TODO Descripe how]
+
+
 ## Postprocessing
 
 For tasmin and tasmax, we do not estimate counterfactual time series individually to avoid large relative errors in the daily temperature range as pointed out by (Piani et al. 2010). Following (Piani et al. 2010), we estimate counterfactuals of the daily temperature range tasrange = tasmax - tasmin and the skewness of the daily temperature tasskew = (tas - tasmin) / tasrange. Use [create_tasmin_tasmax.py](postprocessing/create_tasmin_tasmax.py)

@@ -26,27 +26,23 @@ timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
 variable = "tas"  # select variable to detrend
 
-# number of modes for fourier series of model, only relevant if mu or sigma model
-# include yearly cycles
+# number of modes for fourier series of model
+# TODO: change to one number only, as only the first element of list is used.
 modes = [4, 4, 4, 4]
 # NUTS or ADVI
-inference = "NUTS"
 # Compute maximum approximate posterior # todo is this equivalent to maximum likelihood?
 map_estimate = True
+# bayesian inference will only be called if map_estimate=False
+inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
 startdate = None # may at a date in the format '1950-01-01' to train only on date from after that date
 
-# out of "watch+wfdei", "GSWP3", "GSWP3+ERA5"
+# for example "GSWP3", "GSWP3-W5E5"
 dataset = "GSWP3-W5E5"
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 1
-
-# start and end date are the time period used to construct
-# the reference distribution for quantile mapping.
-# take care that period encompasses a leap year
-qm_ref_period = ["1901-01-01", "1904-12-31"]
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 landsea_file = "ISIMIP2b_landseamask_generic_sub" + str(lateral_sub) + ".nc4"
@@ -63,6 +59,7 @@ report_variables = ["ds", "y", "cfact", "logp"]
 # "cfact" is translated to variable, and "y" to variable_orig
 report_to_netcdf = [variable, variable + "_orig", "logp"]
 
+# if map_estimate used, save_trace only writes small data amounts, so advised to have True.
 save_trace = True
 skip_if_data_exists = True
 
