@@ -5,13 +5,13 @@ from pathlib import Path
     tasskew. It runs independent from the attrici package.
     Copy anywhere and adjust the variables below. """
 
-output_base = Path("/p/tmp/sitreu/isimip/isi-cfact/output/")
+output_base = Path("/p/tmp/mengel/isimip/attrici/output/")
 dataset = "GSWP3-W5E5"
 
-tas_runid = f"isicf033_{dataset.lower()}_tas_sub01"
-tasskew_runid = f"isicf033_{dataset.lower()}_tasskew_sub01"
-tasrange_runid = f"isicf033_{dataset.lower()}_tasrange_sub01"
-
+tas_runid = "isicf035_gswp3v109-w5e5_tas_sub01"
+tasskew_runid = "isicf035_gswp3v109-w5e5_tasskew_sub01"
+tasrange_runid = "isicf035_gswp3v109-w5e5_tasrange_sub01"
+out_runid = "isicf035_gswp3v109-w5e5_"
 def d(var):
     """ get file strings from cfact calculation """
     tdict = {"tas":tas_runid, "tasrange":tasrange_runid, "tasskew":tasskew_runid}
@@ -20,7 +20,7 @@ def d(var):
 
 def dout(var):
     """ get file strings for output data """
-    dpath = output_base/f"isicf033_{dataset.lower()}_{var}_sub01"/"cfact"/var
+    dpath = output_base/f"{out_runid}{var}_sub01"/"cfact"/var
     dpath.mkdir(parents=True,exist_ok=True)
     return str(dpath)+"/"+var+"_"+dataset+"_cfactual_rechunked_valid.nc4 "
 

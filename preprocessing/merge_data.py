@@ -6,10 +6,10 @@ variable_list = ["tas", "tasmax", "tasmin", "pr", "ps", "sfcwind", "rsds", "rlds
 dataset = "GSWP3-W5E5"
 
 source_base = Path(
-    "/p/projects/isimip/isimip/ISIMIP3a/InputData/climate/atmosphere/obsclim"
+    "/p/projects/isimip/isimip/data/obsclim_harmonization/data_out_pp_combined_backup_for_attrici_paper/"
 )
 
-source_dir = source_base / dataset
+source_dir = source_base #/ dataset
 
 output_base = Path("/p/tmp/mengel/isimip/attrici/input/")
 

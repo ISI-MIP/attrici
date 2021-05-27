@@ -2,12 +2,13 @@
 
 #SBATCH --qos=short
 #SBATCH --partition=standard
-#SBATCH --account=isimip
+#SBATCH --account=isipedia
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --job-name=derive_huss
 #SBATCH --output=derive_huss.%j.log
 #SBATCH --error=derive_huss.%j.log
+
 
 function get_cdoexpr_huss_Weedon2010style {
   # returns the cdo expression that calculates specific humidity from
@@ -62,15 +63,17 @@ function get_cdoexpr_huss_Weedon2010style {
 }
 
 
-cd ..
-prefix=gswp3-w5e5_counterclim_
-postfix=_global_daily_1901_2016_intermediate.nc
-ofile=${prefix}huss_global_daily_1901_2016_intermediate.nc
-years=$(seq 1901 2016)
+cd /p/tmp/mengel/isimip/attrici/collected_output/20210527_gswp3v109-w5e5
+prefix=gswp3v109-w5e5_counterclim_
+postfix=_global_daily_1901_2019_intermediate.nc
+ofile=${prefix}huss_global_daily_1901_2019_intermediate.nc
+years=$(seq 1901 2019)
 cdo="cdo -O -f nc4c -z zip"
 
 var_limits_lower=.0000001
 var_limits_upper=.1
+
+module load cdo
 
 hfiles=
 for clim in counterclim obsclim
