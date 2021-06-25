@@ -1,7 +1,7 @@
 
 # ATTRICI - counterfactual climate for impact attribution
 
-Code implementing the methods discussed in Mengel et al. (submitted) [https://doi.org/10.5194/gmd-2020-145]. The code is archived at [ZENODO](https://doi.org/10.5281/zenodo.3828914).
+Code implementing the methods described in the paper `ATTRICI 1.1 - counterfactual climate for impact attribution` in Geoscientific Model Development. The code is archived at [ZENODO](https://doi.org/10.5281/zenodo.3828914).
 
 
 ## Project Structure
@@ -17,9 +17,9 @@ Please do
 
 `conda config --add channels conda-forge`
 
-`conda create -n isi-cfact pymc3==3.7 python==3.7`
+`conda create -n attrici pymc3==3.7 python==3.7`
 
-`conda activate isi-cfact`
+`conda activate attrici`
 
 `conda install netCDF4 pytables matplotlib arviz`
 
