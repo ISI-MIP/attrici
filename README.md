@@ -105,8 +105,6 @@ Add sub01 to filenames, if no subsetting is used.
 Land-sea file creation
 We use the ISIMIP2b land-sea mask to select only land cells for processing.
 Smaller datasets through subsetting were created using CDO.
-[TODO Descripe how]
-
 
 ## Postprocessing
 
