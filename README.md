@@ -1,11 +1,7 @@
 
-
-[![DOI](https://zenodo.org/badge/189257871.svg)](https://zenodo.org/badge/latestdoi/189257871)
-
-
 # ATTRICI - counterfactual climate for impact attribution
 
-Code implementing the methods discussed in Mengel et al. (submitted) [https://doi.org/10.5194/gmd-2020-145].
+Code implementing the methods discussed in Mengel et al. (submitted) [https://doi.org/10.5194/gmd-2020-145]. The code is archived at [ZENODO](https://doi.org/10.5281/zenodo.3828914).
 
 
 ## Project Structure
@@ -17,8 +13,7 @@ Code implementing the methods discussed in Mengel et al. (submitted) [https://do
 
 ## Install
 
-We use the jobarray feature of slurm to run many jobs in parallel.
-The configuration is very much tailored to the PIK supercomputer at the moment. Please do
+Please do
 
 `conda config --add channels conda-forge`
 
@@ -36,7 +31,7 @@ You may optionally
 
 ## Usage
 
-This code is currently taylored to run on the supercomputer at the Potsdam Institute for Climate Impact Research. Generalizing it into a package is ongoing work. We use the GNU compiler as the many parallel compile jobs through jobarrays and JIT compilation conflict with the few Intel licenses.
+The parallelization part to run large datasets is currently taylored to the supercomputer at the Potsdam Institute for Climate Impact Research using the [slurm scheduler](https://slurm.schedmd.com/documentation.html). Generalizing it into a package is ongoing work. We use the GNU compiler as the many parallel compile jobs through jobarrays and JIT compilation conflict with the few Intel licenses.
 
 `module purge`
 
@@ -48,8 +43,6 @@ In the root package directory.
 
 `pip install -e .`
 
-Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
-for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
 Override the conda setting with: `export CXX=g++`
 
@@ -78,6 +71,11 @@ Then submit to the slurm scheduler
 For merging the single timeseries files to netcdf datasets
 
 `python merge_cfact.py`
+
+### Handle several runs with different settings
+
+Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
+for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
 
 ## Preprocessing
 
@@ -115,7 +113,6 @@ Smaller datasets through subsetting were created using CDO.
 For tasmin and tasmax, we do not estimate counterfactual time series individually to avoid large relative errors in the daily temperature range as pointed out by (Piani et al. 2010). Following (Piani et al. 2010), we estimate counterfactuals of the daily temperature range tasrange = tasmax - tasmin and the skewness of the daily temperature tasskew = (tas - tasmin) / tasrange. Use [create_tasmin_tasmax.py](postprocessing/create_tasmin_tasmax.py)
 with adjusted paths for the _tas_, _tasrange_ and _tasskew_ counterfactuals.
 
-
 A counterfactual huss is derived from the counterfacual tas, ps and hurs using the equations of Buck (1981) as described in Weedon et al. (2010). Use [derive_huss.sh](postprocessing/derive_huss.sh)
 with adjusted file names and the required time range.
 
@@ -124,7 +121,7 @@ with adjusted file names and the required time range.
 
 We rely on the [pymc3](https://github.com/pymc-devs/pymc3) package for probabilistic programming (Salvatier et al. 2016).
 
-The code on Bayesian estimation of parameters in timeseries with periodicity in PyMC3 is inspired and adopted from [Ritchie Vink's](https://www.ritchievink.com) [post](https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/) on Bayesian timeseries analysis with additive models.
+An early version of the code on Bayesian estimation of parameters in timeseries with periodicity in PyMC3 was inspired by [Ritchie Vink's](https://www.ritchievink.com) [post](https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/) on Bayesian timeseries analysis with additive models.
 
 ## License
 
