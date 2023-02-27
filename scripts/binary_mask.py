@@ -3,39 +3,39 @@
 # - Binary values:  nan and 1
 # - mask.shape: (n*3)+1
 
-
+import os
 import numpy as np
-import netCDF4 as nc
 import xarray as xr
 import matplotlib.pylab as plt
 import subprocess
 import settings as s
 
-plt.rcParams["font.size"] = 10
-plt.rcParams["figure.figsize"] = 12,8
+# define shape of binary mask file
+file_len = 16
 
-
-
-## generate binary mask of 19*19 cells
-x = np.arange(0,19)
-mask = np.full(len(x)*19, np.nan).reshape(19,19)
+## generate binary mask of nth * nth cells
+x = np.arange(0,file_len)
+mask = np.full(len(x)*file_len, np.nan).reshape(file_len, file_len)
 mask[::3 , ::3] = np.int64(1)
 type(mask[0])
 mask
 
 
-## crop existing landseamask file to 19x19 cells
+s.output_dir = "/mnt/c/Users/Anna/Documents/UNI/PIK/develop/test_output_correlation"
+s.input_dir = "/mnt/c/Users/Anna/Documents/UNI/PIK/develop/test_input/"
 
-inf = s.input_dir + "/landmask_for_testing.nc"
-outf = s.input_dir + "/landmask_for_testing_19.nc"
+## crop existing landseamask file to nth x nth cells
 
-cmd = f"cdo -f nc4c -z zip selindexbox,0,19,0,19  {inf} {outf}"
+inf = str(s.input_dir) + "/" + s.dataset + f"/landmask_for_testing_{file_len}.nc"
+outf = str(s.input_dir) + "/" + s.dataset + f"/b_mask_for_interpolation_{file_len}.nc"
+
+cmd = f"cdo -f nc4c -z zip selindexbox,0,{file_len},0,{file_len} {inf} {outf}"
 print(cmd)
 subprocess.check_call(cmd, shell=True)
 
 ## open cropped landseamask file to overwrite its variable
-mask_file = s.input_dir + "/" + s.dataset + '/landmask_for_testing_19.nc'
-out = s.input_dir + "/" + s.dataset + '/b_mask.nc'
+mask_file = s.input_dir + "/" + s.dataset + f'/landmask_for_testing_{file_len}.nc'
+out = s.input_dir + "/" + s.dataset + f'/b_mask_for_interpolation_{file_len}.nc'
 
 mask_file = xr.open_dataset(mask_file)
 print(mask_file.variables)#"].shape
@@ -55,5 +55,5 @@ plt.imshow(mask_file.variables["binary_mask"][ :, :])
 
 
 mask_file.to_netcdf(out)
-out.close()
+mask_file.close()
 
