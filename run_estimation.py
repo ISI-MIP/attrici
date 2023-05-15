@@ -117,8 +117,13 @@ for n in run_numbers[:]:
     df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
 
     try:
+        print(
+            f"took {(datetime.now() - TIME0).total_seconds()} seconds till estimator.estimate_parameters is started"
+        )
         trace, dff = func_timeout(
-            s.timeout, estimator.estimate_parameters, args=(df, sp["lat"], sp["lon"], s.map_estimate)
+            s.timeout,
+            estimator.estimate_parameters,
+            args=(df, sp["lat"], sp["lon"], s.map_estimate, TIME0),
         )
     except (FunctionTimedOut, ParallelSamplingError, ValueError) as error:
         if str(error) == "Modes larger 1 are not allowed for the censored model.":

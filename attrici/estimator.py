@@ -53,7 +53,7 @@ class estimator(object):
             )
             raise error
 
-    def estimate_parameters(self, df, lat, lon, map_estimate):
+    def estimate_parameters(self, df, lat, lon, map_estimate, TIME0):
         x_fourier = fourier.get_fourier_valid(df, self.modes)
         x_fourier_01 = (x_fourier + 1) / 2
         x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
@@ -72,6 +72,9 @@ class estimator(object):
                     trace = pickle.load(handle)
             except Exception as e:
                 print("Problem with saved trace:", e, ". Redo parameter estimation.")
+                print(
+                    f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is run"
+                )
                 trace = pm.find_MAP(model=self.model)
                 if self.save_trace:
                     with open(outdir_for_cell, 'wb') as handle:
