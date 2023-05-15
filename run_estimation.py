@@ -1,18 +1,20 @@
+import logging
 import os
-import numpy as np
-import netCDF4 as nc
 from datetime import datetime
 from pathlib import Path
-import pandas as pd
-from func_timeout import func_timeout, FunctionTimedOut
-import attrici
-import attrici.estimator as est
-import attrici.datahandler as dh
-import settings as s
-from pymc3.parallel_sampling import ParallelSamplingError
-import logging
 
-s.output_dir.mkdir(parents=True,exist_ok=True)
+import attrici
+import attrici.datahandler as dh
+import attrici.estimator as est
+import netCDF4 as nc
+import numpy as np
+import pandas as pd
+from func_timeout import FunctionTimedOut, func_timeout
+from pymc3.parallel_sampling import ParallelSamplingError
+
+import settings as s
+
+s.output_dir.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     filename=s.output_dir / "failing_cells.log",
     level=logging.ERROR,
@@ -80,11 +82,11 @@ assert calls_per_arrayjob.sum() == len(df_specs)
 # Calculate the starting and ending values for this task based
 # on the SLURM task and the number of runs per task.
 cum_calls_per_arrayjob = calls_per_arrayjob.cumsum(dtype=int)
-start_num = 0 if task_id == 0 else cum_calls_per_arrayjob[task_id-1]
+start_num = 0 if task_id == 0 else cum_calls_per_arrayjob[task_id - 1]
 end_num = cum_calls_per_arrayjob[task_id] - 1
-run_numbers = np.arange(start_num, end_num + 1, 1, dtype=np.int)
+run_numbers = np.arange(start_num, end_num + 1, 1, dtype=int)
 if len(run_numbers) == 0:
-    print ("No runs assigned for this SLURM task.")
+    print("No runs assigned for this SLURM task.")
 else:
     print("This is SLURM task", task_id, "which will do runs", start_num, "to", end_num)
 
@@ -143,7 +145,9 @@ for n in run_numbers[:]:
             )
         continue
 
-    df_with_cfact = estimator.estimate_timeseries(dff, trace, datamin, scale, s.map_estimate)
+    df_with_cfact = estimator.estimate_timeseries(
+        dff, trace, datamin, scale, s.map_estimate
+    )
     dh.save_to_disk(df_with_cfact, fname_cell, sp["lat"], sp["lon"], s.storage_format)
 
 obs_data.close()
