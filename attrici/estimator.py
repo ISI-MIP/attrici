@@ -1,14 +1,15 @@
 import os
+import pickle
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import pymc3 as pm
-from datetime import datetime
 
-import attrici.datahandler as dh
 import attrici.const as c
-import attrici.models as models
+import attrici.datahandler as dh
 import attrici.fourier as fourier
-import pickle
+import attrici.models as models
 
 model_for_var = {
     "tas": models.Tas,
@@ -44,7 +45,7 @@ class estimator(object):
         self.startdate = cfg.startdate
 
         try:
-            #TODO remove modes from initialization
+            # TODO remove modes from initialization
             self.statmodel = model_for_var[self.variable](self.modes)
 
         except KeyError as error:
@@ -68,7 +69,7 @@ class estimator(object):
         )
         if map_estimate:
             try:
-                with open(outdir_for_cell, 'rb') as handle:
+                with open(outdir_for_cell, "rb") as handle:
                     trace = pickle.load(handle)
             except Exception as e:
                 print("Problem with saved trace:", e, ". Redo parameter estimation.")
@@ -77,10 +78,15 @@ class estimator(object):
                 )
                 trace = pm.find_MAP(model=self.model)
                 if self.save_trace:
-                    with open(outdir_for_cell, 'wb') as handle:
-                        free_params = {key: value for key, value in trace.items()
-                                       if key.startswith('weights') or key=='logp'}
-                        pickle.dump(free_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
+                    with open(outdir_for_cell, "wb") as handle:
+                        free_params = {
+                            key: value
+                            for key, value in trace.items()
+                            if key.startswith("weights") or key == "logp"
+                        }
+                        pickle.dump(
+                            free_params, handle, protocol=pickle.HIGHEST_PROTOCOL
+                        )
         else:
             # FIXME: Rework loading old traces
             # print("Search for trace in\n", outdir_for_cell)
@@ -120,7 +126,7 @@ class estimator(object):
                     chains=self.chains,
                     tune=self.tune,
                     progressbar=self.progressbar,
-                    target_accept=.95
+                    target_accept=0.95,
                 )
             # could set target_accept=.95 to get smaller step size if warnings appear
         elif self.inference == "ADVI":
@@ -143,16 +149,16 @@ class estimator(object):
 
         return trace
 
-    def estimate_timeseries(self, df, trace, datamin, scale, map_estimate, subtrace=1000):
+    def estimate_timeseries(
+        self, df, trace, datamin, scale, map_estimate, subtrace=1000
+    ):
 
         # print(trace["mu"].shape, df.shape)
         trace_obs, trace_cfact = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar, map_estimate
         )
 
-        df_params = dh.create_ref_df(
-            df, trace_obs, trace_cfact, self.statmodel.params
-        )
+        df_params = dh.create_ref_df(df, trace_obs, trace_cfact, self.statmodel.params)
 
         cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
         print("Done with quantile mapping.")
@@ -165,8 +171,8 @@ class estimator(object):
         df.loc[:, "cfact"] = self.f_rescale(df.loc[:, "cfact_scaled"], datamin, scale)
 
         # populate invalid values originating from y_scaled with with original values
-        if self.variable == 'pr':
-            df.loc[df['cfact_scaled'] == 0, 'cfact'] = 0
+        if self.variable == "pr":
+            df.loc[df["cfact_scaled"] == 0, "cfact"] = 0
         else:
             invalid_index = df.index[df["y_scaled"].isna()]
             df.loc[invalid_index, "cfact"] = df.loc[invalid_index, "y"]
@@ -187,7 +193,7 @@ class estimator(object):
             df.loc[:, v] = df_params.loc[:, v].values
 
         if map_estimate:
-            df.loc[:, "logp"] = trace_obs['logp'].mean(axis=0)
+            df.loc[:, "logp"] = trace_obs["logp"].mean(axis=0)
 
         if self.report_variables != "all":
             df = df.loc[:, self.report_variables]
