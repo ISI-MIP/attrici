@@ -1,6 +1,6 @@
 import numpy as np
+import pymc as pm
 from scipy import stats
-import pymc3 as pm
 
 
 class Distribution(object):
@@ -46,9 +46,9 @@ class Distribution(object):
                     var_names=self.params + ['logp'],  # + ["obs"],
                     progressbar=progressbar,
                 )
-                for gmt in ['gmt', 'gmtv']:
+                for gmt in ["gmt", "gmtv"]:
                     try:
-                        pm.set_data({gmt: np.zeros_like(df['gmt_scaled'])})
+                        pm.set_data({gmt: np.zeros_like(df["gmt_scaled"])})
                     except KeyError as e:
                         pass
                 trace_cfact = pm.sample_posterior_predictive(
@@ -96,18 +96,18 @@ class Distribution(object):
                 trace_obs = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=self.params + ['logp'],
+                    var_names=self.params + ["logp"],
                     progressbar=progressbar,
                 )
-                for gmt in ['gmt', 'gmtv']:
+                for gmt in ["gmt", "gmtv"]:
                     try:
-                        pm.set_data({gmt: np.zeros_like(df['gmt_scaled'])})
+                        pm.set_data({gmt: np.zeros_like(df["gmt_scaled"])})
                     except KeyError as e:
                         pass
                 trace_cfact = pm.sample_posterior_predictive(
                     trace[-subtrace:],
                     samples=subtrace,
-                    var_names=self.params + ['logp'],
+                    var_names=self.params + ["logp"],
                     progressbar=progressbar,
                 )
             print("Resampled missing.")
@@ -218,18 +218,17 @@ class Gamma(Distribution):
         self.params = ["mu", "sigma"]
         self.parameter_bounds = {"mu": [0, None], "sigma": [0, None]}
 
-
     def quantile_mapping(self, d, y_scaled):
         quantile = stats.gamma.cdf(
-                y_scaled,
-                d["mu"] ** 2.0 / d["sigma"] ** 2.0,
-                scale=d["sigma"] ** 2.0 / d["mu"],
-            )
+            y_scaled,
+            d["mu"] ** 2.0 / d["sigma"] ** 2.0,
+            scale=d["sigma"] ** 2.0 / d["mu"],
+        )
         x_mapped = stats.gamma.ppf(
-                quantile,
-                d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
-                scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
-            )
+            quantile,
+            d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
+            scale=d["sigma_ref"] ** 2.0 / d["mu_ref"],
+        )
 
         return x_mapped
 

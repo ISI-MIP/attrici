@@ -4,7 +4,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pymc3 as pm
+import pymc as pm
 
 import attrici.const as c
 import attrici.datahandler as dh

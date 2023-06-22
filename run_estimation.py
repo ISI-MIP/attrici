@@ -3,15 +3,15 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import attrici
-import attrici.datahandler as dh
-import attrici.estimator as est
 import netCDF4 as nc
 import numpy as np
 import pandas as pd
 from func_timeout import FunctionTimedOut, func_timeout
 from pymc3.parallel_sampling import ParallelSamplingError
 
+import attrici
+import attrici.datahandler as dh
+import attrici.estimator as est
 import settings as s
 
 s.output_dir.mkdir(parents=True, exist_ok=True)
