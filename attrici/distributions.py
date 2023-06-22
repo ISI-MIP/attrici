@@ -40,11 +40,12 @@ class Distribution(object):
                     except KeyError as e:
                         pass
 
+                print(f"params = self.params")
                 trace_obs = pm.sample_posterior_predictive(
                     [trace],
-                    samples=1,
-                    var_names=self.params + ['logp'],  # + ["obs"],
+                    var_names=self.params,  # + ["logp"],  # + ["obs"],
                     progressbar=progressbar,
+                    return_inferencedata=False,
                 )
                 for gmt in ["gmt", "gmtv"]:
                     try:
@@ -53,9 +54,9 @@ class Distribution(object):
                         pass
                 trace_cfact = pm.sample_posterior_predictive(
                     [trace],
-                    samples=1,
-                    var_names=self.params + ['logp'],  # + ["obs"],
+                    var_names=self.params,  # + ["logp"],  # + ["obs"],
                     progressbar=progressbar,
+                    return_inferencedata=False,
                 )
             print("Resampled missing.")
         else:

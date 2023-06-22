@@ -3,15 +3,14 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import attrici
+import attrici.datahandler as dh
+import attrici.estimator as est
 import netCDF4 as nc
 import numpy as np
 import pandas as pd
 from func_timeout import FunctionTimedOut, func_timeout
-from pymc3.parallel_sampling import ParallelSamplingError
 
-import attrici
-import attrici.datahandler as dh
-import attrici.estimator as est
 import settings as s
 
 s.output_dir.mkdir(parents=True, exist_ok=True)
@@ -21,8 +20,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-# needed to silence verbose pymc3
-pmlogger = logging.getLogger("pymc3")
+# needed to silence verbose pymc
+pmlogger = logging.getLogger("pymc")
 pmlogger.propagate = False
 
 print("Version", attrici.__version__)
@@ -127,23 +126,24 @@ for n in run_numbers[:]:
             estimator.estimate_parameters,
             args=(df, sp["lat"], sp["lon"], s.map_estimate, TIME0),
         )
-    except (FunctionTimedOut, ParallelSamplingError, ValueError) as error:
-        if str(error) == "Modes larger 1 are not allowed for the censored model.":
-            raise error
-        else:
-            print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
-            print(error)
-            logger.error(
-                str(
-                    "lat,lon: "
-                    + str(sp["lat"])
-                    + " "
-                    + str(sp["lon"])
-                    + " : "
-                    + str(error)
-                )
-            )
-        continue
+    except (FunctionTimedOut, ValueError) as error:
+        raise error
+        # if str(error) == "Modes larger 1 are not allowed for the censored model.":
+        #     raise error
+        # else:
+        #     print("Sampling at", sp["lat"], sp["lon"], " timed out or failed.")
+        #     print(error)
+        #     logger.error(
+        #         str(
+        #             "lat,lon: "
+        #             + str(sp["lat"])
+        #             + " "
+        #             + str(sp["lon"])
+        #             + " : "
+        #             + str(error)
+        #         )
+        #     )
+        # continue
 
     df_with_cfact = estimator.estimate_timeseries(
         dff, trace, datamin, scale, s.map_estimate

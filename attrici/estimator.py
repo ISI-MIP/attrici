@@ -77,6 +77,10 @@ class estimator(object):
                     f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is run"
                 )
                 trace = pm.find_MAP(model=self.model)
+
+                print(
+                    f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is done"
+                )
                 if self.save_trace:
                     with open(outdir_for_cell, "wb") as handle:
                         free_params = {
@@ -192,8 +196,8 @@ class estimator(object):
         for v in df_params.columns:
             df.loc[:, v] = df_params.loc[:, v].values
 
-        if map_estimate:
-            df.loc[:, "logp"] = trace_obs["logp"].mean(axis=0)
+        # if map_estimate:
+        # df.loc[:, "logp"] = trace_obs["logp"].mean(axis=0)
 
         if self.report_variables != "all":
             df = df.loc[:, self.report_variables]

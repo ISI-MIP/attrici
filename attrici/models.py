@@ -1,7 +1,8 @@
 import numpy as np
-import pymc3 as pm
+import pymc as pm
+import pytensor.tensor as tt
 from scipy import stats
-import theano.tensor as tt
+
 import attrici.distributions
 
 
@@ -100,10 +101,16 @@ class Pr(attrici.distributions.BernoulliGamma):
                 "weights_nu_longterm_intercept", mu=0, sigma=1
             )
             weights_nu_fc_intercept = pm.math.concatenate(
-                [pm.Normal(f"weights_nu_fc_intercept_{i}", mu=0, sd=1 / (i + 1), shape=2)
-                 for i in range(int(xf0v.dshape[1]) // 2)]
+                [
+                    pm.Normal(
+                        f"weights_nu_fc_intercept_{i}", mu=0, sigma=1 / (i + 1), shape=2
+                    )
+                    for i in range(int(xf0v.shape[1]) // 2)
+                ]
             )
-            eta_nu = tt.dot(xf0v, weights_nu_fc_intercept) + weights_nu_longterm_intercept
+            eta_nu = (
+                tt.dot(xf0v, weights_nu_fc_intercept) + weights_nu_longterm_intercept
+            )
             nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
             sigma = pm.Deterministic("sigma", mu / nu)  # nu^2 = k -> k shape parameter
 
@@ -135,8 +142,10 @@ class Tas(attrici.distributions.Normal):
         with model:
 
             df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            gmtv = pm.MutableData("gmt", df_valid["gmt_scaled"].values)
+            xf0_np = df_valid.filter(regex="^mode_0_").values
+            xf0 = pm.MutableData("xf0", xf0_np)
+            print(xf0_np.shape)
             # mu
 
             weights_longterm_intercept = pm.Normal(
@@ -146,14 +155,20 @@ class Tas(attrici.distributions.Normal):
                 "weights_longterm_trend", mu=0, sigma=0.1
             )
             weights_fc_intercept = pm.math.concatenate(
-                [pm.Normal(f"weights_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
-                 for i in range(int(xf0.dshape[1]) // 2)]
+                [
+                    pm.Normal(
+                        f"weights_fc_intercept_{i}",
+                        mu=0,
+                        sigma=1 / (2 * i + 1),
+                        shape=2,
+                    )
+                    for i in range(xf0_np.shape[1] // 2)
+                ]
             )
-            weights_fc_trend = pm.Normal("weights_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
-            weights_fc = pm.math.concatenate([
-                weights_fc_intercept,
-                weights_fc_trend
-            ])
+            weights_fc_trend = pm.Normal(
+                "weights_fc_trend", mu=0, sigma=0.1, shape=xf0_np.shape[1]
+            )
+            weights_fc = pm.math.concatenate([weights_fc_intercept, weights_fc_trend])
             # weights are the parameters that are learned by the model
             # eta is a linear model of the predictors
             eta = (
@@ -174,8 +189,15 @@ class Tas(attrici.distributions.Normal):
                 "weights_sigma_longterm_intercept", mu=0, sigma=1
             )
             weights_sigma_fc_intercept = pm.math.concatenate(
-                [pm.Normal(f"weights_sigma_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
-                 for i in range(int(xf0.dshape[1]) // 2)]
+                [
+                    pm.Normal(
+                        f"weights_sigma_fc_intercept_{i}",
+                        mu=0,
+                        sigma=1 / (2 * i + 1),
+                        shape=2,
+                    )
+                    for i in range(int(xf0_np.shape[1]) // 2)
+                ]
             )
 
             eta_sigma = (
@@ -183,7 +205,7 @@ class Tas(attrici.distributions.Normal):
                 + weights_sigma_longterm_intercept
             )
             sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
-            logp_ = pm.Deterministic("logp", model.logpt)
+            _ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
