@@ -47,18 +47,17 @@ gmt = np.squeeze(ncg.variables["tas"][:])
 ncg.close()
 
 input_file = s.input_dir / s.source_file
-# landsea_mask_file = s.input_dir.parent / s.landsea_file
+landsea_mask_file = s.input_dir / s.landsea_file
 
 obs_data = nc.Dataset(input_file, "r")
-# nc_lsmask = nc.Dataset(landsea_mask_file, "r")
+nc_lsmask = nc.Dataset(landsea_mask_file, "r")
 nct = obs_data.variables["time"]
 lats = obs_data.variables["lat"][:]
 lons = obs_data.variables["lon"][:]
 longrid, latgrid = np.meshgrid(lons, lats)
 jgrid, igrid = np.meshgrid(np.arange(len(lons)), np.arange(len(lats)))
 
-# ls_mask = nc_lsmask.variables["LSM"][0, :]
-ls_mask = np.ones_like(latgrid)
+ls_mask = nc_lsmask.variables["area_European_01min"][0, :]
 df_specs = pd.DataFrame()
 df_specs["lat"] = latgrid[ls_mask == 1]
 df_specs["lon"] = longrid[ls_mask == 1]
@@ -152,7 +151,7 @@ for n in run_numbers[:]:
     dh.save_to_disk(df_with_cfact, fname_cell, sp["lat"], sp["lon"], s.storage_format)
 
 obs_data.close()
-# nc_lsmask.close()
+nc_lsmask.close()
 print(
     "Estimation completed for all cells. It took {0:.1f} minutes.".format(
         (datetime.now() - TIME0).total_seconds() / 60

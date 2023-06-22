@@ -77,6 +77,10 @@ class estimator(object):
                     f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is run"
                 )
                 trace = pm.find_MAP(model=self.model)
+
+                print(
+                    f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is done"
+                )
                 if self.save_trace:
                     with open(outdir_for_cell, "wb") as handle:
                         free_params = {
