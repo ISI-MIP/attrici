@@ -658,7 +658,7 @@ class Rsds(attrici.distributions.Normal):
                 + weights_sigma_longterm_intercept
             )
             sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
-            logp_ = pm.Deterministic("logp", model.logp)
+            logp_ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
