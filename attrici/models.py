@@ -403,7 +403,7 @@ class Hurs(attrici.distributions.Beta):
             print(xf0_np.shape)          
             
             covariates = pm.math.concatenate(
-                [xf0, tt.tile(gmtv[:, None], (1, int(xf0.shape[1]))) * xf0], axis=1
+                [xf0, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0], axis=1
             )
 
             # phi is called the precision parameter
@@ -463,7 +463,7 @@ class Hurs(attrici.distributions.Beta):
             alpha = pm.Deterministic("alpha", mu * phi)
 
             beta = pm.Deterministic("beta", (1 - mu) * phi)
-            logp_ = pm.Deterministic("logp", model.logpt)
+            logp_ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
