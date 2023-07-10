@@ -496,8 +496,10 @@ class Tasskew(attrici.distributions.Normal):
 
         with model:
             df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
+            gmtv = pm.MutableData("gmt", df_valid["gmt_scaled"].values)
+            xf0_np = df_valid.filter(regex="^mode_0_").values
+            xf0 = pm.MutableData("xf0", xf0_np)
+            print(xf0_np.shape)
             # mu
 
             weights_longterm_intercept = pm.Normal(
@@ -514,11 +516,11 @@ class Tasskew(attrici.distributions.Normal):
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(int(xf0.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
             weights_fc_trend = pm.Normal(
-                "weights_fc_trend", mu=0, sigma=0.1, shape=xf0.shape[1]
+                "weights_fc_trend", mu=0, sigma=0.1, shape=xf0_np.shape[1]
             )
             weights_fc = pm.math.concatenate([weights_fc_intercept, weights_fc_trend])
             # weights are the parameters that are learned by the model
@@ -526,7 +528,7 @@ class Tasskew(attrici.distributions.Normal):
             eta = (
                 tt.dot(
                     pm.math.concatenate(
-                        [xf0, tt.tile(gmtv[:, None], (1, int(xf0.shape[1]))) * xf0],
+                        [xf0, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0],
                         axis=1,
                     ),
                     weights_fc,
@@ -548,7 +550,7 @@ class Tasskew(attrici.distributions.Normal):
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(int(xf0.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
 
@@ -557,7 +559,7 @@ class Tasskew(attrici.distributions.Normal):
                 + weights_sigma_longterm_intercept
             )
             sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
-            logp_ = pm.Deterministic("logp", model.logpt)
+            logp_ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
