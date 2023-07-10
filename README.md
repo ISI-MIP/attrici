@@ -17,7 +17,7 @@ Please do
 
 `conda config --add channels conda-forge`
 
-`conda create -n attrici pymc3==3.7 python==3.7`
+`conda create -c conda-forge -n attrici "pymc>=5" python=3.10.11`
 
 `conda activate attrici`
 
