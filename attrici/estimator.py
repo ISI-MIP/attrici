@@ -18,7 +18,7 @@ model_for_var = {
     "pr": models.Pr,
     "hurs": models.Hurs,
     "wind": models.Wind,
-    "sfcwind": models.Wind,
+    "sfcWind": models.Wind,
     "ps": models.Ps,
     "rsds": models.Rsds,
     "rlds": models.Rlds,
@@ -37,7 +37,7 @@ class estimator(object):
         self.seed = cfg.seed
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
-        self.modes = cfg.modes
+        self.modes = cfg.modes      
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.save_trace = cfg.save_trace
         self.report_variables = cfg.report_variables

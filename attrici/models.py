@@ -747,6 +747,7 @@ class RsdsWeibull(attrici.distributions.Weibull):
                 tt.dot(xf0, weights_alpha_fc_intercept)
                 + weights_alpha_longterm_intercept
             )
+            
             alpha = pm.Deterministic("alpha", pm.math.exp(eta_alpha))
             logp_ = pm.Deterministic("logp", model.logpt)
 
@@ -916,12 +917,15 @@ class Wind(attrici.distributions.Weibull):
             )
 
             eta_alpha = (
-                tt.dot(xf0_np, weights_alpha_fc_intercept)
+                tt.dot(xf0, weights_alpha_fc_intercept)
                 + weights_alpha_longterm_intercept
             )
             alpha = pm.Deterministic("alpha", pm.math.exp(eta_alpha))
-            _ = pm.Deterministic("logp", model.logp())
-            #logp_ = pm.Deterministic("logp", model.logp())
+            logp_ = pm.Deterministic("logp", model.logp())
+
+            # mu = pm.math.invlogit(eta)
+            # alpha = pm.Deterministic("alpha", mu * phi)
+            # beta = pm.Deterministic("beta", (1 - mu) * phi)
 
             if not self.test:
                 pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
