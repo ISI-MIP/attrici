@@ -24,18 +24,19 @@ class Pr(attrici.distributions.BernoulliGamma):
             df_valid = df_subset.dropna(axis=0, how="any")
 
             gmt = pm.MutableData("gmt", df_subset["gmt_scaled"].values)
-            xf0_np = df_valid.filter(regex="^mode_0_").values
-            xf0 = pm.MutableData("xf0", xf0_np)
-
+            xf0 = pm.MutableData("xf0", df_subset.filter(regex="^mode_0_").values)
+            
             gmtv = pm.MutableData("gmtv", df_valid["gmt_scaled"].values)
+            xf0_np = df_valid.filter(regex="^mode_0_").values
             xf0v = pm.MutableData("xf0v", xf0_np)
 
             covariates = pm.math.concatenate(
-                [xf0, tt.tile(gmt[:, None], (1, int(xf0_np.shape[1]))) * xf0], axis=1
+               [xf0, tt.tile(gmt[:, None], (1, int(xf0_np.shape[1]))) * xf0], axis=1
             )
             covariatesv = pm.math.concatenate(
                 [xf0v, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0v], axis=1
             )
+
             # pbern
             weights_pbern_longterm_intercept = pm.Normal(
                 "weights_pbern_longterm_intercept", mu=0, sigma=1
@@ -115,7 +116,7 @@ class Pr(attrici.distributions.BernoulliGamma):
             nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
             sigma = pm.Deterministic("sigma", mu / nu)  # nu^2 = k -> k shape parameter
 
-            _ = pm.Deterministic("logp", model.logp())
+            logp_ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Bernoulli(
