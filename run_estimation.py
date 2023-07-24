@@ -40,7 +40,7 @@ except KeyError:
 
 dh.create_output_dirs(s.output_dir)
 
-gmt_file = s.input_dir.parent / s.gmt_file
+gmt_file = s.input_dir / s.gmt_file
 ncg = nc.Dataset(gmt_file, "r")
 gmt = np.squeeze(ncg.variables["tas"][:])
 ncg.close()
@@ -56,7 +56,7 @@ lons = obs_data.variables["lon"][:]
 longrid, latgrid = np.meshgrid(lons, lats)
 jgrid, igrid = np.meshgrid(np.arange(len(lons)), np.arange(len(lats)))
 
-ls_mask = nc_lsmask.variables["area_European_01min"][0, :]
+ls_mask = nc_lsmask.variables["area_European_01min"][:, :]
 df_specs = pd.DataFrame()
 df_specs["lat"] = latgrid[ls_mask == 1]
 df_specs["lon"] = longrid[ls_mask == 1]

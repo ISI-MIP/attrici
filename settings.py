@@ -10,21 +10,28 @@ if user == "mengel":
     data_dir = "/home/mengel/data/20190306_IsimipDetrend/"
     # data_dir = "/p/tmp/mengel/isimip/isi-cfact"
     log_dir = "./log"
+    output_dir = Path(data_dir) / "attrici_output" / Path.cwd().name
 
 elif user == "sitreu":
     # conda_path = "/home/sitreu/.conda/envs/mpi_py3"
     # data_dir = "/home/sitreu/Documents/PIK/CounterFactuals/isi-cfact/"
-    data_dir = "/p/tmp/sitreu/isimip/isi-cfact"
+    data_dir = "/p/projects/ou/rd3/dmcci/basd_era5-land_to_efas-meteo/"
     log_dir = "./log"
+    output_dir = Path("/p/tmp/sitreu/data/attrici/output") / Path.cwd().name
 
-input_dir = Path(data_dir) / "input"
+# for example "GSWP3", "GSWP3-W5E5"
+dataset = "ERA5"
+
+input_dir = Path(data_dir) / "attrici_input" / dataset
 # make output dir same as cwd. Helps if running more than one job.
-output_dir = Path(data_dir) / "output" / Path.cwd().name
 
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-variable = "tas"  # select variable to detrend
+hour = ""
+# select variable to detrend
+variable = "tas"
+tile = "00009"
 
 # number of modes for fourier series of model
 # TODO: change to one number only, as only the first element of list is used.
@@ -37,18 +44,18 @@ inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
-startdate = None # may at a date in the format '1950-01-01' to train only on date from after that date
+startdate = None  # may at a date in the format '1950-01-01' to train only on date from after that date
 
-# for example "GSWP3", "GSWP3-W5E5"
-dataset = "GSWP3-W5E5"
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 1
 
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
-landsea_file = "ISIMIP2b_landseamask_generic_sub" + str(lateral_sub) + ".nc4"
+landsea_file = f"landmask_{tile}.nc"
 # source_file = variable + "_" + dataset + "_sub.nc4"
-source_file = variable + "_" + dataset + "_sub" + str(lateral_sub) + ".nc4"
-cfact_file = variable + "_" + dataset + "_cfactual.nc4"
+source_file = (
+    f"rechunked_{dataset}_{variable}{hour}_{dataset}_1950_2020_t_{tile}_basd_redim_f.nc"
+)
+cfact_file = f"{source_file.split('.')[0]}_cfact.nc"
 # .h5 or .csv
 storage_format = ".h5"
 # "all" or list like ["y","y_scaled","mu","sigma"]
