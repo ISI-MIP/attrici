@@ -205,7 +205,7 @@ class Tas(attrici.distributions.Normal):
                 + weights_sigma_longterm_intercept
             )
             sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
-            _ = pm.Deterministic("logp", model.logp())
+            # logp_ = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
@@ -400,8 +400,8 @@ class Hurs(attrici.distributions.Beta):
             gmtv = pm.MutableData("gmt", df_valid["gmt_scaled"].values)
             xf0_np = df_valid.filter(regex="^mode_0_").values
             xf0 = pm.MutableData("xf0", xf0_np)
-            print(xf0_np.shape)          
-            
+            print(xf0_np.shape)
+
             covariates = pm.math.concatenate(
                 [xf0, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0], axis=1
             )
@@ -463,7 +463,7 @@ class Hurs(attrici.distributions.Beta):
             alpha = pm.Deterministic("alpha", mu * phi)
 
             beta = pm.Deterministic("beta", (1 - mu) * phi)
-            logp_ = pm.Deterministic("logp", model.logp())
+            logp_ = pm.Deterministic("logp", model.varlogp)
 
             if not self.test:
                 pm.Beta("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
@@ -774,7 +774,7 @@ class Tasrange(attrici.distributions.Gamma):
             gmtv = pm.MutableData("gmt", df_valid["gmt_scaled"].values)
             xf0_np = df_valid.filter(regex="^mode_0_").values
             xf0 = pm.MutableData("xf0", xf0_np)
-            print("xfo shape" ,xf0.shape)
+            print("xfo shape", xf0.shape)
             print("xfo_np shape", xf0_np.shape)
 
             covariates = pm.math.concatenate(
