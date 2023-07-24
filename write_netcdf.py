@@ -20,7 +20,7 @@ import settings as s
 ### options for postprocess
 write_netcdf = True
 rechunk = True
-replace_invalid=True
+replace_invalid = True
 # cdo_processing needs rechunk
 cdo_processing = True
 
@@ -47,7 +47,7 @@ cdo_ops = {
 
 TIME0 = datetime.now()
 
-source_file = Path(s.input_dir) / s.dataset / s.source_file.lower()
+source_file = Path(s.input_dir) / s.source_file
 ts_dir = s.output_dir / "timeseries" / s.variable
 cfact_dir = s.output_dir / "cfact" / s.variable
 cfact_file = cfact_dir / s.cfact_file

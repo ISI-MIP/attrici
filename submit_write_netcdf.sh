@@ -3,17 +3,16 @@
 # copy this to your run folder, and replace runid with the
 # name of your run at all locations. Replace also --mail-user
 
-#SBATCH --qos=priority
-#SBATCH --partition=priority
 #SBATCH --job-name=runid_merge
-#SBATCH --account=isipedia
-#SBATCH --output=./log/%x.out
-#SBATCH --error=./log/%x.err
+#SBATCH --account=isimip
+#SBATCH --output=/p/tmp/sitreu/log/attrici/%x/%A_%a.log
+#SBATCH --error=/p/tmp/sitreu/log/attrici/%x/%A_%a.log
 #SBATCH --mail-type=END,FAIL
-#SBATCH --mail-user=mengel@pik-potsdam.de
+#SBATCH --mail-user=sitreu@pik-potsdam.de
 
 # block one node to have enough memory
+#SBATCH --partition=largemem
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
 
-/p/tmp/mengel/condaenvs/isi-cfact/bin/python -u write_netcdf.py
+/home/sitreu/.conda/envs/attrici_2/bin/python -u write_netcdf.py
