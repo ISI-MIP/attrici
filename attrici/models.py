@@ -23,18 +23,20 @@ class Pr(attrici.distributions.BernoulliGamma):
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
 
-            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_subset.filter(regex="^mode_0_").values)
-
-            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
-            xf0v = pm.Data("xf0v", df_valid.filter(regex="^mode_0_").values)
+            gmt = pm.MutableData("gmt", df_subset["gmt_scaled"].values)
+            xf0 = pm.MutableData("xf0", df_subset.filter(regex="^mode_0_").values)
+            
+            gmtv = pm.MutableData("gmtv", df_valid["gmt_scaled"].values)
+            xf0_np = df_valid.filter(regex="^mode_0_").values
+            xf0v = pm.MutableData("xf0v", xf0_np)
 
             covariates = pm.math.concatenate(
-                [xf0, tt.tile(gmt[:, None], (1, int(xf0.shape[1]))) * xf0], axis=1
+               [xf0, tt.tile(gmt[:, None], (1, int(xf0_np.shape[1]))) * xf0], axis=1
             )
             covariatesv = pm.math.concatenate(
-                [xf0v, tt.tile(gmtv[:, None], (1, int(xf0v.shape[1]))) * xf0v], axis=1
+                [xf0v, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0v], axis=1
             )
+
             # pbern
             weights_pbern_longterm_intercept = pm.Normal(
                 "weights_pbern_longterm_intercept", mu=0, sigma=1
@@ -50,11 +52,11 @@ class Pr(attrici.distributions.BernoulliGamma):
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(int(xf0.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
             weights_pbern_fc_trend = pm.Normal(
-                "weights_pbern_fc_trend", mu=0, sigma=0.1, shape=xf0.shape[1]
+                "weights_pbern_fc_trend", mu=0, sigma=0.1, shape=xf0_np.shape[1]
             )
             weights_pbern_fc = pm.math.concatenate(
                 [weights_pbern_fc_intercept, weights_pbern_fc_trend]
@@ -81,7 +83,7 @@ class Pr(attrici.distributions.BernoulliGamma):
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(int(xf0v.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
             weights_mu_fc_trend = pm.Normal(
@@ -105,7 +107,7 @@ class Pr(attrici.distributions.BernoulliGamma):
                     pm.Normal(
                         f"weights_nu_fc_intercept_{i}", mu=0, sigma=1 / (i + 1), shape=2
                     )
-                    for i in range(int(xf0v.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
             eta_nu = (
@@ -114,7 +116,7 @@ class Pr(attrici.distributions.BernoulliGamma):
             nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
             sigma = pm.Deterministic("sigma", mu / nu)  # nu^2 = k -> k shape parameter
 
-            _logp = pm.Deterministic("logp", model.logpt)
+            logp_ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Bernoulli(
@@ -205,7 +207,7 @@ class Tas(attrici.distributions.Normal):
                 + weights_sigma_longterm_intercept
             )
             sigma = pm.Deterministic("sigma", pm.math.exp(eta_sigma))
-            # logp_ = pm.Deterministic("logp", model.logpt)
+            logp_ = pm.Deterministic("logp", model.logp())
 
             if not self.test:
                 pm.Normal("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
@@ -746,6 +748,7 @@ class RsdsWeibull(attrici.distributions.Weibull):
                 tt.dot(xf0, weights_alpha_fc_intercept)
                 + weights_alpha_longterm_intercept
             )
+            
             alpha = pm.Deterministic("alpha", pm.math.exp(eta_alpha))
             logp_ = pm.Deterministic("logp", model.logpt)
 
@@ -856,10 +859,12 @@ class Wind(attrici.distributions.Weibull):
 
         with model:
             df_valid = df_subset.dropna(axis=0, how="any")
-            gmtv = pm.Data("gmt", df_valid["gmt_scaled"].values)
-            xf0 = pm.Data("xf0", df_valid.filter(regex="^mode_0_").values)
-
+            gmtv = pm.MutableData("gmt", df_valid["gmt_scaled"].values)
+            xf0_np = df_valid.filter(regex="^mode_0_").values
+            xf0 = pm.MutableData("xf0", xf0_np)
+            print(xf0_np.shape)
             # beta
+
             weights_longterm_intercept = pm.Normal(
                 "weights_longterm_intercept", mu=0, sigma=1
             )
@@ -874,11 +879,11 @@ class Wind(attrici.distributions.Weibull):
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(int(xf0.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
             weights_fc_trend = pm.Normal(
-                "weights_fc_trend", mu=0, sigma=0.1, shape=xf0.shape[1]
+                "weights_fc_trend", mu=0, sigma=0.1, shape=xf0_np.shape[1]
             )
             weights_fc = pm.math.concatenate([weights_fc_intercept, weights_fc_trend])
             # weights are the parameters that are learned by the model
@@ -886,7 +891,7 @@ class Wind(attrici.distributions.Weibull):
             eta = (
                 tt.dot(
                     pm.math.concatenate(
-                        [xf0, tt.tile(gmtv[:, None], (1, int(xf0.shape[1]))) * xf0],
+                        [xf0, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0],
                         axis=1,
                     ),
                     weights_fc,
@@ -908,7 +913,7 @@ class Wind(attrici.distributions.Weibull):
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(int(xf0.shape[1]) // 2)
+                    for i in range(int(xf0_np.shape[1]) // 2)
                 ]
             )
 
@@ -917,7 +922,11 @@ class Wind(attrici.distributions.Weibull):
                 + weights_alpha_longterm_intercept
             )
             alpha = pm.Deterministic("alpha", pm.math.exp(eta_alpha))
-            logp_ = pm.Deterministic("logp", model.logpt)
+            logp_ = pm.Deterministic("logp", model.logp())
+
+            # mu = pm.math.invlogit(eta)
+            # alpha = pm.Deterministic("alpha", mu * phi)
+            # beta = pm.Deterministic("beta", (1 - mu) * phi)
 
             if not self.test:
                 pm.Weibull("obs", alpha=alpha, beta=beta, observed=df_valid["y_scaled"])
