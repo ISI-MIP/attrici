@@ -1,9 +1,11 @@
 import shutil
-import numpy as np
-import pandas as pd
 import subprocess
 from datetime import datetime
+
 import netCDF4 as nc
+import numpy as np
+import pandas as pd
+
 
 def read_from_disk(data_path):
 
@@ -48,12 +50,13 @@ def form_global_nc(ds, time, lat, lon, vnames, torigin):
     longitudes[:] = lon
     times[:] = time
 
-def rechunk_netcdf(ncfile, ncfile_rechunked):
 
+def rechunk_netcdf(ncfile, ncfile_rechunked):
 
     TIME0 = datetime.now()
 
     try:
+        # FIXME read lat and lon dim from the ncfile. e.g. size oder len(xr.open_dataset(ncfile).lat )
         cmd = (
             "ncks -4 -O --deflate 5 "
             + "--cnk_plc=g3d --cnk_dmn=lat,360 --cnk_dmn=lon,720 "
@@ -68,7 +71,11 @@ def rechunk_netcdf(ncfile, ncfile_rechunked):
         print(cmd)
         subprocess.check_call(cmd, shell=True)
 
-    print("Rechunking took {0:.1f} minutes.".format((datetime.now() - TIME0).total_seconds() / 60))
+    print(
+        "Rechunking took {0:.1f} minutes.".format(
+            (datetime.now() - TIME0).total_seconds() / 60
+        )
+    )
 
     return ncfile_rechunked
 
@@ -78,7 +85,9 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     ncfile_valid = ncfile_rechunked.rstrip(".nc4") + "_valid.nc4"
     shutil.copy(ncfile_rechunked, ncfile_valid)
 
-    print(f"Replace invalid values in {ncfile_rechunked} with original values from {source_file}")
+    print(
+        f"Replace invalid values in {ncfile_rechunked} with original values from {source_file}"
+    )
 
     ncs = nc.Dataset(source_file, "r")
     ncf = nc.Dataset(ncfile_valid, "a")
@@ -87,19 +96,21 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     var = ncf.variables[variable]
 
     chunklen = 1000
-    for ti in range(0,var.shape[0],chunklen):
-        v = var[ti:ti+chunklen,:,:]
-        v_orig = var_orig[ti:ti+chunklen,:,:]
-        logp = ncf['logp'][ti:ti+chunklen, :, :]
+    for ti in range(0, var.shape[0], chunklen):
+        v = var[ti : ti + chunklen, :, :]
+        v_orig = var_orig[ti : ti + chunklen, :, :]
+        logp = ncf["logp"][ti : ti + chunklen, :, :]
         # This threshold for logp is to ensure that the model fits the data at all. It is mainly to catch values
         # for logp like -7000
         small_logp = logp < -300
         isinf = np.isinf(v)
         isnan = np.isnan(v)
-        print(f"{ti}: replace {isinf.sum()} inf values, {isnan.sum()} nan values and {small_logp.sum()} values with too small logp (<-300).")
+        print(
+            f"{ti}: replace {isinf.sum()} inf values, {isnan.sum()} nan values and {small_logp.sum()} values with too small logp (<-300)."
+        )
 
         v[isinf | isnan | small_logp] = v_orig[isinf | isnan | small_logp]
-        var[ti:ti+v.shape[0],:,:] = v
+        var[ti : ti + v.shape[0], :, :] = v
 
     ncs.close()
     ncf.close()
