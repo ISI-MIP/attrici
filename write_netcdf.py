@@ -4,16 +4,15 @@
 
 import glob
 import itertools
+import subprocess
+# import pandas as pd
+from datetime import datetime
 from pathlib import Path
 
 import netCDF4 as nc
+import numpy as np
 import xarray as xr
 
-import numpy as np
-
-# import pandas as pd
-from datetime import datetime
-import subprocess
 import attrici
 import attrici.postprocess as pp
 import settings as s
@@ -26,20 +25,23 @@ replace_invalid=True
 cdo_processing = True
 
 # append later with more variables if needed
-vardict = {s.variable: "cfact", s.variable + "_orig": "y",
-        # "mu":"mu",
-        # "y_scaled": "y_scaled",
-        # "pbern": "pbern",
-        "logp": "logp"}
+vardict = {
+    s.variable: "cfact",
+    s.variable + "_orig": "y",
+    # "mu":"mu",
+    # "y_scaled": "y_scaled",
+    # "pbern": "pbern",
+    "logp": "logp",
+}
 
 cdo_ops = {
     # "monmean": "monmean ",
     "yearmean": "yearmean ",
     #    "monmean_valid": "monmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
-       # "yearmean_valid": "yearmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+    # "yearmean_valid": "yearmean -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
     "trend": "trend ",
     # "mse": "timmean -expr,'squared_error=sqr(mu-y_scaled)'"
-       # "trend_valid": "trend -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
+    # "trend_valid": "trend -setrtomiss,-1e20,1.1574e-06 -selvar,cfact,y",
 }
 
 
@@ -99,32 +101,36 @@ if write_netcdf:
             for key, att in attributes.items():
                 ncvar.setncattr(key, att)
 
-
     outfile.setncattr("cfact_version", attrici.__version__)
     outfile.setncattr("runid", Path.cwd().name)
-
+    n_written_cells = 0
     for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
 
         df = pp.read_from_disk(dfpath)
         for var in s.report_to_netcdf:
             ts = df[vardict[var]]
             outfile.variables[var][:, i, j] = np.array(ts)
-        print("wrote data from", dfpath, "to", i, j)
+        n_written_cells = n_written_cells + 1
 
     outfile.close()
 
-    print("Successfully wrote", cfact_file, "file. Took")
+    print(
+        f"Successfully wrote data from {n_written_cells} cells ",
+        f"to the {cfact_file} file.",
+    )
     print(
         "Writing took {0:.1f} minutes.".format(
             (datetime.now() - TIME0).total_seconds() / 60
         )
-)
+    )
 
 if rechunk:
     cfact_rechunked = pp.rechunk_netcdf(cfact_file, cfact_rechunked)
 
 if replace_invalid:
-    cfact_rechunked = pp.replace_nan_inf_with_orig(s.variable, source_file, cfact_rechunked)
+    cfact_rechunked = pp.replace_nan_inf_with_orig(
+        s.variable, source_file, cfact_rechunked
+    )
 
 
 if cdo_processing:
