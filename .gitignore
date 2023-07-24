@@ -1,5 +1,7 @@
 joblib_memmap/
 notebooks/
+jupyter_notebooks/
+runscripts/
 .ipynb_checkpoints/
 __pycache__/
 output/
