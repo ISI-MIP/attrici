@@ -1,0 +1,16 @@
+[cuda]
+root = /p/system/packages/cuda/9.2
+
+[global]
+device = cpu
+floatX = float64
+cxx = g++
+mode = FAST_RUN
+openmp = True
+
+[gcc]
+cxxflags = -O3 -march=native -funroll-loops
+
+[blas]
+ldflags = -lmkl_rt
+
