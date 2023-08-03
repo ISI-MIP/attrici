@@ -30,6 +30,7 @@ try:
     submitted = os.environ["SUBMITTED"] == "1"
     task_id = int(os.environ["SLURM_ARRAY_TASK_ID"])
     njobarray = int(os.environ["SLURM_ARRAY_TASK_COUNT"])
+    print("test multiple tasks, n jobs = n tasks:", task_id, njobarray)
     s.ncores_per_job = 1
     s.progressbar = False
 except KeyError:
@@ -40,7 +41,7 @@ except KeyError:
 
 dh.create_output_dirs(s.output_dir)
 
-gmt_file = s.input_dir / s.gmt_file
+gmt_file = Path(s.data_dir) / "attrici_input" / s.dataset / s.gmt_file
 ncg = nc.Dataset(gmt_file, "r")
 gmt = np.squeeze(ncg.variables["tas"][:])
 ncg.close()

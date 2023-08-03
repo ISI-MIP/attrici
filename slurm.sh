@@ -1,17 +1,18 @@
 #!/bin/bash
+#### basis slurm  ####
 
-#SBATCH --qos=standby
-#SBATCH --partition=priority
+#SBATCH --qos=standby  
+#SBATCH --partition=priority  # standard   ##  test larger qos if not overcrowded --> qos= medium (<7days) or long (<30days) , partion=standard , max 8 cpus
 #SBATCH --job-name=attrici_run_estimation
-#SBATCH --account=isimip
-#SBATCH --output=/p/tmp/sitreu/log/attrici/%x/run_estimation_%A_%a.log
-#SBATCH --error=/p/tmp/sitreu/log/attrici/%x/run_estimation_%A_%a.log
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=sitreu@pik-potsdam.de
+#SBATCH --account=dmcci
+#SBATCH --output=/p/tmp/annabu/projects/attrici/log/%x/run_estimation_%A_%a.log
+#SBATCH --error=/p/tmp/annabu/projects/attrici/log/%x/run_estimation_%A_%a.log
+##SBATCH --mail-type=ALL
+##SBATCH --mail-user=annabu@pik-potsdam.de
 #SBATCH --ntasks=1
-#SBATCH --array=0-1358
-##SBATCH --array=0-20
-#SBATCH --cpus-per-task=2
+##SBATCH --array=0-1358
+#SBATCH --array=0-100
+#SBATCH --cpus-per-task=4
 #SBATCH --time=00-12:00:00
 
 # module purge
@@ -21,7 +22,7 @@
 # module load anaconda/5.0.0_py3
 
 export CXX=g++
-tmpdir=/p/tmp/sitreu/data/attrici/tmp/theano_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tmp
+tmpdir=/p/tmp/annabu/projects/attrici/tmp/theano_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tmp
 mkdir -p $tmpdir
 export TMPDIR=$tmpdir
 
@@ -34,7 +35,7 @@ export TMPDIR=$tmpdir
 export OMP_PROC_BIND=true # make sure our threads stick to cores
 export OMP_NUM_THREADS=2  # matches how many cpus-per-task we asked for
 export SUBMITTED=1
-compiledir=/p/tmp/sitreu/data/attrici/.pytensor/${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}
+compiledir=/p/tmp/annabu/projects/attrici/.pytensor/${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}
 mkdir -p $compiledir
 export PYTENSOR_FLAGS=base_compiledir=$compiledir
 
@@ -43,9 +44,14 @@ cleanup() {
   rm -r $tmpdir
   exit
 }
-cp .pytensorrc /home/sitreu/.pytensorrc
+cp .pytensorrc /home/annabu/.pytensorrc
 trap cleanup SIGTERM SIGINT
-/home/sitreu/.conda/envs/attrici_2/bin/python -u run_estimation.py
+/home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u run_estimation.py
 cleanup
+
+job_id=$SLURM_JOB_ID
+echo "Job-ID: $job_id"
+runid=$(sbatch slurm.sh)
+echo "test other command Job-ID: $runid"
 
 echo "Finished run."
