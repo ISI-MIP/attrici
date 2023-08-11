@@ -3,6 +3,7 @@
 
 tile=$1
 trace_or_ts=$2
+<<<<<<< HEAD
 
 ##SBATCH --qos=standby # for smaller tiles
 ##SBATCH --partition=priority  # for smaller tiles
@@ -22,6 +23,12 @@ trace_or_ts=$2
 # merge trace and ts files for each variable after they passed sanity checks
 for var in pr0; do  
 #for var in tas0 tas6 tas12 tasrange pr0 pr6 pr12 pr18 sfcWind rsds hurs; do  
+=======
+ 
+
+# merge trace and ts files for each variable after they passed sanity checks
+for var in tas0 tas6 tas12 tasrange pr0 pr6 pr12 pr18 sfcWind rsds hurs; do  
+>>>>>>> 047b853ef21c278e66c9b10dd94503a5e0815dca
 #for var in tas0 tas6 tas12 tas18 tasrange tasskew pr0 pr6 pr12 pr18 sfcWind rsds hurs; do  
   echo "Merging: " ${var}
   /home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u sanity_check/merge_files.py ${tile} ${trace_or_ts} ${var}
