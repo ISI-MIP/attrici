@@ -8,8 +8,8 @@
 #SBATCH --ntasks-per-node=2  # 1 = only one var is process - probably as threating process
 #SBATCH --array=0-100
 #SBATCH --cpus-per-task=8
-#SBATCH --output=/p/tmp/annabu/projects/attrici/log/mpi/run_estimation_%A_%a_mpi-%j.out
-#SBATCH --output=/p/tmp/annabu/projects/attrici/log/mpi/run_estimation_%A_%a_mpi-%j.out
+#SBATCH --output=/p/tmp/annabu/projects/attrici/log/mpi/%x/run_estimation_%A_%a_mpi-%j.log
+#SBATCH --output=/p/tmp/annabu/projects/attrici/log/mpi/%x/run_estimation_%A_%a_mpi-%j.log
 #SBATCH --time=00-06:00:00
 
 export CXX=g++
