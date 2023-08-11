@@ -30,11 +30,8 @@ def merge_files(in_dir):
     """
     # Write from single parameter files to netcdf
     parameter_files = []
-<<<<<<< HEAD
+
     for file in in_dir.glob("**/*lon*"):
-=======
-    for file in in_dir.glob("**/lon*"):
->>>>>>> 047b853ef21c278e66c9b10dd94503a5e0815dca
         lat = get_float_from_string(file.parent.name)
         lon = get_float_from_string(file.stem.split("lon")[-1])
         data_vars = []
@@ -60,15 +57,11 @@ def merge_files(in_dir):
                     name=key
                 )
             )
-<<<<<<< HEAD
-        parameter_files.append(xr.merge(data_vars))  ## TODO fix appending all cells not only one
-=======
         parameter_files.append(xr.merge(data_vars))
->>>>>>> 047b853ef21c278e66c9b10dd94503a5e0815dca
-    
+
     return xr.merge(parameter_files)
-    
-    
+
+
 def main():
 
     parser = argparse.ArgumentParser()
@@ -89,11 +82,7 @@ def main():
     merged_parameters = merge_files(in_dir)
 
     # write to disk
-<<<<<<< HEAD
     filepath = in_dir.parent.parent / f"merged_{trace_or_ts}_{tile}_{variable_hour}.nc" 
-=======
-    filepath = in_dir.parent.parent / f"merged_{trace_or_ts}_{tile}_{variable_hour}.nc4" 
->>>>>>> 047b853ef21c278e66c9b10dd94503a5e0815dca
     merged_parameters.to_netcdf(filepath)
 
 if __name__ == "__main__":
