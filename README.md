@@ -72,10 +72,25 @@ For merging the single timeseries files to netcdf datasets
 
 `python merge_cfact.py`
 
-### Handle several runs with different settings
 
-Copy the `settings.py`, `run_estimation.py`, `merge_cfact.py` and `submit.sh` to a separate directory,
-for example `myrunscripts`. Adjust `settings.py` and `submit.sh`, in particular the output directoy, and continue as in Usage.
+
+### Usage of bash scripts for a more automated processing
+
+Adapt paths in `settings.py`, `create_runscripts.sh`, `slurm.sh`, `submit_write_netcdf.sh`, `merge_files.sh`, `sanity_checks.sh`
+And also adapt file paths to tmp folder as well as project folder in `sanity_check/sanity_checks.py`, `sanity_check/merge_files.py`
+
+Example for processing of one variable eg. tas0 for tile 00001
+
+Create runfolders: `bash create_runscripts.sh 00001`
+Run: `sbatch slurm_combined.sh` 00001 tas0
+- Starts `slurm.sh` in the respective runfolder, which will create trace and timeseries files
+- After finished, starts `sanity_checks.sh` which checks if all timeseries files are complete and if failing cells occured
+- If the job for `sanity_checks.sh` was successfull, it starts `merge_files.sh`, which creates a backup containing all trace files
+- If the job for `sanity_checks.sh` was successfull, it starts `submit_write_netcdf.sh` which creates the final cfacts
+
+Depending on the size of the input file, the backup file `merged_traces.pickle` can become quite large
+`sanity_checks.py` and `merge_files.py` will search for file location in  tmp folder as well as in project folder
+
 
 ## Preprocessing
 
