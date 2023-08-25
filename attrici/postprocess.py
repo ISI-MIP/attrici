@@ -3,6 +3,7 @@ import subprocess
 from datetime import datetime
 
 import netCDF4 as nc
+import xarray as xr
 import numpy as np
 import pandas as pd
 
@@ -53,13 +54,18 @@ def form_global_nc(ds, time, lat, lon, vnames, torigin):
 
 def rechunk_netcdf(ncfile, ncfile_rechunked):
 
+    ncfile_lat = len(xr.open_dataset(ncfile).lat)
+    ncfile_lon = len(xr.open_dataset(ncfile).lon)
+    
     TIME0 = datetime.now()
-
+    
     try:
-        # FIXME read lat and lon dim from the ncfile. e.g. size oder len(xr.open_dataset(ncfile).lat )
         cmd = (
             "ncks -4 -O --deflate 5 "
-            + "--cnk_plc=g3d --cnk_dmn=lat,360 --cnk_dmn=lon,720 "
+            # "ncks -4 -O --deflate 5 "
+            + "--cnk_plc=g3d --cnk_dmn=lat,"+ str(ncfile_lat) 
+            + " --cnk_dmn=lon," + str(ncfile_lon) 
+            + " "
             + str(ncfile)
             + " "
             + ncfile_rechunked

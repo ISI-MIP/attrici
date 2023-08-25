@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-
 # coding: utf-8
 
 import glob
+import re
 import itertools
 import subprocess
 # import pandas as pd
 from datetime import datetime
 from pathlib import Path
+import matplotlib.pyplot as plt
 
 import netCDF4 as nc
 import numpy as np
@@ -22,7 +23,8 @@ write_netcdf = True
 rechunk = True
 replace_invalid = True
 # cdo_processing needs rechunk
-cdo_processing = True
+cdo_processing = False
+
 
 # append later with more variables if needed
 vardict = {
@@ -45,6 +47,12 @@ cdo_ops = {
 }
 
 
+def get_float_from_string(file_name):
+    floats_in_string = re.findall(r"[-+]?(?:\d*\.*\d+)", file_name)
+    if len(floats_in_string) != 1:
+        raise ValueError("there is no ore more than one float in this string")
+    return float(floats_in_string[0])
+
 TIME0 = datetime.now()
 
 source_file = Path(s.input_dir) / s.source_file
@@ -53,6 +61,18 @@ cfact_dir = s.output_dir / "cfact" / s.variable
 cfact_file = cfact_dir / s.cfact_file
 cfact_rechunked = str(cfact_file).rstrip(".nc4") + "_rechunked.nc4"
 
+
+## test if this function fixes the error
+def rescale_aoi(coord_list):
+    '''
+    Rescales squared aoi, returns rescaled indices of latitude or longitude
+    params:  coord_list: list of lat or lon coordinates of the aoi
+     return: list of integer
+    '''
+    coord_indice = np.unique(coord_list,return_inverse=1)[1]
+    return coord_indice.tolist()
+
+
 if write_netcdf:
 
     data_gen = ts_dir.glob("**/*" + s.storage_format)
@@ -60,19 +80,28 @@ if write_netcdf:
 
     ### check which data is available
     data_list = []
-    lat_indices = []
-    lon_indices = []
+    #lat_indices = []
+    #lon_indices = []
+    lat_float_list = []
+    lon_float_list = []
     for i in data_gen:
         data_list.append(str(i))
         lat_float = float(str(i).split("lat")[-1].split("_")[0])
         lon_float = float(str(i).split("lon")[-1].split(s.storage_format)[0])
-        lat_indices.append(int(180 - 2 * lat_float - 0.5))
-        lon_indices.append(int(2 * lon_float - 0.5 + 360))
+        lat_float_list.append(lat_float)
+        lon_float_list.append(lon_float)
+        #lat_indices.append(int(180 - 2 * lat_float - 0.5))  # wrong indices - done probably for world scale - causes error in writing ts values to nc
+        #lon_indices.append(int(2 * lon_float - 0.5 + 360))
+    # lon_indices = np.array(l)  # test indices 
+    #lat_indices = rescale_aoi(lat_float_list)
+    #lon_indices = rescale_aoi(lon_float_list)
+    #print("len of lat and lon indices: ", lat_indices, lon_indices)    
+    # len of lat and lon indices 59185 59185
 
     # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
     # TODO: make this more robust
-    lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
-    lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
+    #lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
+    #lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
 
     #  get headers and form empty netCDF file with all meatdata
     print(data_list[0])
@@ -103,15 +132,30 @@ if write_netcdf:
 
     outfile.setncattr("cfact_version", attrici.__version__)
     outfile.setncattr("runid", Path.cwd().name)
+    
     n_written_cells = 0
-    for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
-
+    for dfpath in data_list:
         df = pp.read_from_disk(dfpath)
+        lat = get_float_from_string(Path(dfpath).parent.name)
+        lon = get_float_from_string(Path(dfpath).stem.split("lon")[-1])
+
+        lat_idx = (np.abs(outfile.variables['lat'][:] - lat)).argmin()
+        lon_idx = (np.abs(outfile.variables['lon'][:] - lon)).argmin()
+
         for var in s.report_to_netcdf:
             ts = df[vardict[var]]
-            outfile.variables[var][:, i, j] = np.array(ts)
+            outfile.variables[var][:, lat_idx, lon_idx] = np.array(ts) 
         n_written_cells = n_written_cells + 1
 
+
+    #for (i, j, dfpath) in itertools.zip_longest(lat_indices, lon_indices, data_list):
+    #    print(i ,j , dfpath)
+    #    df = pp.read_from_disk(dfpath)
+    #    for var in s.report_to_netcdf:
+    #        ts = df[vardict[var]]
+    #        outfile.variables[var][:, i , j] = np.array(ts)  
+    #    n_written_cells = n_written_cells + 1
+    
     outfile.close()
 
     print(
