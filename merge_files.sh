@@ -12,7 +12,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 ##SBATCH --time=00-02:00:00
-#SBATCH --time=05:00:00
+#SBATCH --time=07:00:00
 
 
 tile=$1
@@ -20,8 +20,7 @@ var=$2
 
 
 # merge trace and ts files
-/home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u ./sanity_check/merge_files.py ${tile} ${var}
-exit 0  # test: if last command was successfull 
+/home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u ./sanity_check/merge_files.py ${tile} ${var} || exit 1
 
 echo "Finished, created backup files for " ${tile} ${var} 
 
