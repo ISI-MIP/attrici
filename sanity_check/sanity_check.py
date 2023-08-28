@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+# coding: utf-8
 # Sanity checks for each variable
 
 
@@ -11,8 +11,6 @@ import xarray as xr
 
 import estimation_quality_check as e
 import count_replaced_values as c
-
-import settings as s
 
 
 def main():
@@ -26,11 +24,12 @@ def main():
     variable_hour = args.variable_hour  #e.g tas0 or hurs
     variable = ''.join(i for i in variable_hour if not i.isdigit())
  
+ 
     ## check if enough land-cells were processed by comparing number of files with number of land cells
     lsm_file = s.input_dir / f"landmask_{tile}.nc"
     lsm = xr.load_dataset(lsm_file)
     nbr_landcells = lsm["area_European_01min"].count().values.tolist()
-    #print(f"{tile}, {variable_hour}: {nbr_landcells} Land cells in lsm" )
+    print(f"{tile}, {variable_hour}: {nbr_landcells} Land cells in lsm" )
 
     ts_dir = Path(f"/p/projects/ou/rd3/dmcci/basd_era5-land_to_efas-meteo/attrici_output_anna/storage/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/timeseries/")
     nbr_files = e.count_files_in_directory(ts_dir, ".h5")
@@ -41,13 +40,14 @@ def main():
   
     assert  nbr_files == nbr_landcells , f"{nbr_files} number of timeseries files <-> {nbr_landcells} number of land cells"   
     
+    
     ## ckeck for empty trace or timeseries file, due that some folders were moved by "rsync" but with --partial flag
     ts_files = ts_dir.rglob(f"*.h5")
-    assert all([os.stat(file).st_size != 0  for file in ts_files]),  f"empty files exsits in {ts_dir}"
+    assert all([os.stat(file).st_size != 0  for file in ts_files]),  f"empty files exists in {ts_dir}"
     
     trace_dir = ts_dir.parent / "traces"
     trace_files = trace_dir.rglob(f"lon*")
-    assert all([os.stat(file).st_size != 0  for file in trace_files]),  f"empty files exsits in {trace_dir}"   
+    assert all([os.stat(file).st_size != 0  for file in trace_files]),  f"empty files exists in {trace_dir}"   
     
     
     ## check amount of failing cells
@@ -57,20 +57,7 @@ def main():
 
     assert nbr_failcells == 0 , f"failing cells in tile: {tile}, variable: {variable_hour}"
         
- 
-    ## currently only sporadically picking single log files in sanity_slurm.sh
-    ## count replaced values in log files
-    #inf_values_list = []
-    #for f in log_dir:
-    #with open(f, "r") as file:   # Read the log file
-    #    log_text = file.read()
-    #        inf_values_sum, nan_values_sum, logp_values_sum = c.sum_numbers_from_log(f)
-    #  
-    #  print(f"Sum of all inf values in {variable_hour}:", inf_sum)
-    #  print(f"Sum of all nan values {variable_hour}:", nan_sum)
-    #  print(f"Sum of all values in {variable_hour} with too small logp (<-300):", logp_sum)
-
-    
+  
     print("Passed all sanity checks")
   
   

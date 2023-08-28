@@ -13,7 +13,6 @@ import xarray as xr
 import pickle
 
 
-
 def get_float_from_string(file_name):
     """
     Extract floats from foldernames or filenames
@@ -79,9 +78,9 @@ def main():
     tile = args.tile    
     variable_hour = args.variable_hour     
     variable = ''.join(i for i in variable_hour if not i.isdigit())
-
-    
+ 
     in_dir = Path(f"/p/projects/ou/rd3/dmcci/basd_era5-land_to_efas-meteo/attrici_output_anna/storage/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/traces/{variable}")  # if files stored in project folder
+    
     ## merge trace files and store as single pickle
 
     tile = re.findall(r"\d{5}", str(in_dir)) [0]
@@ -89,11 +88,13 @@ def main():
     filename = "merged_traces"  + "_" + var_folder[var_folder.find(f't{tile}'):].rsplit("_",1)[0]
     out_file = in_dir.parent.parent / f"{filename}.pickle" 
 
+    out_file.unlink(missing_ok=True)  # rewrite file in project folder if exists
     merge_files(in_dir, out_file)
     
-    if not out_file.is_file(): # if files stored in tmp folder
+    if not out_file.is_file(): # if out_file couldnt be created, trace files are stored in tmp folder
         in_dir = Path(f"/p/tmp/annabu/projects/attrici/output/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/traces/{variable}")    
         out_file = in_dir.parent.parent / f"{filename}.pickle" 
+        out_file.unlink(missing_ok=True)  
         merge_files(in_dir, out_file)   
 
 
