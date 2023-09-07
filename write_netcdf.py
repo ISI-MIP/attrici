@@ -128,7 +128,7 @@ if write_netcdf:
             ts = df[vardict[var]]
             outfile.variables[var][:, lat_idx, lon_idx] = np.array(ts) 
         n_written_cells = n_written_cells + 1
-    
+   
     outfile.close()
 
     print(

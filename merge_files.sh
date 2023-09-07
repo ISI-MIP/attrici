@@ -23,3 +23,4 @@ var=$2
 /home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u ./sanity_check/merge_files.py ${tile} ${var} || exit 1
 
 echo "Finished, created backup files for " ${tile} ${var} 
+
