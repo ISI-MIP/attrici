@@ -94,32 +94,28 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     print(
         f"Replace invalid values in {ncfile_rechunked} with original values from {source_file}"
     )
-
-    xrs = xr.open_dataset(source_file)
-    xrf = xr.open_dataset(ncfile_valid)
-
-    var_orig = xrs[variable]
-    var = xrf[variable]
     
+    ncs = nc.Dataset(source_file, "r")
+    ncf = nc.Dataset(ncfile_valid, "a")
+
+    var_orig = ncs.variables[variable]
+    var = ncf.variables[variable]
+
     chunklen = 1000
-    for ti in range(0, var.shape[0], chunklen):
-    	v = var[ti : ti + chunklen, :, :]
-    	v_orig = var_orig[ti : ti + chunklen, :, :]
-    	logp = xrf["logp"][ti : ti + chunklen, :, :]
-    	# This threshold for logp is to ensure that the model fits the data at all. It is mainly to catch values
-    	# for logp like -7000
-    	small_logp = logp < -300
-    	isinf = np.isinf(v)
-    	isnan = np.isnan(v) & (~np.isnan(v_orig)) 
-    	print(
-       		f"{ti}: replace {isinf.values.sum()} inf values, {isnan.values.sum()} nan values and {small_logp.values.sum()} values with too small logp (<-300)."
-    	)
-    	v[isinf | isnan | small_logp] = v_orig[isinf | isnan | small_logp]
-    	var[ti : ti + v.shape[0], :, :] = v
+    for ti in range(0,var.shape[0],chunklen):
+        v = var[ti:ti+chunklen,:,:]
+        v_orig = var_orig[ti:ti+chunklen,:,:]
+        logp = ncf['logp'][ti:ti+chunklen, :, :]
+        # This threshold for logp is to ensure that the model fits the data at all. It is mainly to catch values
+        # for logp like -7000
+        small_logp = logp < -300
+        isinf = np.isinf(v)
+        isnan = np.isnan(v)
+        print(f"{ti}: replace {isinf.sum()} inf values, { (np.isnan(v) & (~np.isnan(v_orig))).sum() } nan values and {small_logp.sum()} values with too small logp (<-300).")
 
-    	ncs.close()
-    	ncf.close()
+        v[isinf | isnan | small_logp] = v_orig[isinf | isnan | small_logp]
+        var[ti:ti+v.shape[0],:,:] = v
 
+    ncs.close()
+    ncf.close()
     return ncfile_valid
-
-
