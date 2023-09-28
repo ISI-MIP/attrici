@@ -46,7 +46,7 @@ cleanup() {
 cp .pytensorrc /home/annabu/.pytensorrc
 trap cleanup SIGTERM SIGINT
 
-/home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u run_estimation.py
+/home/annabu/.conda/envs/attrici_pymc5_2/bin/python -u run_estimation.py 
 cleanup
 
 

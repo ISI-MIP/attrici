@@ -22,28 +22,26 @@ elif user == "sitreu":
 elif user == "annabu":
     data_dir = "/p/projects/ou/rd3/dmcci/basd_era5-land_to_efas-meteo/"
     log_dir = "./log"
-    tile = "00009"
-    #output_dir = Path("/p/tmp/annabu/projects/attrici/runscripts/attrici_automated_processing") / tile / Path.cwd().name  
-    output_dir = Path("/p/tmp/annabu/projects/attrici") / tile / Path.cwd().name
-    ## make output dir same as cwd. Helps if running more than one job.
-
+    output_dir = Path("/p/tmp/annabu/projects/attrici/output") # tile 00002 00006 00007 00008
+    #output_dir = Path("/p/tmp/dominikp/attrici") # tiles 00000 00001 00003 00004 00005
+    
 # for example "GSWP3", "GSWP3-W5E5"
 dataset = "ERA5"
 
 # select variable to detrend
 variable = "tas"
-# tile = "00009"
+tile = "00009"
+hour = ""
+
 
 input_dir = Path(data_dir) / "basd_for_attrici"
 # folder for testing tile 9 and 10: "attrici_input" / dataset
-# make output dir same as cwd. Helps if running more than one job.
-output_dir = output_dir / "attrici_03_era5_{tile}_{variable}"
+output_dir = output_dir / tile / Path.cwd().name  ## make output dir same as cwd. Helps if running more than one job.    
+#log_dir = log_dir + "/" + tile 
 
 # max time in sec for sampler for a single grid cell.
 timeout = 60 * 60
 # tas, tasrange pr, prsn, prsnratio, ps, rlds, wind, hurs
-hour = ""
-
 
 # number of modes for fourier series of model
 # TODO: change to one number only, as only the first element of list is used.

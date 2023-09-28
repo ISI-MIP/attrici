@@ -32,7 +32,7 @@ def main():
     nbr_landcells = lsm["area_European_01min"].count().values.tolist()
     print(f"{tile}, {variable_hour}: {nbr_landcells} Land cells in lsm" )
 
-    #ts_dir = Path(f"/p/projects/ou/rd3/dmcci/basd_era5-land_to_efas-meteo/attrici_output_anna/storage/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/timeseries/")
+
     ts_dir = Path(f"/p/tmp/dominikp/attrici/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/timeseries/")
     print("Searching in",ts_dir)
     nbr_files = e.count_files_in_directory(ts_dir, ".h5")

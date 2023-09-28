@@ -1,5 +1,5 @@
 #!/bin/bash
-#### sanity slurm, run shell script via bash command, which starts job  ###
+#### sanity slurm ####
 
 #SBATCH --qos=short #priority
 #SBATCH --partition=standard #priority
@@ -11,7 +11,7 @@
 #SBATCH --mail-user=annabu@pik-potsdam.de
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=2
-#SBATCH --time=00:10:00  # some tiles need more than 5 min
+#SBATCH --time=00:20:00  # tile 9 need <20 min, small tiles < 5 min
 
 
 tile=$1

@@ -72,14 +72,13 @@ def main():
 
     parser = argparse.ArgumentParser()
     parser.add_argument("tile")   # 5 digits e.g 00001
-    parser.add_argument("variable_hour") # var + hour if exists
+    parser.add_argument("variable_hour") # var + hour 
     args = parser.parse_args()
 
     tile = args.tile    
     variable_hour = args.variable_hour     
     variable = ''.join(i for i in variable_hour if not i.isdigit())
 
-    #in_dir = Path(f"/p/projects/ou/rd3/dmcci/basd_era5-land_to_efas-meteo/attrici_output_anna/storage/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/traces/{variable}")  # if files stored in project folder
     in_dir = Path(f"/p/tmp/dominikp/attrici/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/traces/{variable}")
     print("Searching in",in_dir)
  
@@ -88,14 +87,14 @@ def main():
     var_folder = in_dir.parent.parent.name     
     filename = "merged_traces"  + "_" + var_folder[var_folder.find(f't{tile}'):].rsplit("_",1)[0]
     out_file = in_dir.parent.parent / f"{filename}.pickle" 
-    out_file.unlink(missing_ok=True)  # overwrite file in project folder if exists
+    out_file.unlink(missing_ok=True)  # overwrite file in folder if exists
     merge_files(in_dir, out_file)
     
     if not out_file.is_file(): # if out_file couldnt be created, trace files are stored in tmp folder
         in_dir = Path(f"/p/tmp/annabu/projects/attrici/output/{tile}/attrici_03_era5_t{tile}_{variable_hour}_rechunked/traces/{variable}")   
         print("Searching in",in_dir)
         out_file = in_dir.parent.parent / f"{filename}.pickle" 
-        out_file.unlink(missing_ok=True)  #  overwrite file in project folder if exists
+        out_file.unlink(missing_ok=True)  #  overwrite file in folder if exists
         merge_files(in_dir, out_file)   
 
 

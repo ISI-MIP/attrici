@@ -20,8 +20,7 @@ function copy_files_and_configure() {
 mkdir runscripts/attrici_automated_processing/${tile}
 cd runscripts/attrici_automated_processing/${tile}
 
-# for var in tas0 tas6 tas12 tas18 tasrange tasskew sfcWind rsds hurs pr0 pr6 pr12 pr18;
-for var in tasrange tasskew sfcWind rsds hurs;
+for var in tas tasrange tasskew sfcWind rsds hurs;
 do
   hour=""
   copy_files_and_configure
