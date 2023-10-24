@@ -76,21 +76,23 @@ For merging the single timeseries files to netcdf datasets
 
 ### Usage of bash scripts for a more automated processing
 
-Adapt paths in `settings.py`, `create_runscripts.sh`, `slurm.sh`, `submit_write_netcdf.sh`, `merge_files.sh`, `sanity_checks.sh`
-And also adapt file paths to tmp folder as well as project folder in `sanity_check/sanity_checks.py`, `sanity_check/merge_files.py`
+Adapt paths or user settings in `settings.py`, `create_runscripts.sh`, `slurm_combined.sh`, `slurm.sh`, `submit_write_netcdf.sh`, `merge_files.sh`, `sanity_checks.sh`
+And also adapt file paths in `sanity_check/sanity_check.py`, `sanity_check/merge_files.py` `sanity_check/visual_check.py`
 
-Example for processing of one variable eg. tas0 for tile 00001
 
+**Example for processing of one variable eg. tas0 for tile 00001**
 Create runfolders: `bash create_runscripts.sh 00001`
-Run: `sbatch slurm_combined.sh` 00001 tas0
-- Starts `slurm.sh` in the respective runfolder, which will create trace and timeseries files
-- After finished, starts `sanity_checks.sh` which checks if all timeseries files are complete and if failing cells occured
-- If the job for `sanity_checks.sh` was successfull, it starts `merge_files.sh`, which creates a backup containing all trace files
-- If the job for `sanity_checks.sh` was successfull, it starts `submit_write_netcdf.sh` which creates the final cfacts
+Run: `sbatch slurm_combined.sh 00001 tas0`
+This bash script implements a processing workflow for one variable. The workflow is as follows:
+- `slurm_combined.sh` starts `slurm.sh` in the respective runfolder, which will create trace and timeseries files. Number of arrays is limited to 100 running in parallel. To avoid that all job arrays are canceled at once due that cluster resources are needed for another job
+- After `slurm.sh` finished, `sanity_checks.sh` starts which checks if all timeseries files are complete and if failing cells occured
+- If all sanity checks are successfullly passed, `merge_files.sh` starts which creates a backup containing all trace files
+- If all sanity checks are successfullly passed, `submit_write_netcdf.sh` starts which creates the counterfactuals
+- If counterfactuals were successfully created, `visual_checks.sh` starts. It provides a glimpse of the final counterfactual netcdf file (filename ending with "*_valid.nc4")
+- If `visual_checks.sh` was successfull, `move_final_cfacts.sh` starts inside `output` folder, which copys all counterfactuals, the backup file and the failing_cells.log to the project folder. It removes the source files, so only one version of counterfactuals exists located in the project folder
 
-Depending on the size of the input file, the backup file `merged_traces.pickle` can become quite large
-`sanity_checks.py` and `merge_files.py` will search for file location in  tmp folder as well as in project folder
-
+After checking the log file from `submit_write_netcdf` and having a check of the created plots from `visual_checks.sh` of the final cfact, the timeseries and trace files are removed manually
+merge_files.py
 
 ## Preprocessing
 
