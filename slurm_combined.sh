@@ -5,15 +5,15 @@ source ./variables_for_shellscripts.sh
 tile=$1
 var=$2
 
-logdir=$project_basedir/log/attrici_03_era5_t${tile}_${var}_rechunked
+logdir=$project_basedir/log/attrici_04_era5_t${tile}_${var}_rechunked
 mkdir -p $logdir
 logdir_slurm=$logdir/run_estimation
-mkdir -p $logir_slurm
+mkdir -p $logdir_slurm
 logfile_slurm=$logdir_slurm/%x_%j
 logfile=$logdir/%x_%j 
 user=$(whoami)
 # create trace and ts files
-cd $project_basedir/runscripts/attrici_automated_processing/${tile}/attrici_03_era5_t${tile}_${var}_rechunked/
+cd $project_basedir/runscripts/attrici_automated_processing/${tile}/attrici_04_era5_t${tile}_${var}_rechunked/
 jobid=$(sbatch --parsable --mail-user=$user@pik-potsdam.de --output=$logfile_slurm --error=$logfile_slurm slurm.sh)
 
 # sanity check

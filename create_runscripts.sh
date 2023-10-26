@@ -2,7 +2,7 @@
 source ./variables_for_shellscripts.sh
 tile=$1
 function copy_files_and_configure() {
-  rundir=attrici_03_era5_t${tile}_${var}${hour}_rechunked
+  rundir=attrici_04_era5_t${tile}_${var}${hour}_rechunked
   mkdir $rundir
   cp ../../../.pytensorrc $rundir/
   cp ../../../run_estimation.py $rundir/
@@ -14,7 +14,7 @@ function copy_files_and_configure() {
   cp ../../../sanity_checks.sh $rundir/
   cp ../../../visual_check.py $rundir/
   cp ../../../visual_checks.sh $rundir/
-  cp ../../../variables_for_shellscripts $rundir/
+  cp ../../../variables_for_shellscripts.sh $rundir/
 
   sed -i -e 's/hour = ""/hour = "'"${hour}"'"/' $rundir/settings.py 
   sed -i -e 's/variable = "tas"/variable = "'"${var}"'"/' $rundir/settings.py 
