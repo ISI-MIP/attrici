@@ -10,6 +10,7 @@ from pathlib import Path
 
 import netCDF4 as nc
 import numpy as np
+import settings as s
 from pyts.decomposition import SingularSpectrumAnalysis as SSA
 
 # SSA options
@@ -19,18 +20,8 @@ grouping = 1
 # subset to control smoothness of curve. Subset smaller 4 crashes.
 subset = 10
 
-dataset = "GSWP3-W5E5"
-output_base = Path("/p/tmp/mengel/isimip/attrici/input/")
-output_dir = output_base / dataset
-
-input_file = output_dir / Path("tas_" + dataset.lower() + "_merged.nc4")
-mean_file = str(input_file).replace("_merged.nc4", "_gmt.nc4")
-ssa_file = str(mean_file).replace("tas_", "").replace("_gmt", "_ssa_gmt")
-print(ssa_file)
-cmd = "module load cdo && cdo fldmean " + str(input_file) + " " + str(mean_file)
-print(cmd)
-subprocess.check_call(cmd, shell=True)
-print("checked subprocess call")
+mean_file = Path(s.data_dir) / "attrici_input" / s.dataset / s.raw_gmt_file
+ssa_file = Path(s.data_dir) / "attrici_input" / s.dataset / s.gmt_file
 
 input_ds = nc.Dataset(mean_file, "r")
 col = np.array(np.squeeze(input_ds.variables["tas"][::subset]), ndmin=2)

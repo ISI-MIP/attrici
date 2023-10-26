@@ -12,4 +12,4 @@
 #SBATCH --time=23:59:00
 
 source ./variables_for_shellscripts.sh
-attrici_python -u write_netcdf.py
+$attrici_python -u write_netcdf.py

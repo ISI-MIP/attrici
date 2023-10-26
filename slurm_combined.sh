@@ -6,6 +6,7 @@ tile=$1
 var=$2
 
 logdir=$project_basedir/log/attrici_03_era5_t${tile}_${var}_rechunked
+mkdir -p $logdir
 logdir_slurm=$logdir/run_estimation
 mkdir -p $logir_slurm
 logfile_slurm=$logdir_slurm/%x_%j

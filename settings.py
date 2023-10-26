@@ -63,6 +63,7 @@ startdate = None  # may at a date in the format '1950-01-01' to train only on da
 # use a dataset with only subset spatial grid points for testing
 lateral_sub = 1
 
+raw_gmt_file = f"{dataset.lower()}_gmt_raw.nc"
 gmt_file = dataset.lower() + "_ssa_gmt.nc4"
 landsea_file = f"landmask_{tile}.nc"
 # source_file = variable + "_" + dataset + "_sub.nc4"

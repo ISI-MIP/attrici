@@ -16,7 +16,7 @@ source ./variables_for_shellscripts.sh
 
 
 # merge trace and ts files
-attrici_python -u ./sanity_check/merge_files.py ${tile} ${var} || exit 1
+$attrici_python -u ./sanity_check/merge_files.py ${tile} ${var} || exit 1
 
 echo "Finished, created backup files for " ${tile} ${var} 
 

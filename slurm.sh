@@ -45,7 +45,7 @@ cleanup() {
 cp .pytensorrc $HOME/.pytensorrc
 trap cleanup SIGTERM SIGINT
 
-attrici_python -u run_estimation.py 
+$attrici_python -u run_estimation.py 
 cleanup
 
 

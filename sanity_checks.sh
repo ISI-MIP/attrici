@@ -11,6 +11,6 @@
 
 source ./variables_for_shellscripts.sh
 
-attrici_python -u sanity_check.py || exit 1 # return general failure if any assertion in python script fails 
+$attrici_python -u sanity_check.py || exit 1 # return general failure if any assertion in python script fails 
 
 echo "Finished checks"
