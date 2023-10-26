@@ -3,9 +3,9 @@ import subprocess
 from datetime import datetime
 
 import netCDF4 as nc
-import xarray as xr
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 
 def read_from_disk(data_path):
@@ -56,15 +56,17 @@ def rechunk_netcdf(ncfile, ncfile_rechunked):
 
     ncfile_lat = len(xr.open_dataset(ncfile).lat)
     ncfile_lon = len(xr.open_dataset(ncfile).lon)
-    
+
     TIME0 = datetime.now()
-    
+
     try:
         cmd = (
             "ncks -4 -O --deflate 5 "
             # "ncks -4 -O --deflate 5 "
-            + "--cnk_plc=g3d --cnk_dmn=lat,"+ str(ncfile_lat) 
-            + " --cnk_dmn=lon," + str(ncfile_lon) 
+            + "--cnk_plc=g3d --cnk_dmn=lat,"
+            + str(ncfile_lat)
+            + " --cnk_dmn=lon,"
+            + str(ncfile_lon)
             + " "
             + str(ncfile)
             + " "
@@ -94,7 +96,7 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     print(
         f"Replace invalid values in {ncfile_rechunked} with original values from {source_file}"
     )
-    
+
     ncs = nc.Dataset(source_file, "r")
     ncf = nc.Dataset(ncfile_valid, "a")
 
@@ -102,19 +104,17 @@ def replace_nan_inf_with_orig(variable, source_file, ncfile_rechunked):
     var = ncf.variables[variable]
 
     chunklen = 1000
-    for ti in range(0,var.shape[0],chunklen):
-        v = var[ti:ti+chunklen,:,:]
-        v_orig = var_orig[ti:ti+chunklen,:,:]
-        logp = ncf['logp'][ti:ti+chunklen, :, :]
-        # This threshold for logp is to ensure that the model fits the data at all. It is mainly to catch values
-        # for logp like -7000
-        small_logp = logp < -300
+    for ti in range(0, var.shape[0], chunklen):
+        v = var[ti : ti + chunklen, :, :]
+        v_orig = var_orig[ti : ti + chunklen, :, :]
         isinf = np.isinf(v)
         isnan = np.isnan(v)
-        print(f"{ti}: replace {isinf.sum()} inf values, { (np.isnan(v) & (~np.isnan(v_orig))).sum() } nan values and {small_logp.sum()} values with too small logp (<-300).")
+        print(
+            f"{ti}: replace {isinf.sum()} inf values, { (np.isnan(v) & (~np.isnan(v_orig))).sum() } nan values"
+        )
 
-        v[isinf | isnan | small_logp] = v_orig[isinf | isnan | small_logp]
-        var[ti:ti+v.shape[0],:,:] = v
+        v[isinf | isnan] = v_orig[isinf | isnan]
+        var[ti : ti + v.shape[0], :, :] = v
 
     ncs.close()
     ncf.close()
