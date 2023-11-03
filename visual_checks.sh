@@ -6,7 +6,7 @@
 #SBATCH --account=dmcci
 #SBATCH --mail-type=END,FAIL
 #SBATCH --cpus-per-task=2
-#SBATCH --time=00:30:00
+#SBATCH --time=23:30:00
 
 source ./variables_for_shellscripts.sh
 

@@ -6,10 +6,10 @@
 #SBATCH --account=dmcci
 #SBATCH --mail-type=END,FAIL
 #SBATCH --ntasks=1
-#SBATCH --array=0-1358%100
-##SBATCH --array=0-100
+##SBATCH --array=0-1358%100
+#SBATCH --array=0-300
 #SBATCH --cpus-per-task=2
-#SBATCH --time=12:00:00
+#SBATCH --time=23:00:00
 
 module purge
 module load compiler/gnu/7.3.0

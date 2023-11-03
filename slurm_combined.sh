@@ -9,7 +9,7 @@ logdir=$project_basedir/log/attrici_04_era5_t${tile}_${var}_rechunked
 mkdir -p $logdir
 logdir_slurm=$logdir/run_estimation
 mkdir -p $logdir_slurm
-logfile_slurm=$logdir_slurm/%x_%j
+logfile_slurm=$logdir_slurm/%x_%A_%a
 logfile=$logdir/%x_%j 
 user=$(whoami)
 # create trace and ts files

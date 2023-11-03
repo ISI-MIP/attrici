@@ -7,7 +7,6 @@
 #SBATCH --mail-type=END,FAIL
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=00:20:00  # tile 9 need <20 min, small tiles < 5 min
 
 source ./variables_for_shellscripts.sh
 
