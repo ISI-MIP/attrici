@@ -20,7 +20,7 @@ module load git
 source ./variables_for_shellscripts.sh
 
 export CXX=g++
-tmpdir=$project_basedir/tmp/theano_${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tmp
+tmpdir=$project_basedir/tmp/theano_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tmp
 mkdir -p $tmpdir
 export TMPDIR=$tmpdir
 
@@ -33,7 +33,7 @@ export TMPDIR=$tmpdir
 export OMP_PROC_BIND=true # make sure our threads stick to cores
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}    # matches how many cpus-per-task we asked for
 export SUBMITTED=1
-compiledir=$project_basedir/.pytensor/${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}
+compiledir=$project_basedir/.pytensor/${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}
 mkdir -p $compiledir
 export PYTENSOR_FLAGS=base_compiledir=$compiledir
 
