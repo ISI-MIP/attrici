@@ -112,6 +112,8 @@ for n in run_numbers[:]:
             continue
         except Exception as e:
             print(e)
+            print(f"removing file {fname_cell} if it is exists but reading it raised the above error.")
+            fname_cell.unlink(missing_ok=True)
             print("No valid data found. Run calculation.")
 
     data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
