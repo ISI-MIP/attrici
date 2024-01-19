@@ -16,3 +16,6 @@ backup/
 submit_cfact.sh
 .idea/
 myrunscripts/
+.pytensor/
+cancel_jobs
+input_GSWP3-W5E5_china/
