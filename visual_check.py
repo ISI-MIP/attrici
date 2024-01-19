@@ -2,14 +2,9 @@
 # coding: utf-8
 # Visual check of final cfact
 
-
-import os
-import sys
-from datetime import datetime
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import netCDF4 as nc
 import numpy as np
 import pandas as pd
 import settings as s
@@ -24,6 +19,7 @@ def main():
     fact = xr.open_dataset(fact_dir / s.source_file)
 
     cfact_dir = s.output_dir / "cfact" / s.variable
+    
 
     cfact = xr.open_dataset(
         cfact_dir
