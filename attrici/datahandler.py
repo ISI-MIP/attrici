@@ -143,7 +143,8 @@ def get_cell_filename(outdir_for_cell, lat, lon, settings):
 def test_if_data_valid_exists(fname):
 
     if ".h5" in str(fname):
-        pd.read_hdf(fname)
+        with pd.HDFStore(fname) as store:
+            store.get(store.keys()[0])
     elif ".csv" in str(fname):
         pd.read_csv(fname)
     else:
