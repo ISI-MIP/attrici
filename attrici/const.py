@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import stats
 
-
 threshold = {
     "tas": (0, None),
     "tasrange": (0.01, None),
@@ -24,7 +23,7 @@ bound = {
     "prsnratio": (0.0, 1.0),
     "hurs": (0, 100.0),
     "ps": (0, None),
-    "rsds": (0, 501),
+    "rsds": (0, None),
     "rlds": (0, None),
     "wind": (0.0, None),
     "sfcWind": (0.0, None),
@@ -34,7 +33,6 @@ bound = {
 
 
 def check_bounds(data, variable):
-
     lower = bound[variable][0]
     upper = bound[variable][1]
 
@@ -46,10 +44,9 @@ def check_bounds(data, variable):
 
 
 def scale_to_unity(data, variable):
-
-    """ Take a pandas Series and scale it linearly to
+    """Take a pandas Series and scale it linearly to
     lie within [0, 1]. Return pandas Series as well as the
-    data minimum and the scale. """
+    data minimum and the scale."""
 
     scale = data.max() - data.min()
     scaled_data = (data - data.min()) / scale
@@ -58,14 +55,12 @@ def scale_to_unity(data, variable):
 
 
 def rescale_to_original(scaled_data, datamin, scale):
-
-    """ Use a given datamin and scale to rescale to original. """
+    """Use a given datamin and scale to rescale to original."""
 
     return scaled_data * scale + datamin
 
 
 def scale_and_mask(data, variable):
-
     print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
     try:
@@ -84,7 +79,6 @@ def scale_and_mask(data, variable):
 
 
 def mask_and_scale_by_bounds(data, variable):
-
     print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
     print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
@@ -98,7 +92,6 @@ def mask_and_scale_by_bounds(data, variable):
 
 
 def scale_precip(data, variable):
-
     data = data - threshold[variable][0]
 
     print("Mask", (data <= 0).sum(), "values below lower bound.")
@@ -106,7 +99,7 @@ def scale_precip(data, variable):
     fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
     # for scipy.gamma: fscale = 1/beta
     # std = sqrt(fa/beta**2)
-    scale = fscale * fa ** 0.5
+    scale = fscale * fa**0.5
     scaled_data = data / scale
 
     print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
@@ -114,14 +107,12 @@ def scale_precip(data, variable):
 
 
 def refill_and_rescale(scaled_data, datamin, scale):
-
     # TODO: implement refilling of values that have been masked before.
 
     return scaled_data * scale
 
 
 def rescale_and_offset_precip(scaled_data, datamin, scale):
-
     # TODO: implement refilling of values that have been masked before.
 
     return scaled_data * scale + threshold["pr"][0]
@@ -132,7 +123,7 @@ mask_and_scale = {
     "tas": [scale_to_unity, rescale_to_original],
     "ps": [scale_to_unity, rescale_to_original],
     "rlds": [scale_to_unity, rescale_to_original],
-    "rsds": [mask_and_scale_by_bounds, refill_and_rescale],
+    "rsds": [scale_to_unity, rescale_to_original],
     "wind": [scale_and_mask, refill_and_rescale],
     "sfcWind": [scale_and_mask, refill_and_rescale],
     "hurs": [mask_and_scale_by_bounds, refill_and_rescale],
