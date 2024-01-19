@@ -13,7 +13,7 @@
 
 module purge
 module load compiler/gnu/7.3.0
-module load anaconda/2021.11
+module load anaconda/2023.09
 module load git
 # module load anaconda/5.0.0_py3
 
@@ -23,6 +23,12 @@ export CXX=g++
 tmpdir=$project_basedir/tmp/theano_${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.tmp
 mkdir -p $tmpdir
 export TMPDIR=$tmpdir
+if [ -n "$tmpdir" ] && [ -d "$tmpdir" ]; then
+    rm -rf "$tmpdir"/*
+else
+    echo "Error: \$tmpdir is either empty or not a directory. Aborting deletion."
+fi
+
 
 ## for 1arr+1CPU -> comment
 ## if you're using OpenMP for threading
@@ -36,10 +42,16 @@ export SUBMITTED=1
 compiledir=$project_basedir/.pytensor/${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}
 mkdir -p $compiledir
 export PYTENSOR_FLAGS=base_compiledir=$compiledir
+if [ -n "$compiledir" ] && [ -d "$compiledir" ]; then
+    rm -rf "$compiledir"/*
+else
+    echo "Error: \$compiledir is either empty or not a directory. Aborting deletion."
+fi
+
 
 cleanup() {
-  rm -r ${compiledir}
-  rm -r ${tmpdir}
+  rm -rf ${compiledir}
+  rm -rf ${tmpdir}
   exit
 }
 cp .pytensorrc $HOME/.pytensorrc
