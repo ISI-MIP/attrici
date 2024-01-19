@@ -15,6 +15,8 @@ function copy_files_and_configure() {
   cp ../../../visual_check.py $rundir/
   cp ../../../visual_checks.sh $rundir/
   cp ../../../variables_for_shellscripts.sh $rundir/
+  cp ../../../postprocessing/merge_parameter_files.py $rundir/
+  cp ../../../merge_parameter_files.sh $rundir/
 
   sed -i -e 's/hour = ""/hour = "'"${hour}"'"/' $rundir/settings.py 
   sed -i -e 's/variable = "tas"/variable = "'"${var}"'"/' $rundir/settings.py 
