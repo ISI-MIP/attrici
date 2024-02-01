@@ -14,7 +14,7 @@ logfile=$logdir/%x_%j
 user=$(whoami)
 # create trace and ts files
 cd $project_basedir/runscripts/attrici_automated_processing/${tile}/attrici_04_era5_t${tile}_${var}_rechunked/
-jobid=$(sbatch --parsable --mail-user=$user@pik-potsdam.de --output=$logfile_slurm --error=$logfile_slurm slurm.sh)
+jobid=$(sbatch --parsable --mail-user=$user@pik-potsdam.de --output=$logfile_slurm --error=$logfile_slurm --exclude=cs-e14c05b01,cs-e14c03b02 slurm.sh)
 
 # sanity check
 jobid_sanity=$(sbatch --parsable --mail-user=$user@pik-potsdam.de --dependency=afterany:$jobid --job-name=attrici_sanity_checks_${tile}_${var} --output=$logfile --error=${logfile} sanity_checks.sh)
