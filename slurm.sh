@@ -54,7 +54,7 @@ cleanup() {
   rm -rf ${tmpdir}
   exit
 }
-cp .pytensorrc $HOME/.pytensorrc
+cp config/theanorc $HOME/.tensorrc
 trap cleanup SIGTERM SIGINT
 
 $attrici_python -u run_estimation.py 
