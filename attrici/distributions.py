@@ -1,11 +1,10 @@
 import numpy as np
-import pymc as pm
+import pymc3 as pm
 from scipy import stats
 
 
 class Distribution(object):
     def __init__(self):
-
         print(f"Using {type(self).__name__} distribution model.")
 
     def resample_missing(self, trace, df, subtrace, model, progressbar, map_estimate):
@@ -40,12 +39,11 @@ class Distribution(object):
                     except KeyError as e:
                         pass
 
-                print(f"params = self.params")
                 trace_obs = pm.sample_posterior_predictive(
                     [trace],
-                    var_names=self.params,  # + ["logp"],  # + ["obs"],
+                    samples=1,
+                    var_names=self.params + ["logp"],  # + ["obs"],
                     progressbar=progressbar,
-                    return_inferencedata=False,
                 )
                 for gmt in ["gmt", "gmtv"]:
                     try:
@@ -54,9 +52,9 @@ class Distribution(object):
                         pass
                 trace_cfact = pm.sample_posterior_predictive(
                     [trace],
-                    var_names=self.params,  # + ["logp"],  # + ["obs"],
+                    samples=1,
+                    var_names=self.params + ["logp"],  # + ["obs"],
                     progressbar=progressbar,
-                    return_inferencedata=False,
                 )
             print("Resampled missing.")
         else:
@@ -122,7 +120,6 @@ class Normal(Distribution):
         self.parameter_bounds = {"mu": [None, None], "sigma": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
-
         """
         specific for normally distributed variables.
         """
@@ -139,11 +136,9 @@ class BernoulliGamma(Distribution):
         self.parameter_bounds = {"pbern": [0, 1], "mu": [0, None], "sigma": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
-
-        """ Needs a thorough description of QM for BernoulliGamma """
+        """Needs a thorough description of QM for BernoulliGamma"""
 
         def bgamma_cdf(d, y_scaled):
-
             quantile = d["pbern"] + (1 - d["pbern"]) * stats.gamma.cdf(
                 y_scaled,
                 d["mu"] ** 2.0 / d["sigma"] ** 2.0,
@@ -152,7 +147,6 @@ class BernoulliGamma(Distribution):
             return quantile
 
         def bgamma_ppf(d, quantile):
-
             x_mapped = stats.gamma.ppf(
                 (quantile - d["pbern_ref"]) / (1 - d["pbern_ref"]),
                 d["mu_ref"] ** 2.0 / d["sigma_ref"] ** 2.0,
@@ -236,13 +230,11 @@ class Gamma(Distribution):
 
 class Beta(Distribution):
     def __init__(self):
-
         super(Beta, self).__init__()
         self.params = ["alpha", "beta"]
         self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
-
         quantile = stats.beta.cdf(y_scaled, d["alpha"], d["beta"])
         x_mapped = stats.beta.ppf(quantile, d["alpha_ref"], d["beta_ref"])
 
@@ -251,7 +243,6 @@ class Beta(Distribution):
 
 class Rice(Distribution):
     def __init__(self):
-
         super(Rice, self).__init__()
         self.params = ["nu", "sigma"]
         self.parameter_bounds = {"nu": [0, None], "sigma": [0, None]}
@@ -267,14 +258,12 @@ class Rice(Distribution):
 
 class Weibull(Distribution):
     def __init__(self):
-
         super(Weibull, self).__init__()
         # ensure that parameter with time dimension is first
         self.params = ["beta", "alpha"]
         self.parameter_bounds = {"alpha": [0, None], "beta": [0, None]}
 
     def quantile_mapping(self, d, y_scaled):
-
         quantile = stats.weibull_min.cdf(y_scaled, d["alpha"], scale=d["beta"])
         x_mapped = stats.weibull_min.ppf(quantile, d["alpha_ref"], scale=d["beta_ref"])
 
