@@ -98,8 +98,8 @@ def create_ref_df(df, trace_obs, trace_cfact, params):
     df_params.index = df["ds"]
 
     for p in params:
-        df_params.loc[:, p] = trace_obs[p].flatten()  # mean(axis=0)
-        df_params.loc[:, f"{p}_ref"] = trace_cfact[p].flatten()  # .mean(axis=0)
+        df_params.loc[:, p] = trace_obs[p].mean(axis=0)
+        df_params.loc[:, f'{p}_ref'] = trace_cfact[p].mean(axis=0)
 
     return df_params
 
@@ -130,13 +130,7 @@ def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
 def get_cell_filename(outdir_for_cell, lat, lon, settings):
 
     return outdir_for_cell / (
-        "ts_"
-        + settings.dataset
-        + "_lat"
-        + str(lat)
-        + "_lon"
-        + str(lon)
-        + settings.storage_format
+        "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + settings.storage_format
     )
 
 
