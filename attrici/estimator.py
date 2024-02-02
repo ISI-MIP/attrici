@@ -4,7 +4,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pymc as pm
+import pymc3 as pm
 
 import attrici.const as c
 import attrici.datahandler as dh
@@ -27,7 +27,6 @@ model_for_var = {
 
 class estimator(object):
     def __init__(self, cfg):
-
         self.output_dir = cfg.output_dir
         self.draws = cfg.draws
         self.cores = cfg.ncores_per_job
@@ -37,7 +36,7 @@ class estimator(object):
         self.seed = cfg.seed
         self.progressbar = cfg.progressbar
         self.variable = cfg.variable
-        self.modes = cfg.modes      
+        self.modes = cfg.modes
         self.f_rescale = c.mask_and_scale[cfg.variable][1]
         self.save_trace = cfg.save_trace
         self.report_variables = cfg.report_variables
@@ -76,12 +75,7 @@ class estimator(object):
                 print(
                     f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is run"
                 )
-                trace, opt_result = pm.find_MAP(model=self.model, return_raw=True)
-                trace["logp"] = np.array(-opt_result.fun)
-
-                print(
-                    f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is done"
-                )
+                trace = pm.find_MAP(model=self.model)
                 if self.save_trace:
                     with open(outdir_for_cell, "wb") as handle:
                         free_params = {
@@ -120,7 +114,6 @@ class estimator(object):
         return trace, dff
 
     def sample(self):
-
         TIME0 = datetime.now()
 
         if self.inference == "NUTS":
@@ -157,7 +150,6 @@ class estimator(object):
     def estimate_timeseries(
         self, df, trace, datamin, scale, map_estimate, subtrace=1000
     ):
-
         # print(trace["mu"].shape, df.shape)
         trace_obs, trace_cfact = self.statmodel.resample_missing(
             trace, df, subtrace, self.model, self.progressbar, map_estimate
@@ -198,7 +190,7 @@ class estimator(object):
             df.loc[:, v] = df_params.loc[:, v].values
 
         if map_estimate:
-            df.loc[:, "logp"] = trace["logp"].item()
+            df.loc[:, "logp"] = trace_obs["logp"].mean(axis=0)
 
         if self.report_variables != "all":
             df = df.loc[:, self.report_variables]
