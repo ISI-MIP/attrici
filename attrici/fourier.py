@@ -14,7 +14,7 @@ def series(t, p, modes):
 
 
 def rescale(df, modes):
-    """ This function computes a scaled (0, 1) fourier series for a given input dataset.
+    """This function computes a scaled (0, 1) fourier series for a given input dataset.
     An input vector of dates ("ds") must be available in a datestamp format.
     If the time vector has gaps (due to dropped NA's), the fourier series will
      also contain gaps (jumps in value).
@@ -30,8 +30,7 @@ def rescale(df, modes):
 
 
 def get_fourier_valid(df, modes):
-
-    """ Create a pandas Dataframe with all fourier series. They are named
+    """Create a pandas Dataframe with all fourier series. They are named
     mode_X_Y with X refering to the position in settings.py modes.
     For example, for modes = [2,1,1,1],
     mode_0_3 is the last (fourth) series for the first mode (2) in the list.
@@ -40,7 +39,6 @@ def get_fourier_valid(df, modes):
 
     x_fourier = pd.DataFrame()
     for i, mode in enumerate(modes):
-
         xf = rescale(df, mode)
         xff = pd.DataFrame(
             xf, columns=["mode_" + str(i) + "_" + str(j) for j in range(mode * 2)]
