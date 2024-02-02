@@ -1,8 +1,7 @@
 import numpy as np
-import pymc as pm
-import pytensor.tensor as tt
+import pymc3 as pm
 from scipy import stats
-
+import theano.tensor as tt
 import attrici.distributions
 
 
@@ -23,106 +22,71 @@ class Pr(attrici.distributions.BernoulliGamma):
             # so use df_subset directly.
             df_valid = df_subset.dropna(axis=0, how="any")
 
-            gmt = pm.MutableData("gmt", df_subset["gmt_scaled"].values)
-            xf0 = pm.MutableData("xf0", df_subset.filter(regex="^mode_0_").values)
-            
-            gmtv = pm.MutableData("gmtv", df_valid["gmt_scaled"].values)
-            xf0_np = df_valid.filter(regex="^mode_0_").values
-            xf0v = pm.MutableData("xf0v", xf0_np)
+            gmt = pm.Data("gmt", df_subset["gmt_scaled"].values)
+            xf0 = pm.Data("xf0", df_subset.filter(regex="^mode_0_").values)
+
+            gmtv = pm.Data("gmtv", df_valid["gmt_scaled"].values)
+            xf0v = pm.Data("xf0v", df_valid.filter(regex="^mode_0_").values)
 
             covariates = pm.math.concatenate(
-               [xf0, tt.tile(gmt[:, None], (1, int(xf0_np.shape[1]))) * xf0], axis=1
+                [
+                    xf0,
+                    tt.tile(gmt[:, None], (1, int(xf0.dshape[1]))) * xf0
+                ],
+                axis=1
             )
             covariatesv = pm.math.concatenate(
-                [xf0v, tt.tile(gmtv[:, None], (1, int(xf0_np.shape[1]))) * xf0v], axis=1
-            )
-
-            # pbern
-            weights_pbern_longterm_intercept = pm.Normal(
-                "weights_pbern_longterm_intercept", mu=0, sigma=1
-            )
-            weights_pbern_longterm_trend = pm.Normal(
-                "weights_pbern_longterm_trend", mu=0, sigma=0.1
-            )
-            weights_pbern_fc_intercept = pm.math.concatenate(
                 [
-                    pm.Normal(
-                        f"weights_pbern_fc_intercept_{i}",
-                        mu=0,
-                        sigma=1 / (2 * i + 1),
-                        shape=2,
-                    )
-                    for i in range(int(xf0_np.shape[1]) // 2)
-                ]
+                    xf0v,
+                    tt.tile(gmtv[:, None], (1, int(xf0v.dshape[1]))) * xf0v
+                ],
+                axis=1
             )
-            weights_pbern_fc_trend = pm.Normal(
-                "weights_pbern_fc_trend", mu=0, sigma=0.1, shape=xf0_np.shape[1]
+            # pbern
+            weights_pbern_longterm_intercept = pm.Normal("weights_pbern_longterm_intercept", mu=0, sd=1)
+            weights_pbern_longterm_trend = pm.Normal("weights_pbern_longterm_trend", mu=0, sd=0.1)
+            weights_pbern_fc_intercept = pm.math.concatenate(
+                [pm.Normal(f"weights_pbern_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0.dshape[1]) // 2)]
             )
-            weights_pbern_fc = pm.math.concatenate(
-                [weights_pbern_fc_intercept, weights_pbern_fc_trend]
-            )
-            logit_pbern = pm.Deterministic(
-                "logit_pbern",
-                tt.dot(covariates, weights_pbern_fc)
-                + weights_pbern_longterm_intercept
-                + weights_pbern_longterm_trend * gmt,
-            )
+            weights_pbern_fc_trend = pm.Normal("weights_pbern_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_pbern_fc = pm.math.concatenate([
+                weights_pbern_fc_intercept,
+                weights_pbern_fc_trend
+            ])
+            logit_pbern = pm.Deterministic("logit_pbern", tt.dot(covariates,
+                                                                 weights_pbern_fc) + weights_pbern_longterm_intercept + weights_pbern_longterm_trend * gmt)
             pbern = pm.Deterministic("pbern", pm.math.invlogit(logit_pbern))
             # mu
-            weights_mu_longterm_intercept = pm.Normal(
-                "weights_mu_longterm_intercept", mu=0, sigma=1
-            )
-            weights_mu_longterm_trend = pm.Normal(
-                "weights_mu_longterm_trend", mu=0, sigma=0.1
-            )
+            weights_mu_longterm_intercept = pm.Normal("weights_mu_longterm_intercept", mu=0, sd=1)
+            weights_mu_longterm_trend = pm.Normal("weights_mu_longterm_trend", mu=0, sd=0.1)
             weights_mu_fc_intercept = pm.math.concatenate(
-                [
-                    pm.Normal(
-                        f"weights_mu_fc_intercept_{i}",
-                        mu=0,
-                        sigma=1 / (2 * i + 1),
-                        shape=2,
-                    )
-                    for i in range(int(xf0_np.shape[1]) // 2)
-                ]
+                [pm.Normal(f"weights_mu_fc_intercept_{i}", mu=0, sd=1 / (2 * i + 1), shape=2)
+                 for i in range(int(xf0v.dshape[1]) // 2)]
             )
-            weights_mu_fc_trend = pm.Normal(
-                "weights_mu_fc_trend", mu=0, sigma=0.1, shape=xf0.shape[1]
-            )
-            weights_mu_fc = pm.math.concatenate(
-                [weights_mu_fc_intercept, weights_mu_fc_trend]
-            )
-            eta_mu = (
-                tt.dot(covariatesv, weights_mu_fc)
-                + weights_mu_longterm_intercept
-                + weights_mu_longterm_trend * gmtv
-            )
+            weights_mu_fc_trend = pm.Normal("weights_mu_fc_trend", mu=0, sd=0.1, shape=xf0.dshape[1])
+            weights_mu_fc = pm.math.concatenate([
+                weights_mu_fc_intercept,
+                weights_mu_fc_trend
+            ])
+            eta_mu = tt.dot(covariatesv,
+                            weights_mu_fc) + weights_mu_longterm_intercept + weights_mu_longterm_trend * gmtv
             mu = pm.Deterministic("mu", pm.math.exp(eta_mu))
             # nu
-            weights_nu_longterm_intercept = pm.Normal(
-                "weights_nu_longterm_intercept", mu=0, sigma=1
-            )
+            weights_nu_longterm_intercept = pm.Normal("weights_nu_longterm_intercept", mu=0, sd=1)
             weights_nu_fc_intercept = pm.math.concatenate(
-                [
-                    pm.Normal(
-                        f"weights_nu_fc_intercept_{i}", mu=0, sigma=1 / (i + 1), shape=2
-                    )
-                    for i in range(int(xf0_np.shape[1]) // 2)
-                ]
+                [pm.Normal(f"weights_nu_fc_intercept_{i}", mu=0, sd=1 / (i + 1), shape=2)
+                 for i in range(int(xf0v.dshape[1]) // 2)]
             )
-            eta_nu = (
-                tt.dot(xf0v, weights_nu_fc_intercept) + weights_nu_longterm_intercept
-            )
+            eta_nu = tt.dot(xf0v, weights_nu_fc_intercept) + weights_nu_longterm_intercept
             nu = pm.Deterministic("nu", pm.math.exp(eta_nu))
             sigma = pm.Deterministic("sigma", mu / nu)  # nu^2 = k -> k shape parameter
 
-            logp_ = pm.Deterministic("logp", model.logp())
+            _logp = pm.Deterministic("logp", model.logpt)
 
             if not self.test:
                 pm.Bernoulli(
-                    "bernoulli",
-                    logit_p=logit_pbern,
-                    observed=df_subset["is_dry_day"].astype(int),
+                    "bernoulli", logit_p=logit_pbern, observed=df_subset["is_dry_day"].astype(int)
                 )
                 pm.Gamma("obs", mu=mu, sigma=sigma, observed=df_valid["y_scaled"])
         return model
