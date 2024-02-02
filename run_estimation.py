@@ -20,8 +20,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 logger = logging.getLogger(__name__)
-# needed to silence verbose pymc
-pmlogger = logging.getLogger("pymc")
+# needed to silence verbose pymc3
+pmlogger = logging.getLogger("pymc3")
 pmlogger.propagate = False
 
 print("Version", attrici.__version__)
