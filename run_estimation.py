@@ -3,14 +3,14 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import attrici
-import attrici.datahandler as dh
-import attrici.estimator as est
 import netCDF4 as nc
 import numpy as np
 import pandas as pd
 from func_timeout import FunctionTimedOut, func_timeout
 
+import attrici
+import attrici.datahandler as dh
+import attrici.estimator as est
 import settings as s
 
 s.output_dir.mkdir(parents=True, exist_ok=True)
@@ -112,7 +112,9 @@ for n in run_numbers[:]:
             continue
         except Exception as e:
             print(e)
-            print(f"removing file {fname_cell} if it is exists but reading it raised the above error.")
+            print(
+                f"removing file {fname_cell} if it is exists but reading it raised the above error."
+            )
             fname_cell.unlink(missing_ok=True)
             print("No valid data found. Run calculation.")
 
