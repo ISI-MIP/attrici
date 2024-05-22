@@ -11,5 +11,10 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --time=23:59:00
 
+module purge
+module load singularity
+
 source ./variables_for_shellscripts.sh
-$attrici_python -u write_netcdf.py
+export RUNDIR=$(pwd)
+singularity exec -B /p:/p ${project_basedir}/ATTRICI.sif bash -c "cd $RUNDIR; python -u write_netcdf.py"
+# $attrici_python -u write_netcdf.py

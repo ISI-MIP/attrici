@@ -93,7 +93,7 @@ if write_netcdf:
     attributes = source_data[s.variable].attrs
     coords = source_data[s.variable].coords
 
-    outfile = source_data.drop_vars(s.variable)
+    outfile = source_data.drop(s.variable)
 
     outfile.to_netcdf(cfact_file)
 

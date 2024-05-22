@@ -26,8 +26,9 @@ def main():
     # by comparing number of files with number of land cells
     lsm_file = s.input_dir / s.landsea_file
     lsm = xr.load_dataset(lsm_file)
-    nbr_landcells = lsm["area_European_01min"].count().values.tolist()
-    print(f"{s.tile}, {s.variable}{s.hour}: {nbr_landcells} land cells in lsm")
+    # nbr_landcells = lsm["mask"].count().values.tolist()
+    nbr_landcells = lsm["mask"].sum()
+    print(f"{s.variable}: {nbr_landcells} land cells in lsm")
 
     ts_dir = s.output_dir / "timeseries"
     print("Searching in", ts_dir)
@@ -57,7 +58,7 @@ def main():
 
     assert (
         nbr_failcells == 0
-    ), f"failing cells in tile: {s.tile}, variable: {s.variable}{s.hour}"
+    ), f"failing cells in variable: {s.variable}"
 
     print("Passed all sanity checks")
 
