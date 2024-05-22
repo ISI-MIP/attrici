@@ -29,15 +29,18 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable):
         return lat_sub_dir
 
 
-def get_subset(df, subset, seed, startdate):
+def get_subset(df, subset, seed, startdate, stopdate):
     orig_len = len(df)
     if subset > 1:
         np.random.seed(seed)
         subselect = np.random.choice(orig_len, np.int(orig_len / subset), replace=False)
         df = df.loc[np.sort(subselect), :].copy()
+    if startdate is None:
+        startdate = str(df.ds[0].date())
+    if stopdate is None:
+        stopdate = str(df.ds[-1].date())
 
-    if not (startdate is None):
-        df = df.loc[startdate:].copy()
+    df = df[(df.ds >= startdate) & (df.ds <= stopdate)].copy()
 
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
