@@ -2,20 +2,20 @@
 # coding: utf-8
 
 import glob
-import re
 import itertools
+import re
 import subprocess
 # import pandas as pd
 from datetime import datetime
 from pathlib import Path
-import matplotlib.pyplot as plt
 
+import attrici
+import attrici.postprocess as pp
+import matplotlib.pyplot as plt
 import netCDF4 as nc
 import numpy as np
 import xarray as xr
 
-import attrici
-import attrici.postprocess as pp
 import settings as s
 
 ### options for postprocess
@@ -53,6 +53,7 @@ def get_float_from_string(file_name):
         raise ValueError("there is no ore more than one float in this string")
     return float(floats_in_string[0])
 
+
 TIME0 = datetime.now()
 
 source_file = Path(s.input_dir) / s.source_file
@@ -63,14 +64,13 @@ cfact_rechunked = str(cfact_file).rstrip(".nc4") + "_rechunked.nc4"
 
 
 if write_netcdf:
-
     data_gen = ts_dir.glob("**/*" + s.storage_format)
     cfact_dir.mkdir(parents=True, exist_ok=True)
 
     ### check which data is available
     data_list = []
-    #lat_indices = []
-    #lon_indices = []
+    # lat_indices = []
+    # lon_indices = []
     lat_float_list = []
     lon_float_list = []
     for i in data_gen:
@@ -82,8 +82,8 @@ if write_netcdf:
 
     # adjust indices if datasets are subsets (lat/lon-shapes are smaller than 360/720)
     # TODO: make this more robust
-    #lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
-    #lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
+    # lat_indices = np.array(np.array(lat_indices) / s.lateral_sub, dtype=int)
+    # lon_indices = np.array(np.array(lon_indices) / s.lateral_sub, dtype=int)
 
     #  get headers and form empty netCDF file with all meatdata
     print(data_list[0])
@@ -114,21 +114,25 @@ if write_netcdf:
 
     outfile.setncattr("cfact_version", attrici.__version__)
     outfile.setncattr("runid", Path.cwd().name)
-    
+
     n_written_cells = 0
     for dfpath in data_list:
-        df = pp.read_from_disk(dfpath)
+        try:
+            df = pp.read_from_disk(dfpath)
+        except ValueError as e:
+            print(f"A ValueError was raised when trying to read data from {dfpath}")
+            raise e
         lat = get_float_from_string(Path(dfpath).parent.name)
         lon = get_float_from_string(Path(dfpath).stem.split("lon")[-1])
 
-        lat_idx = (np.abs(outfile.variables['lat'][:] - lat)).argmin()
-        lon_idx = (np.abs(outfile.variables['lon'][:] - lon)).argmin()
+        lat_idx = (np.abs(outfile.variables["lat"][:] - lat)).argmin()
+        lon_idx = (np.abs(outfile.variables["lon"][:] - lon)).argmin()
 
         for var in s.report_to_netcdf:
             ts = df[vardict[var]]
-            outfile.variables[var][:, lat_idx, lon_idx] = np.array(ts) 
+            outfile.variables[var][:, lat_idx, lon_idx] = np.array(ts)
         n_written_cells = n_written_cells + 1
-   
+
     outfile.close()
 
     print(
@@ -151,9 +155,7 @@ if replace_invalid:
 
 
 if cdo_processing:
-
     for cdo_op in cdo_ops:
-
         outfile = str(cfact_file).rstrip(".nc4") + "_" + cdo_op + ".nc4"
         if "trend" in cdo_op:
             outfile = (
