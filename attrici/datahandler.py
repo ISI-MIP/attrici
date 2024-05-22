@@ -10,16 +10,14 @@ import attrici.fourier as fourier
 
 
 def create_output_dirs(output_dir):
-
-    """ params: output_dir: a pathlib object """
+    """params: output_dir: a pathlib object"""
 
     for d in ["cfact", "traces", "timeseries"]:
         (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
 def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable):
-
-    """ params: output_dir: a pathlib object """
+    """params: output_dir: a pathlib object"""
 
     lat_sub_dir = output_dir / sub_dir / variable / ("lat_" + str(lat))
     lat_sub_dir.mkdir(parents=True, exist_ok=True)
@@ -49,7 +47,6 @@ def get_subset(df, subset, seed, startdate):
 
 
 def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
-
     # proper dates plus additional time axis that is
     # from 0 to 1 for better sampling performance
 
@@ -93,19 +90,17 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
 
 
 def create_ref_df(df, trace_obs, trace_cfact, params):
-
     df_params = pd.DataFrame(index=df.index)
     df_params.index = df["ds"]
 
     for p in params:
         df_params.loc[:, p] = trace_obs[p].mean(axis=0)
-        df_params.loc[:, f'{p}_ref'] = trace_cfact[p].mean(axis=0)
+        df_params.loc[:, f"{p}_ref"] = trace_cfact[p].mean(axis=0)
 
     return df_params
 
 
 def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
-
     input_file = (
         data_dir
         / dataset
@@ -128,14 +123,18 @@ def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
 
 
 def get_cell_filename(outdir_for_cell, lat, lon, settings):
-
     return outdir_for_cell / (
-        "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + settings.storage_format
+        "ts_"
+        + settings.dataset
+        + "_lat"
+        + str(lat)
+        + "_lon"
+        + str(lon)
+        + settings.storage_format
     )
 
 
 def test_if_data_valid_exists(fname):
-
     if ".h5" in str(fname):
         with pd.HDFStore(fname) as store:
             store.get(store.keys()[0])
@@ -146,7 +145,6 @@ def test_if_data_valid_exists(fname):
 
 
 def save_to_disk(df_with_cfact, fname, lat, lon, storage_format):
-
     # outdir_for_cell = make_cell_output_dir(
     #     settings.output_dir, "timeseries", lat, lon, settings.variable
     # )
