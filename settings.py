@@ -16,7 +16,7 @@ else:
 
 
 # for example "GSWP3", "GSWP3-W5E5"
-dataset = "20CRv3-ERA5"
+dataset = "20CRv3-ERA5_germany"
 
 # select variable to detrend
 variable = "tas"
@@ -55,7 +55,7 @@ landsea_file = "landseamask.nc"
 # source_file = (
 #     f"rechunked_{variable}_{dataset.lower()}_merged.nc4"
 # )
-source_file = f"{variable}_{dataset.lower()}_merged.nc4"
+source_file = f"rechunked_{variable}_{dataset.lower()}_merged.nc4"
 cfact_file = f"{source_file.split('.')[0]}_cfact.nc"
 # .h5 or .csv
 storage_format = ".h5"
