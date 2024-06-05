@@ -13,7 +13,11 @@ module load singularity
 
 source ./variables_for_shellscripts.sh
 
-# $attrici_python sanity_check.py # return general failure if any assertion in python script fails 
-singularity exec -B /p:/p ${project_basedir}/ATTRICI.sif bash -c "cd $RUNDIR; python -u sanity_check.py || exit 1"
+# Execute the sanity check inside the singularity container
+singularity exec -B /p:/p ${project_basedir}/ATTRICI.sif bash -c "cd $RUNDIR; python -u sanity_check.py"
+if [ $? -ne 0 ]; then
+  echo "sanity_check.py failed"
+  exit 1
+fi
 
 echo "Finished checks"
