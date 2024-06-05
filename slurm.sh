@@ -54,7 +54,7 @@ cleanup() {
   rm -rf ${tmpdir}
   exit
 }
-cp config/theanorc $HOME/.tensorrc
+cp theanorc $HOME/.tensorrc
 trap cleanup SIGTERM SIGINT
 
 export RUNDIR=$(pwd)
