@@ -19,3 +19,5 @@ myrunscripts/
 .pytensor/
 cancel_jobs
 input_GSWP3-W5E5_china/
+ATTRICI.sif
+create_landseamask_from_output.py
