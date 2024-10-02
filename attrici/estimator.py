@@ -27,22 +27,26 @@ model_for_var = {
 
 class estimator(object):
     def __init__(self, cfg):
+        # some of the parameters are only for doing the full Baysian sampling
+        # we are now only doing a maximum a posteriory estimation (find_map)
+        # I marked the unused parameters below
         self.output_dir = cfg.output_dir
-        self.draws = cfg.draws
-        self.cores = cfg.ncores_per_job
-        self.chains = cfg.chains
-        self.tune = cfg.tune
-        self.subset = cfg.subset
-        self.seed = cfg.seed
-        self.progressbar = cfg.progressbar
-        self.variable = cfg.variable
-        self.modes = cfg.modes
-        self.f_rescale = c.mask_and_scale[cfg.variable][1]
-        self.save_trace = cfg.save_trace
-        self.report_variables = cfg.report_variables
-        self.inference = cfg.inference
-        self.startdate = cfg.startdate
-        self.stopdate = cfg.stopdate
+        self.draws = cfg.draws  # unused
+        self.cores = cfg.ncores_per_job  # unused
+        self.chains = cfg.chains  # unused
+        self.tune = cfg.tune  # unused
+        self.subset = cfg.subset  # only use subset = 1 so this can be cleaned up
+        self.seed = cfg.seed  # unused because subset = 1
+        self.progressbar = cfg.progressbar  # still used
+        self.variable = cfg.variable  # still used
+        # number of modes in the yearly cycle
+        self.modes = cfg.modes  # still used
+        self.f_rescale = c.mask_and_scale[cfg.variable][1]  # still used
+        self.save_trace = cfg.save_trace  # still used
+        self.report_variables = cfg.report_variables  # still used
+        self.inference = cfg.inference  # unsed (because map_estimate=True)
+        self.startdate = cfg.startdate  # still used
+        self.stopdate = cfg.stopdate  # still used
 
         try:
             # TODO remove modes from initialization
