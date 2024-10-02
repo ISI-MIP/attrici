@@ -11,7 +11,7 @@
 #SBATCH --partition=priority
 #SBATCH --ntasks=1
 ##SBATCH --cpus-per-task=8
-#SBATCH --mem=500M
+#SBATCH --mem=1G
 #SBATCH --time=23:59:00
 
 module purge
