@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "attrici"
+authors = [
+    { name = "Matthias Mengel", email = "matthias.mengel@pik-potsdam.de" },
+    { name = "Simon Treu", email = "simontreu@pik-potsdam.de" },
+]
+description = "Counterfactual climate data from past datasets for the ISIMIP project."
+readme = "README.md"
+requires-python = ">=3.9,<3.12" # 3.12 doesn't work with Theano, can be updated once Theano is replaced
+keywords = ["climate", "impacts"]
+license = { text = "GPLv3" }
+classifiers = ["Programming Language :: Python :: 3"]
+dependencies = [
+    "func_timeout",
+    "numpy<1.25",
+    "pandas",
+    "loguru",
+    "netCDF4",
+    "scipy",
+    "pymc3==3.7",
+    "pyts",
+    "tables",
+    "Theano==1.0.5",
+    "tomlkit",
+    "tqdm",
+    "xarray",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/ISI-MIP/attrici"
+Issues = "https://github.com/ISI-MIP/attrici/issues"
+
+[tool.setuptools]
+packages = ["attrici"]
+
+[tool.setuptools_scm]
+
+[tool.ruff]
+include = ["pyproject.toml", "*.py"]
+
+[tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
+select = [
+    # pycodestyle errors
+    "E",
+    # pycodestyle warnings,
+    "W",
+    # Pyflakes
+    "F",
+    # Pylint
+    "PL",
+    # isort
+    "I",
+]
+ignore = [
+    "PLR0913", # Too many arguments 
+    "PLR0912", # Too many branches
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+
+[project.optional-dependencies]
+dev = ["ruff", "pytest"]
+
+[project.scripts]
+attrici = "attrici.cli:main"
+
+# For more metadata fields, see
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/

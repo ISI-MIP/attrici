@@ -1,17 +1,21 @@
+"""
+Estimator class.
+"""
+
 import os
 import pickle
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
-import pymc3 as pm
+from loguru import logger
 
 import attrici.const as c
 import attrici.datahandler as dh
-import attrici.fourier as fourier
-import attrici.models as models
+from attrici import fourier, models
+from attrici.modelling import pm
 
-model_for_var = {
+MODEL_FOR_VAR = {
     "tas": models.Tas,
     "tasrange": models.Tasrange,
     "tasskew": models.Tasskew,
@@ -25,40 +29,45 @@ model_for_var = {
 }
 
 
-class estimator(object):
-    def __init__(self, cfg):
-        # some of the parameters are only for doing the full Baysian sampling
-        # we are now only doing a maximum a posteriory estimation (find_map)
-        # I marked the unused parameters below
-        self.output_dir = cfg.output_dir
-        self.draws = cfg.draws  # unused
-        self.cores = cfg.ncores_per_job  # unused
-        self.chains = cfg.chains  # unused
-        self.tune = cfg.tune  # unused
-        self.subset = cfg.subset  # only use subset = 1 so this can be cleaned up
-        self.seed = cfg.seed  # unused because subset = 1
-        self.progressbar = cfg.progressbar  # still used
-        self.variable = cfg.variable  # still used
+class Estimator:
+    def __init__(
+        self,
+        output_dir,
+        seed,
+        progressbar,
+        variable,
+        modes,
+        report_variables,
+        start_date,
+        stop_date,
+    ):
+        self.output_dir = output_dir
+        self.subset = 1  # TODO ? only use subset = 1 so this can be cleaned up
+        self.seed = seed  # TODO ? unused because subset = 1
+        self.progressbar = progressbar
+        self.variable = variable
         # number of modes in the yearly cycle
-        self.modes = cfg.modes  # still used
-        self.f_rescale = c.mask_and_scale[cfg.variable][1]  # still used
-        self.save_trace = cfg.save_trace  # still used
-        self.report_variables = cfg.report_variables  # still used
-        self.inference = cfg.inference  # unsed (because map_estimate=True)
-        self.startdate = cfg.startdate  # still used
-        self.stopdate = cfg.stopdate  # still used
+        self.modes = modes
+        self.report_variables = report_variables
+        self.startdate = start_date
+        self.stopdate = stop_date
+
+        self.f_rescale = c.MASK_AND_SCALE[self.variable][1]
 
         try:
             # TODO remove modes from initialization
-            self.statmodel = model_for_var[self.variable](self.modes)
+            self.statmodel = MODEL_FOR_VAR[self.variable](self.modes)
 
         except KeyError as error:
-            print(
-                "No statistical model for this variable. Probably treated as part of other variables."
+            logger.error(
+                (
+                    "No statistical model for this variable. ",
+                    "Probably treated as part of other variables.",
+                )
             )
             raise error
 
-    def estimate_parameters(self, df, lat, lon, map_estimate, TIME0):
+    def estimate_parameters(self, df, lat, lon, time_0, use_cache=False):
         x_fourier = fourier.get_fourier_valid(df, self.modes)
         x_fourier_01 = (x_fourier + 1) / 2
         x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
@@ -70,102 +79,49 @@ class estimator(object):
 
         self.model = self.statmodel.setup(df_subset)
 
-        outdir_for_cell = dh.make_cell_output_dir(
-            self.output_dir, "traces", lat, lon, self.variable
-        )
-        if map_estimate:
-            try:
-                with open(outdir_for_cell, "rb") as handle:
-                    trace = pickle.load(handle)
-            except Exception as e:
-                print("Problem with saved trace:", e, ". Redo parameter estimation.")
-                print(
-                    f"took {(datetime.now() - TIME0).total_seconds():.0f}s until find_MAP is run"
+        if use_cache:
+            trace_filename = (
+                dh.make_cell_output_dir(
+                    self.output_dir, "traces", lat, lon, self.variable
                 )
-                trace = pm.find_MAP(model=self.model)
-                if self.save_trace:
-                    with open(outdir_for_cell, "wb") as handle:
-                        free_params = {
-                            key: value
-                            for key, value in trace.items()
-                            if key.startswith("weights") or key == "logp"
-                        }
-                        pickle.dump(
-                            free_params, handle, protocol=pickle.HIGHEST_PROTOCOL
-                        )
-        else:
-            # FIXME: Rework loading old traces
-            # print("Search for trace in\n", outdir_for_cell)
-            # As load_trace does not throw an error when no saved data exists, we here
-            # test this manually. FIXME: Could be improved, as we check for existence
-            # of names and number of chains only, but not that the data is not corrupted.
+                / f"traces_lat{lat}_lon{lon}.pkl"
+            )
+
+        trace = None
+        if use_cache and os.path.exists(trace_filename):
             try:
-                trace = pm.load_trace(outdir_for_cell, model=self.model)
-                print(trace.varnames)
-                #     for var in self.statmodel.vars_to_estimate:
-                #         if var not in trace.varnames:
-                #             print(var, "is not in trace, rerun sampling.")
-                #             raise IndexError
-                #     if trace.nchains != self.chains:
-                #         raise IndexError("Sample data not completely saved. Rerun.")
-                print("Successfully loaded sampled data from")
-                print(outdir_for_cell)
-                print("Skip this for sampling.")
-            except Exception as e:
-                print("Problem with saved trace:", e, ". Redo parameter estimation.")
-                trace = self.sample()
-                # print(pm.summary(trace))  # takes too much memory
-                if self.save_trace:
-                    pm.backends.save_trace(trace, outdir_for_cell, overwrite=True)
+                with open(trace_filename, "rb") as handle:
+                    trace = pickle.load(
+                        handle
+                    )  # TODO use a different format than pickle
+            except Exception:
+                logger.exception("Problem with saved trace. Redo parameter estimation.")
+        if trace is None:
+            logger.info(
+                "Took {:.1f}s until find_MAP is run",
+                (datetime.now() - time_0).total_seconds(),
+            )
+            trace = pm.find_MAP(model=self.model)
+            if use_cache:
+                with open(trace_filename, "wb") as handle:
+                    free_params = {
+                        key: value
+                        for key, value in trace.items()
+                        if key.startswith("weights") or key == "logp"
+                    }
+                    pickle.dump(free_params, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
         return trace, dff
 
-    def sample(self):
-        TIME0 = datetime.now()
-
-        if self.inference == "NUTS":
-            with self.model:
-                trace = pm.sample(
-                    draws=self.draws,
-                    cores=self.cores,
-                    chains=self.chains,
-                    tune=self.tune,
-                    progressbar=self.progressbar,
-                    target_accept=0.95,
-                )
-            # could set target_accept=.95 to get smaller step size if warnings appear
-        elif self.inference == "ADVI":
-            with self.model:
-                mean_field = pm.fit(
-                    n=10000, method="fullrank_advi", progressbar=self.progressbar
-                )
-                # TODO: trace is just a workaround here so the rest of the code understands
-                # ADVI. We could communicate parameters from mean_fied directly.
-                trace = mean_field.sample(1000)
-        else:
-            raise NotImplementedError
-
-        TIME1 = datetime.now()
-        print(
-            "Finished job {0} in {1:.0f} seconds.".format(
-                os.getpid(), (TIME1 - TIME0).total_seconds()
-            )
-        )
-
-        return trace
-
-    def estimate_timeseries(
-        self, df, trace, datamin, scale, map_estimate, subtrace=1000
-    ):
-        # print(trace["mu"].shape, df.shape)
+    def estimate_timeseries(self, df, trace, datamin, scale):
         trace_obs, trace_cfact = self.statmodel.resample_missing(
-            trace, df, subtrace, self.model, self.progressbar, map_estimate
+            trace, df, self.model, self.progressbar
         )
 
         df_params = dh.create_ref_df(df, trace_obs, trace_cfact, self.statmodel.params)
 
         cfact_scaled = self.statmodel.quantile_mapping(df_params, df["y_scaled"])
-        print("Done with quantile mapping.")
+        logger.success("Done with quantile mapping.")
 
         # fill cfact_scaled as is from quantile mapping
         # for easy checking later
@@ -186,20 +142,25 @@ class estimator(object):
         yna = df["cfact"].isna()
         yinf = df["cfact"] == np.inf
         yminf = df["cfact"] == -np.inf
-        print(f"There are {yna.sum()} NaN values from quantile mapping. Replace.")
-        print(f"There are {yinf.sum()} Inf values from quantile mapping. Replace.")
-        print(f"There are {yminf.sum()} -Inf values from quantile mapping. Replace.")
+        logger.info(
+            "There are {} NaN values from quantile mapping. Replace.", yna.sum()
+        )
+        logger.info(
+            "There are {} Inf values from quantile mapping. Replace.", yinf.sum()
+        )
+        logger.info(
+            "There are {} -Inf values from quantile mapping. Replace.", yminf.sum()
+        )
 
         df.loc[yna | yinf | yminf, "cfact"] = df.loc[yna | yinf | yminf, "y"]
 
-        # todo: unifiy indexes so .values can be dropped
+        # TODO: unifiy indexes so .values can be dropped
         for v in df_params.columns:
             df.loc[:, v] = df_params.loc[:, v].values
 
-        if map_estimate:
-            df.loc[:, "logp"] = trace_obs["logp"].mean(axis=0)
+        df.loc[:, "logp"] = trace_obs["logp"].mean(axis=0)
 
-        if self.report_variables != "all":
+        if "all" not in self.report_variables:
             df = df.loc[:, self.report_variables]
 
         return df
