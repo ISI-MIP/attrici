@@ -2,6 +2,7 @@ import subprocess
 
 import pandas as pd
 import pytest
+from loguru import logger
 
 
 @pytest.mark.slow
@@ -26,6 +27,8 @@ def test_detrend_run():
         "logp",
         "--overwrite",
     ]
+
+    logger.info("Running command: {}", " ".join(command))
 
     status = subprocess.run(command, check=False)
     status.check_returncode()
