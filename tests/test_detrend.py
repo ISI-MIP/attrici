@@ -19,7 +19,7 @@ def test_detrend_run():
         "--variable",
         "tas",
         "--stop-date",
-        "2023-12-31",
+        "2021-12-31",
         "--report-variables",
         "ds",
         "y",
@@ -40,5 +40,5 @@ def test_detrend_run():
         "./tests/data/output/timeseries/tas/lat_50.75/ts_lat50.75_lon9.25.h5"
     )
 
-    MAX_DIFFERENCE = 0.4
+    MAX_DIFFERENCE = 1e-9
     assert abs(reference_data.cfact - output.cfact).max() < MAX_DIFFERENCE
