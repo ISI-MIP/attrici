@@ -1,2 +1,0 @@
-include versioneer.py
-include attrici/_version.py

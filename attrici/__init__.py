@@ -1,4 +1,13 @@
-from ._version import get_versions
+"""
+.. include:: ../README.md
+.. include:: ../USAGE.md
+.. include:: ../CONTRIBUTING.md
+"""
 
-__version__ = get_versions()["version"]
-del get_versions
+from importlib.metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("attrici")
+except PackageNotFoundError:
+    # package is not installed
+    pass

@@ -1,7 +1,10 @@
+"""Attrici constants and helper functions."""
+
 import numpy as np
+from loguru import logger
 from scipy import stats
 
-threshold = {
+THRESHOLD = {
     "tas": (0, None),
     "tasrange": (0.01, None),
     "tasskew": (0.0001, 0.9999),
@@ -15,7 +18,7 @@ threshold = {
     "sfcWind": (0.01,),
 }
 
-bound = {
+BOUND = {
     "tas": (0.0, None),
     "tasrange": (0.0, None),
     "tasskew": (0.0, 1.0),
@@ -33,8 +36,8 @@ bound = {
 
 
 def check_bounds(data, variable):
-    lower = bound[variable][0]
-    upper = bound[variable][1]
+    lower = BOUND[variable][0]
+    upper = BOUND[variable][1]
 
     if lower is not None and data.min() < lower:
         raise ValueError(data.min(), "is smaller than lower bound", lower, ".")
@@ -61,40 +64,50 @@ def rescale_to_original(scaled_data, datamin, scale):
 
 
 def scale_and_mask(data, variable):
-    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
-    data[data <= threshold[variable][0]] = np.nan
+    logger.info(
+        "Mask {} values below lower bound.", (data <= THRESHOLD[variable][0]).sum()
+    )
+    data[data <= THRESHOLD[variable][0]] = np.nan
     try:
-        print(
-            "Mask", (data >= threshold[variable][1]).sum(), "values above upper bound."
+        logger.info(
+            "Mask {} values above upper bound.", (data >= THRESHOLD[variable][1]).sum()
         )
-        data[data >= threshold[variable][1]] = np.nan
+        data[data >= THRESHOLD[variable][1]] = np.nan
     except IndexError:
         pass
 
     scale = data.max() - data.min()
     scaled_data = data / scale
-    print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
+    logger.info("Min, max after scaling: {}, {}", scaled_data.min(), scaled_data.max())
 
     return scaled_data, data.min(), scale
 
 
 def mask_and_scale_by_bounds(data, variable):
-    print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
-    data[data <= threshold[variable][0]] = np.nan
-    print("Mask", (data >= threshold[variable][1]).sum(), "values above upper bound.")
-    data[data >= threshold[variable][1]] = np.nan
+    logger.info(
+        "Mask {} values below lower bound.",
+        (data <= THRESHOLD[variable][0]).sum(),
+    )
+    data[data <= THRESHOLD[variable][0]] = np.nan
+    logger.info(
+        "Mask {} values above upper bound.", (data >= THRESHOLD[variable][1]).sum()
+    )
+    data[data >= THRESHOLD[variable][1]] = np.nan
 
-    scale = bound[variable][1] - bound[variable][0]
+    scale = BOUND[variable][1] - BOUND[variable][0]
     scaled_data = data / scale
-    print("Scaling by bounds of variable, divide data by", scale)
-    print("Min and max are", scaled_data.min(), scaled_data.max())
+    logger.info("Scaling by bounds of variable, divide data by {}", scale)
+    logger.info("Min and max are {}, {}", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
 
 
 def scale_precip(data, variable):
-    data = data - threshold[variable][0]
+    data = data - THRESHOLD[variable][0]
 
-    print("Mask", (data <= 0).sum(), "values below lower bound.")
+    logger.info(
+        "Mask {} values below lower bound.",
+        (data <= 0).sum(),
+    )
     data[data <= 0] = np.nan
     fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
     # for scipy.gamma: fscale = 1/beta
@@ -102,7 +115,7 @@ def scale_precip(data, variable):
     scale = fscale * fa**0.5
     scaled_data = data / scale
 
-    print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
+    logger.info("Min, max after scaling: {}, {}", scaled_data.min(), scaled_data.max())
     return scaled_data, data.min(), scale
 
 
@@ -115,10 +128,10 @@ def refill_and_rescale(scaled_data, datamin, scale):
 def rescale_and_offset_precip(scaled_data, datamin, scale):
     # TODO: implement refilling of values that have been masked before.
 
-    return scaled_data * scale + threshold["pr"][0]
+    return scaled_data * scale + THRESHOLD["pr"][0]
 
 
-mask_and_scale = {
+MASK_AND_SCALE = {
     "gmt": [scale_to_unity, rescale_to_original],
     "tas": [scale_to_unity, rescale_to_original],
     "ps": [scale_to_unity, rescale_to_original],

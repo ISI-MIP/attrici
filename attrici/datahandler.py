@@ -1,32 +1,34 @@
-import pathlib
-import sys
+"""
+Functions for data handling.
+"""
 
-import netCDF4 as nc
 import numpy as np
 import pandas as pd
+from loguru import logger
 
 import attrici.const as c
-import attrici.fourier as fourier
-
-
-def create_output_dirs(output_dir):
-    """params: output_dir: a pathlib object"""
-
-    for d in ["cfact", "traces", "timeseries"]:
-        (output_dir / d).mkdir(parents=True, exist_ok=True)
 
 
 def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable):
-    """params: output_dir: a pathlib object"""
+    """
+    Parameters
+    ----------
+    output_dir : pathlib Path
+      The output directory
+    sub_dir : string
+      Directory one level below output
+    lat
+      Latitude
+    lon
+      Longitude
+    variable: string
+      Variable name
+    """
 
     lat_sub_dir = output_dir / sub_dir / variable / ("lat_" + str(lat))
     lat_sub_dir.mkdir(parents=True, exist_ok=True)
 
-    if sub_dir == "traces":
-        #
-        return lat_sub_dir / ("lon" + str(lon))
-    else:
-        return lat_sub_dir
+    return lat_sub_dir
 
 
 def get_subset(df, subset, seed, startdate, stopdate):
@@ -36,41 +38,35 @@ def get_subset(df, subset, seed, startdate, stopdate):
         subselect = np.random.choice(orig_len, np.int(orig_len / subset), replace=False)
         df = df.loc[np.sort(subselect), :].copy()
     if startdate is None:
-        startdate = str(df.ds[0].date())
+        startdate = df.ds[df.ds.first_valid_index()].date()
     if stopdate is None:
-        stopdate = str(df.ds[-1].date())
+        stopdate = df.ds[df.ds.last_valid_index()].date()
 
-    df = df[(df.ds >= startdate) & (df.ds <= stopdate)].copy()
+    df = df[(df.ds >= str(startdate)) & (df.ds <= str(stopdate))].copy()
 
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-    print(len(df), "data points used from originally", orig_len, "datapoints.")
+    logger.info("{} data points used from originally {} datapoints.", len(df), orig_len)
 
     return df
 
 
-def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
-    # proper dates plus additional time axis that is
-    # from 0 to 1 for better sampling performance
-
-    ds = pd.to_datetime(
-        nct_array, unit="D", origin=pd.Timestamp(units.lstrip("days since"))
-    )
-
+def create_dataframe(ds, data_to_detrend, gmt, variable):
+    # use proper dates plus additional time axis that is from 0 to 1 for better
+    # sampling performance TODO check
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
 
-    f_scale = c.mask_and_scale["gmt"][0]
+    f_scale = c.MASK_AND_SCALE["gmt"][0]
     gmt_scaled, _, _ = f_scale(gmt_on_data_cal, "gmt")
 
     c.check_bounds(data_to_detrend, variable)
     try:
-        f_scale = c.mask_and_scale[variable][0]
+        f_scale = c.MASK_AND_SCALE[variable][0]
     except KeyError as error:
-        print(
-            "Error:",
+        logger.error(
+            "{} is not implement (yet). Please check if part of the ISIMIP set.",
             variable,
-            "is not implement (yet). Please check if part of the ISIMIP set.",
         )
         raise error
 
@@ -87,7 +83,7 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
         }
     )
     if variable == "pr":
-        tdf["is_dry_day"] = np.isnan(y_scaled)
+        tdf["is_dry_day"] = np.isnan(y_scaled)  # TODO
 
     return tdf, datamin, scale
 
@@ -103,64 +99,14 @@ def create_ref_df(df, trace_obs, trace_cfact, params):
     return df_params
 
 
-def get_source_timeseries(data_dir, dataset, qualifier, variable, lat, lon):
-    input_file = (
-        data_dir
-        / dataset
-        / pathlib.Path(variable + "_" + dataset.lower() + "_" + qualifier + ".nc4")
-    )
-    obs_data = nc.Dataset(input_file, "r")
-    nct = obs_data.variables["time"]
-    lats = obs_data.variables["lat"][:]
-    lons = obs_data.variables["lon"][:]
-    i = np.where(lats == lat)[0][0]
-    j = np.where(lons == lon)[0][0]
-    data = obs_data.variables[variable][:, i, j]
-    tm = pd.to_datetime(
-        nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
-    )
-    df = pd.DataFrame(data, index=tm, columns=[variable])
-    df.index.name = "Time"
-    obs_data.close()
-    return df
+def get_cell_filename(outdir_for_cell, lat, lon):
+    return outdir_for_cell / f"ts_lat{lat}_lon{lon}.h5"
 
 
-def get_cell_filename(outdir_for_cell, lat, lon, settings):
-    return outdir_for_cell / (
-        "ts_"
-        + settings.dataset
-        + "_lat"
-        + str(lat)
-        + "_lon"
-        + str(lon)
-        + settings.storage_format
-    )
-
-
-def test_if_data_valid_exists(fname):
-    if ".h5" in str(fname):
-        with pd.HDFStore(fname) as store:
-            store.get(store.keys()[0])
-    elif ".csv" in str(fname):
-        pd.read_csv(fname)
-    else:
-        raise ValueError
-
-
-def save_to_disk(df_with_cfact, fname, lat, lon, storage_format):
-    # outdir_for_cell = make_cell_output_dir(
-    #     settings.output_dir, "timeseries", lat, lon, settings.variable
-    # )
-
-    # fname = outdir_for_cell / (
-    #     "ts_" + settings.dataset + "_lat" + str(lat) + "_lon" + str(lon) + dformat
-    # )
-
-    if storage_format == ".csv":
-        df_with_cfact.to_csv(fname)
-    elif storage_format == ".h5":
-        df_with_cfact.to_hdf(fname, "lat_" + str(lat) + "_lon_" + str(lon), mode="w")
-    else:
-        raise NotImplementedError("choose storage format .h5 or csv.")
-
-    print("Saved timeseries to ", fname)
+def save_to_disk(df_with_cfact, fname, lat, lon, **metadata):
+    store = pd.HDFStore(fname, mode="w")
+    df_name = f"lat_{lat}_lon_{lon}"
+    store[df_name] = df_with_cfact
+    store.get_storer(df_name).attrs.metadata = metadata
+    store.close()
+    logger.info("Saved timeseries to {}", fname)
