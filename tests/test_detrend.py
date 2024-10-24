@@ -5,8 +5,7 @@ import pytest
 from loguru import logger
 
 
-@pytest.mark.slow
-def test_detrend_run():
+def detrend_run(variable_name, max_difference):
     command = [
         "attrici",
         "detrend",
@@ -17,7 +16,7 @@ def test_detrend_run():
         "--output-dir",
         "./tests/data/output",
         "--variable",
-        "tas",
+        variable_name,
         "--stop-date",
         "2021-12-31",
         "--report-variables",
@@ -25,7 +24,7 @@ def test_detrend_run():
         "y",
         "cfact",
         "logp",
-        "--overwrite",
+        "--use-cache",
     ]
 
     logger.info("Running command: {}", " ".join(command))
@@ -34,11 +33,55 @@ def test_detrend_run():
     status.check_returncode()
 
     reference_data = pd.read_hdf(
-        "./tests/data/20CRv3-ERA5_germany_target_tas_lat50.75_lon9.25.h5"
+        f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
     )
     output = pd.read_hdf(
-        "./tests/data/output/timeseries/tas/lat_50.75/ts_lat50.75_lon9.25.h5"
+        f"./tests/data/output/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.h5"
     )
 
-    MAX_DIFFERENCE = 1e-9
-    assert abs(reference_data.cfact - output.cfact).max() < MAX_DIFFERENCE
+    assert abs(reference_data.cfact - output.cfact).max() < max_difference
+
+
+@pytest.mark.slow
+def test_detrend_run_tas():
+    detrend_run("tas", 1e-9)
+
+
+@pytest.mark.slow
+def test_detrend_run_tasskew():
+    detrend_run("tasskew", 1e-9)
+
+
+@pytest.mark.slow
+def test_detrend_run_tasrange():
+    detrend_run("tasrange", 1e-9)
+
+
+@pytest.mark.slow
+def test_detrend_run_pr():
+    detrend_run("pr", 1e-5)
+
+
+@pytest.mark.slow
+def test_detrend_run_ps():
+    detrend_run("ps", 1e-7)
+
+
+@pytest.mark.slow
+def test_detrend_run_hurs():
+    detrend_run("hurs", 1e-5)
+
+
+@pytest.mark.slow
+def test_detrend_run_rsds():
+    detrend_run("rsds", 1e-7)
+
+
+@pytest.mark.slow
+def test_detrend_run_rlds():
+    detrend_run("rlds", 1e-9)
+
+
+@pytest.mark.slow
+def test_detrend_run_sfc_wind():
+    detrend_run("sfcWind", 1e-11)
