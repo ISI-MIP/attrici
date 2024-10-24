@@ -27,6 +27,12 @@ postprocess-tas     Derive tasmin and tasmax from tas, tasrange, and tasskew
 ssa                 Perform singular spectrum analysis
 ```
 
+For help on these sub-commands use e.g.
+
+```
+attrici detrend --help
+```
+
 ### detrend
 
 Some test data is provided in `tests/data` to demonstrate a `detrend` run.
