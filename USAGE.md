@@ -107,3 +107,95 @@ This can be used to re-run a specific config
 ```
 attrici detrend --config runconfig.toml
 ```
+
+## Running on HPC platforms
+
+As a computationally expensive operation, the `detrend` sub-command is designed to be run in parallel (for each geographical cell).
+To make use of this parallelization, specify the arguments `--task-id ID` and `--task-count COUNT` and start several instances with `N` going from `0` to `N-1`. `N` does not have to equal the number of cells - these will be distributed to instances accordingly.
+As, at this stage, the Theano library is used that compiles the estimatin model into a cache, make sure that the cache directory is different for each instance (using the `THEANO_FLAG` option `base_compiledir`; unfortunately, this implies that some of the joint compilation cannot be cached).
+
+For the SLURM scheduler, which is widely used on HPC platforms, you can use an `sbatch` run script such as the following (here `N=4`):
+
+```bash
+#!/usr/bin/env bash
+#SBATCH --account=MYACCOUNT
+#SBATCH --array=0-3
+#SBATCH --cpus-per-task=2
+#SBATCH --export=ALL,OMP_PROC_BIND=TRUE
+#SBATCH --job-name="attrici"
+#SBATCH --ntasks=1
+#SBATCH --partition=standard
+#SBATCH --qos=short
+#SBATCH --time=01:00:00
+
+# load necessary modules/packages here if you don't queue with them loaded
+# e.g.: module purge; module load ...
+#   or: spack load ...
+
+# load virtual environment if you don't queue with it activated:
+# e.e.: source venv/bin/activate
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+TMP_COMPILEDIR=$(mktemp -d)
+export THEANO_FLAGS="blas.ldflags=,base_compiledir=$TMP_COMPILEDIR"
+
+trap 'rm -r $TMP_COMPILEDIR' EXIT
+
+srun attrici \
+     detrend \
+     --gmt-file ./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc \
+     --input-file ./tests/data/20CRv3-ERA5_germany_obs.nc \
+     --output-dir ./tests/data/output \
+     --variable tas \
+     --stop-date 2021-12-31 \
+     --report-variables ds y cfact logp \
+     --overwrite \
+     --task-id "$SLURM_ARRAY_TASK_ID" \
+     --task-count "$SLURM_ARRAY_TASK_COUNT"
+```
+
+If you prefer SLURM tasks rather than job arrays, an example scheduling script would look like:
+
+```bash
+#!/usr/bin/env bash
+#SBATCH --account=MYACCOUNT
+#SBATCH --cpus-per-task=2
+#SBATCH --export=ALL,OMP_PROC_BIND=TRUE
+#SBATCH --job-name="attrici"
+#SBATCH --ntasks=4
+#SBATCH --partition=standard
+#SBATCH --qos=short
+#SBATCH --time=01:00:00
+
+# load necessary modules/packages here if you don't queue with them loaded
+# e.g.: module purge; module load ...
+#   or: spack load ...
+
+# load virtual environment if you don't queue with it activated:
+# e.e.: source venv/bin/activate
+
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+srun bash <<'EOF'
+TMP_COMPILEDIR=$(mktemp -d)
+export THEANO_FLAGS="blas.ldflags=,base_compiledir=$TMP_COMPILEDIR"
+
+trap 'rm -r $TMP_COMPILEDIR' EXIT
+
+exec attrici \
+     detrend \
+     --gmt-file ./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc \
+     --input-file ./tests/data/20CRv3-ERA5_germany_obs.nc \
+     --output-dir ./tests/data/output \
+     --variable tas \
+     --stop-date 2021-12-31 \
+     --report-variables ds y cfact logp \
+     --overwrite \
+     --task-id "$SLURM_PROCID" \
+     --task-count "$SLURM_NTASKS"
+EOF
+```
+
+Both scripts assume that you schedule them from a setup suitable to run ATTRICI, i.e. with a virtual environment activated being able to run ATTRICI locally.
+Otherwise, adjust the scripts to setup that environment as given in the respective comment in the script.
