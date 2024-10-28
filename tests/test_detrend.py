@@ -24,7 +24,7 @@ def detrend_run(variable_name, max_difference):
         "y",
         "cfact",
         "logp",
-        "--use-cache",
+        "--overwrite",
     ]
 
     logger.info("Running command: {}", " ".join(command))
