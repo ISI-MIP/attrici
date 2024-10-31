@@ -1,4 +1,9 @@
+import subprocess
+
 import numpy as np
+import pytest
+import xarray as xr
+from loguru import logger
 
 from attrici import preprocessing
 
@@ -18,3 +23,34 @@ def test_calc_gmt_by_ssa():
 
     assert ssa.shape == (len(times[::subset]),)
     assert ssa_times.shape == (len(times[::subset]),)
+
+
+@pytest.mark.slow
+def test_ssa():
+    INPUT_FILE = "tests/data/20crv3-era5_gmt_raw.nc"
+    OUTPUT_FILE = "tests/data/output/20crv3-era5_gmt_ssa.nc"
+    REFERENCE_FILE = "tests/data/20CRv3-ERA5_germany_ssa_gmt.nc"
+    MAX_DIFFERENCE = 1e-4
+
+    command = [
+        "attrici",
+        "ssa",
+        "--variable",
+        "tas",
+        "--window-size",
+        "365",
+        "--subset",
+        "10",
+        INPUT_FILE,
+        OUTPUT_FILE,
+    ]
+
+    logger.info("Running command: {}", " ".join(command))
+
+    status = subprocess.run(command, check=False)
+    status.check_returncode()
+
+    reference_data = xr.load_dataset(REFERENCE_FILE)
+    output = xr.load_dataset(OUTPUT_FILE)
+
+    assert abs(reference_data.tas - output.ssa).max() < MAX_DIFFERENCE
