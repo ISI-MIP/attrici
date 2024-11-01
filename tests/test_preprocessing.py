@@ -1,5 +1,7 @@
 import subprocess
 
+# TODO check whether still needed once updated to latest numpy version
+import netCDF4  # noqa Used to suppress warning https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import pytest
 import xarray as xr
