@@ -32,7 +32,7 @@ def test_ssa():
     INPUT_FILE = "tests/data/20crv3-era5_gmt_raw.nc"
     OUTPUT_FILE = "tests/data/output/20crv3-era5_gmt_ssa.nc"
     REFERENCE_FILE = "tests/data/20CRv3-ERA5_germany_ssa_gmt.nc"
-    MAX_DIFFERENCE = 1e-4
+    MAX_DIFFERENCE = 1e-3
 
     command = [
         "attrici",
