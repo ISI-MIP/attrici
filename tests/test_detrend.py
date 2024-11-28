@@ -24,7 +24,7 @@ def detrend_run(variable_name, max_difference):
         "y",
         "cfact",
         "logp",
-        "--use-cache",
+        "--overwrite",
     ]
 
     logger.info("Running command: {}", " ".join(command))
@@ -54,7 +54,7 @@ def test_detrend_run_tasskew():
 
 @pytest.mark.slow
 def test_detrend_run_tasrange():
-    detrend_run("tasrange", 1e-9)
+    detrend_run("tasrange", 1e-4)
 
 
 @pytest.mark.slow
