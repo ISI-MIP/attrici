@@ -22,7 +22,6 @@ dependencies = [
     "netCDF4",
     "scipy",
     "pymc3==3.7",
-    "pyts",
     "tables",
     "Theano==1.0.5",
     "tomlkit",
