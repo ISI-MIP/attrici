@@ -4,7 +4,7 @@ Code implementing the methods described in the paper [`ATTRICI 1.1 - counterfact
 
 
 ## Project Structure
-* The probability model for different climate variables is specified in [models.py](attrici/models.py)
+* The probability model for different climate variables is specified in [variables.py](attrici/variables.py)
 * The choice of the probability model for a variable is specified in [estimator.py](attrici/estimator.py)
 
 
