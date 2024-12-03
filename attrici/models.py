@@ -13,9 +13,9 @@ def filter_df_valid(df):
     return df.dropna(axis=0, how="any")
 
 
-def get_gmt_xf0(df):
-    gmt = pm.Data("gmt", df["gmt_scaled"].values)
-    xf0 = pm.Data("xf0", df.filter(regex="^mode_0_").values)
+def get_gmt_xf0(df, suffix=""):
+    gmt = pm.Data(f"gmt{suffix}", df["gmt_scaled"].values)
+    xf0 = pm.Data(f"xf0{suffix}", df.filter(regex="^mode_0_").values)
     return gmt, xf0
 
 
@@ -91,12 +91,12 @@ class Pr(attrici.distributions.BernoulliGamma):
         with model:
             # use df_subset directly
             gmt, xf0 = get_gmt_xf0(df_subset)
-            logit_pbern = calc_linear_model("pbern", gmt, xf0)
+            logit_pbern = calc_linear_model("pbern", xf0, gmt)
 
             df_valid = filter_df_valid(df_subset)
-            gmtv, xf0v = get_gmt_xf0(df_valid)
+            gmtv, xf0v = get_gmt_xf0(df_valid, suffix="v")
             mu = pm.Deterministic(
-                "mu", pm.math.exp(calc_linear_model("mu", gmtv, xf0v))
+                "mu", pm.math.exp(calc_linear_model("mu", xf0v, gmtv))
             )
             nu = pm.Deterministic("nu", pm.math.exp(calc_linear_model("nu", xf0v)))
             sigma = pm.Deterministic("sigma", mu / nu)  # nu^2 = k -> k shape parameter
@@ -162,7 +162,7 @@ class Rlds(attrici.distributions.Normal):
 
             mu = pm.Deterministic("mu", calc_linear_model("mu", xf0, gmt))
             sigma = pm.Deterministic(
-                "sigma", pm.math.exp("sigma", calc_linear_model(xf0))
+                "sigma", pm.math.exp(calc_linear_model("sigma", xf0))
             )
             pm.Deterministic("logp", model.logpt)
 
