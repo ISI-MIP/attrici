@@ -13,6 +13,8 @@ def detrend_run(variable_name, max_difference):
         "./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc",
         "--input-file",
         "./tests/data/20CRv3-ERA5_germany_obs.nc",
+        "--mask-file",
+        "./tests/data/mask_lat50.75_lon9.25.nc",
         "--output-dir",
         "./tests/data/output",
         "--variable",

@@ -1,23 +1,11 @@
 import argparse
 from pathlib import Path
 
+from attrici.ssa import ssa
+
 
 def run(args):
-    import xarray as xr
-
-    from attrici.preprocessing import calc_gmt_by_ssa
-
-    input_dataset = xr.open_dataset(args.input)
-    gmt = input_dataset[args.variable]
-    times = input_dataset["time"]
-    ssa_values, ssa_times = calc_gmt_by_ssa(
-        gmt, times, window_size=args.window_size, subset=args.subset
-    )
-
-    output_dataset = xr.Dataset()
-    output_dataset["time"] = ssa_times
-    output_dataset["ssa"] = xr.DataArray(ssa_values, dims=["time"])
-    output_dataset.to_netcdf(args.output)
+    ssa(args.input, args.variable, args.window_size, args.subset, args.output)
 
 
 def add_parser(subparsers):
