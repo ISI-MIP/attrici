@@ -147,7 +147,7 @@ class ModelPymc3(Model):
                 pm.Gamma(
                     "observation_gamma",
                     mu=mu,
-                    sigma=pm.Deterministic("sigma", mu / nu),
+                    sigma=mu / nu,
                     observed=observed_gamma,
                 )
 
@@ -163,7 +163,7 @@ class ModelPymc3(Model):
                 pm.Gamma(
                     "observation",
                     mu=mu,
-                    sigma=pm.Deterministic("sigma", mu / nu),
+                    sigma=mu / nu,
                     observed=observed,
                 )
 

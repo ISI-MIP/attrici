@@ -1,5 +1,6 @@
 import subprocess
 
+import numpy as np
 import pandas as pd
 import pytest
 from loguru import logger
@@ -42,6 +43,11 @@ def detrend_run(variable_name, max_difference):
     )
 
     assert abs(reference_data.cfact - output.cfact).max() < max_difference
+
+    # Skipping logp comparison for variables with inconsistent prior distributions
+    # Fixed in https://github.com/ISI-MIP/attrici/pull/101
+    if variable_name not in {"pr", "tasrange"}:
+        np.testing.assert_allclose(reference_data.logp, output.logp)
 
 
 @pytest.mark.slow
