@@ -122,8 +122,6 @@ class ModelPymc3(Model):
         self._distribution_class = distribution
         self._model = pm.Model()
         with self._model:
-            self.logp = pm.Deterministic("logp", self._model.logpt)
-
             self._parameter_models = {
                 name: setup_parameter_model(name, parameter)
                 for name, parameter in parameters.items()
@@ -133,17 +131,18 @@ class ModelPymc3(Model):
                 observed_gamma = observed.sel(time=observed.notnull())
 
                 p = self._parameter_models["p"].build(predictor)
-                pm.Bernoulli(
-                    "observation_bernoulli",
-                    p=p,
-                    observed=np.isnan(observed.values).astype(int),
-                )
-
                 mu = self._parameter_models["mu"].build(
                     predictor.sel(time=observed_gamma.time)
                 )
                 nu = self._parameter_models["nu"].build(
                     predictor.sel(time=observed_gamma.time)
+                )
+
+                pm.Deterministic("logp", self._model.logpt)
+                pm.Bernoulli(
+                    "observation_bernoulli",
+                    p=p,
+                    observed=np.isnan(observed.values).astype(int),
                 )
                 pm.Gamma(
                     "observation_gamma",
@@ -154,11 +153,13 @@ class ModelPymc3(Model):
 
             elif distribution == distributions.Bernoulli:
                 p = self._parameter_models["p"].build(predictor)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Bernoulli("observation", p=p, observed=observed)
 
             elif distribution == distributions.Gamma:
                 mu = self._parameter_models["mu"].build(predictor)
                 nu = self._parameter_models["nu"].build(predictor)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Gamma(
                     "observation",
                     mu=mu,
@@ -169,6 +170,7 @@ class ModelPymc3(Model):
             elif distribution == distributions.Normal:
                 mu = self._parameter_models["mu"].build(predictor)
                 sigma = self._parameter_models["sigma"].build(predictor)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Normal(
                     "observation",
                     mu=mu,
@@ -179,6 +181,7 @@ class ModelPymc3(Model):
             elif distribution == distributions.Beta:
                 mu = self._parameter_models["mu"].build(predictor)
                 phi = self._parameter_models["phi"].build(predictor)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Beta(
                     "observation",
                     alpha=pm.Deterministic("alpha", mu * phi),
@@ -189,6 +192,7 @@ class ModelPymc3(Model):
             elif distribution == distributions.Weibull:
                 alpha = self._parameter_models["alpha"].build(predictor)
                 beta = self._parameter_models["beta"].build(predictor)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Weibull("observation", alpha=alpha, beta=beta, observed=observed)
 
             else:
