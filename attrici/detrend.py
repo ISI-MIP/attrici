@@ -1,8 +1,6 @@
 """Detrend."""
 
-import importlib.metadata
 import pickle
-import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -14,10 +12,9 @@ import xarray as xr
 from func_timeout import FunctionTimedOut, func_timeout
 from loguru import logger
 
-import attrici
 from attrici import variables
 from attrici.estimation.model_pymc3 import ModelPymc3
-from attrici.util import timeit
+from attrici.util import get_data_provenance_metadata, timeit
 
 MODEL_FOR_VAR = {
     "tas": variables.Tas,
@@ -83,35 +80,6 @@ class Config:
                 if v is not None
             }
         )
-
-
-def get_data_provenance_metadata(config: Config):
-    """Assemble metadata for data provenance
-
-    Parameters
-    ----------
-    config : Config
-        Configuration object
-
-    Returns
-    -------
-    dictionary
-        Dictionary with provenance information
-    """
-    return {
-        "attrici_config": config.to_toml(),
-        "attrici_version": attrici.__version__,
-        "attrici_packages": "\n".join(
-            sorted(
-                {
-                    f"{dist.name}=={dist.version}"
-                    for dist in importlib.metadata.distributions()
-                },
-                key=str.casefold,
-            )
-        ),
-        "attrici_python_version": sys.version,
-    }
 
 
 def save_to_disk(df, filename, lat, lon, metadata=None):
@@ -347,7 +315,7 @@ def detrend_cell(
         output_filename,
         lat,
         lon,
-        metadata=get_data_provenance_metadata(config),
+        metadata=get_data_provenance_metadata(attrici_config=config.to_toml()),
     )
 
 
