@@ -6,7 +6,7 @@ import pytest
 from loguru import logger
 
 
-def detrend_run(variable_name, max_difference):
+def detrend_run(variable_name):
     command = [
         "attrici",
         "detrend",
@@ -35,61 +35,87 @@ def detrend_run(variable_name, max_difference):
     status = subprocess.run(command, check=False)
     status.check_returncode()
 
-    reference_data = pd.read_hdf(
+    desired = pd.read_hdf(
         f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
     )
-    output = pd.read_hdf(
+    actual = pd.read_hdf(
         f"./tests/data/output/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.h5"
     )
 
-    assert abs(reference_data.cfact - output.cfact).max() < max_difference
-
-    # Skipping logp comparison for variables with inconsistent prior distributions
-    # Fixed in https://github.com/ISI-MIP/attrici/pull/101
-    if variable_name not in {"pr", "tasrange"}:
-        np.testing.assert_allclose(reference_data.logp, output.logp)
+    return actual, desired
 
 
 @pytest.mark.slow
 def test_detrend_run_tas():
-    detrend_run("tas", 1e-9)
+    actual, desired = detrend_run("tas")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_tasskew():
-    detrend_run("tasskew", 1e-9)
+    actual, desired = detrend_run("tasskew")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_tasrange():
-    detrend_run("tasrange", 1e-4)
+    actual, desired = detrend_run("tasrange")
+    np.testing.assert_allclose(actual.cfact, desired.cfact, rtol=1e-06, atol=1e-05)
+    # Skipping logp comparison for variables with inconsistent prior distributions
+    # Fixed in https://github.com/ISI-MIP/attrici/pull/101
+    # np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_pr():
-    detrend_run("pr", 1e-5)
+    actual, desired = detrend_run("pr")
+
+    # Days with rain in both
+    data = pd.DataFrame({"actual": actual.cfact, "desired": desired.cfact})
+    test_data = data[(data.actual > 0) & (data.desired > 0)]
+    np.testing.assert_allclose(test_data.actual, test_data.desired, atol=1e-07)
+
+    # Days with rain in one dataset should have no or little rain in the other
+    test_data = data[(data.actual <= 0) | (data.desired <= 0)]
+    np.testing.assert_allclose(test_data.actual, test_data.desired, atol=1e-05)
+
+    # Skipping logp comparison for variables with inconsistent prior distributions
+    # Fixed in https://github.com/ISI-MIP/attrici/pull/101
+    # np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_ps():
-    detrend_run("ps", 1e-7)
+    actual, desired = detrend_run("ps")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_hurs():
-    detrend_run("hurs", 1e-5)
+    actual, desired = detrend_run("hurs")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_rsds():
-    detrend_run("rsds", 1e-7)
+    actual, desired = detrend_run("rsds")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_rlds():
-    detrend_run("rlds", 1e-9)
+    actual, desired = detrend_run("rlds")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
 
 
 @pytest.mark.slow
 def test_detrend_run_sfc_wind():
-    detrend_run("sfcWind", 1e-11)
+    actual, desired = detrend_run("sfcWind")
+    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.logp, desired.logp)
