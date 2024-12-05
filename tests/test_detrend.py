@@ -49,6 +49,7 @@ def detrend_run(variable_name):
 def test_detrend_run_tas():
     actual, desired = detrend_run("tas")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -56,6 +57,7 @@ def test_detrend_run_tas():
 def test_detrend_run_tasskew():
     actual, desired = detrend_run("tasskew")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -63,6 +65,8 @@ def test_detrend_run_tasskew():
 def test_detrend_run_tasrange():
     actual, desired = detrend_run("tasrange")
     np.testing.assert_allclose(actual.cfact, desired.cfact, rtol=1e-06, atol=1e-05)
+    np.testing.assert_allclose(actual.y, desired.y)
+
     # Skipping logp comparison for variables with inconsistent prior distributions
     # Fixed in https://github.com/ISI-MIP/attrici/pull/101
     # np.testing.assert_allclose(actual.logp, desired.logp)
@@ -81,6 +85,8 @@ def test_detrend_run_pr():
     test_data = data[(data.actual <= 0) | (data.desired <= 0)]
     np.testing.assert_allclose(test_data.actual, test_data.desired, atol=1e-05)
 
+    np.testing.assert_allclose(actual.y, desired.y)
+
     # Skipping logp comparison for variables with inconsistent prior distributions
     # Fixed in https://github.com/ISI-MIP/attrici/pull/101
     # np.testing.assert_allclose(actual.logp, desired.logp)
@@ -90,6 +96,7 @@ def test_detrend_run_pr():
 def test_detrend_run_ps():
     actual, desired = detrend_run("ps")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -97,6 +104,7 @@ def test_detrend_run_ps():
 def test_detrend_run_hurs():
     actual, desired = detrend_run("hurs")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -104,6 +112,7 @@ def test_detrend_run_hurs():
 def test_detrend_run_rsds():
     actual, desired = detrend_run("rsds")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -111,6 +120,7 @@ def test_detrend_run_rsds():
 def test_detrend_run_rlds():
     actual, desired = detrend_run("rlds")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -118,4 +128,5 @@ def test_detrend_run_rlds():
 def test_detrend_run_sfc_wind():
     actual, desired = detrend_run("sfcWind")
     np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)

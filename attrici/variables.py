@@ -95,14 +95,14 @@ class Pr(Variable):
         self.y_scaled, self.scale = self.scale(data)
 
     def scale(self, data):
-        data -= self.THRESHOLD
-        logger.info("Mask {} values below lower bound.", (data <= 0).sum().item())
-        data[data <= 0] = np.nan
-        fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
-        # for scipy.gamma: fscale = 1/beta
-        # std = sqrt(fa/beta**2)
+        scaled_data = data - self.THRESHOLD
+        logger.info(
+            "Mask {} values below lower bound.", (scaled_data <= 0).sum().item()
+        )
+        scaled_data[scaled_data <= 0] = np.nan
+        fa, _, fscale = stats.gamma.fit(scaled_data[~np.isnan(scaled_data)], floc=0)
         scale = fscale * fa**0.5
-        scaled_data = data / scale
+        scaled_data = scaled_data / scale
 
         logger.info(
             "Min, max after scaling: {}, {}",
