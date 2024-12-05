@@ -3,6 +3,7 @@
 import importlib.metadata
 import pickle
 import sys
+import warnings
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -13,11 +14,15 @@ import tomlkit
 import xarray as xr
 from func_timeout import FunctionTimedOut, func_timeout
 from loguru import logger
+from tables import NaturalNameWarning
 
 import attrici
 from attrici import variables
 from attrici.estimation.model_pymc3 import ModelPymc3
 from attrici.util import timeit
+
+warnings.filterwarnings("ignore", category=NaturalNameWarning)
+
 
 MODEL_FOR_VAR = {
     "tas": variables.Tas,
