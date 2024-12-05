@@ -37,44 +37,38 @@ MODEL_FOR_VAR = {
 class Config:
     """Configuration object for detrending run."""
 
-    chains: int
-    """Number of chains to calculate (min 2 to check for convergence)"""
-    draws: int
-    """Number of sampling draws per chain"""
     gmt_file: Path
     """Path to (SSA-smoothed) Global Mean Temperature file"""
     input_file: Path
     """Path to input file"""
     mask_file: Path
     """Optional path to file with masking information"""
-    modes: int
-    """Number of modes for fourier series of model"""
-    output_dir: Path
-    """Output directory for the results"""
-    overwrite: bool
-    """Overwrite existing files"""
-    progressbar: bool
-    """Show progress bar"""
-    report_variables: list[str]
-    """List of variables to include in the output """
-    seed: int
-    """Seed for deterministic randomisation"""
-    start_date: date
-    """Optional start date YYYY-MM-DD"""
-    stop_date: date
-    """Optional stop date YYYY-MM-DD"""
-    task_count: int
-    """"Number of tasks for parallel processing"""
-    task_id: int
-    """Task ID for parallel processing"""
-    timeout: int
-    """Maximum time in seconds for sampler for a single grid cell"""
-    tune: int
-    """Number of draws to tune model"""
-    use_cache: bool
-    """Use cached results and write new ones"""
     variable: str
     """Variable to detrend"""
+    output_dir: Path
+    """Output directory for the results"""
+    modes: int = 4
+    """Number of modes for fourier series of model"""
+    overwrite: bool = False
+    """Overwrite existing files"""
+    progressbar: bool = False
+    """Show progress bar"""
+    report_variables: list[str] | tuple[str] = ("all",)
+    """List of variables to include in the output """
+    seed: int = 0
+    """Seed for deterministic randomisation"""
+    start_date: date | None = None
+    """Optional start date YYYY-MM-DD"""
+    stop_date: date | None = None
+    """Optional stop date YYYY-MM-DD"""
+    task_count: int = 1
+    """"Number of tasks for parallel processing"""
+    task_id: int = 0
+    """Task ID for parallel processing"""
+    timeout: int = 60 * 60
+    """Maximum time in seconds for sampler for a single grid cell"""
+    use_cache: bool = False
+    """Use cached results and write new ones"""
 
     def as_dict(self):
         """Return configuration object as dictionary"""
@@ -244,12 +238,9 @@ def detrend_cell(
     subset_times,
     lat,
     lon,
-    progressbar=False,
-    use_cache=False,
-    overwrite=False,
 ):
     output_filename = (
-        config.output_dir
+        Path(config.output_dir)
         / "timeseries"
         / config.variable
         / f"lat_{lat}"
@@ -257,14 +248,14 @@ def detrend_cell(
     )
 
     if output_filename.exists():
-        if overwrite:
+        if config.overwrite:
             logger.warning("Existing data in {} will be overwritten", output_filename)
         else:
             logger.warning(
                 "Existing data in {} found. Calculation skipped", output_filename
             )
             return
-    elif overwrite:
+    elif config.overwrite:
         logger.warning("No existing data in {}. Running calculation", output_filename)
 
     data[np.isinf(data)] = np.nan
@@ -275,7 +266,7 @@ def detrend_cell(
     )
 
     trace = None
-    if use_cache:
+    if config.use_cache:
         trace_filename = (
             config.output_dir
             / "traces"
@@ -289,24 +280,24 @@ def detrend_cell(
         try:
             trace = func_timeout(
                 config.timeout,
-                lambda: statistical_model.fit(progressbar=progressbar),
+                lambda: statistical_model.fit(progressbar=config.progressbar),
             )
         except FunctionTimedOut:
             logger.error("Sampling at {} {} timed out", lat, lon)
             return
-        if use_cache:
+        if config.use_cache:
             save_trace(trace, trace_filename)
 
     statistical_model.trace = trace  # TODO to be replaced by caching library
 
     distribution_ref = statistical_model.estimate_distribution(
-        predictor=gmt_scaled, progressbar=progressbar
+        predictor=gmt_scaled, progressbar=config.progressbar
     )
 
     gmt_scaled_cfact = gmt_scaled.copy()
     gmt_scaled_cfact[:] = 0
     distribution_cfact = statistical_model.estimate_distribution(
-        predictor=gmt_scaled_cfact, progressbar=progressbar
+        predictor=gmt_scaled_cfact, progressbar=config.progressbar
     )
 
     logger.info("Starting quantile mapping")
@@ -341,7 +332,7 @@ def detrend_cell(
             "gmt_scaled": gmt_scaled,
             "y_scaled": variable.y_scaled,
             "cfact_scaled": cfact_scaled,
-            "logp": statistical_model.estimate_logp(progressbar=progressbar),
+            "logp": statistical_model.estimate_logp(progressbar=config.progressbar),
             "cfact": cfact,
         }
     )
@@ -361,19 +352,13 @@ def detrend_cell(
 
 
 @timeit
-def detrend(config: Config, progressbar=False, use_cache=False, overwrite=False):
+def detrend(config: Config):
     """Run detrending.
 
     Parameters
     ----------
     config : Config
         Configuration object
-    progressbar : Boolean
-        Show progress bar
-    use_cache : Boolean
-        Re-use cached data
-    overwrite : Boolean
-        Overwrite existing output files
     """
     logger.info("Detrending with config:\n{}", config.to_toml())
 
@@ -443,7 +428,4 @@ def detrend(config: Config, progressbar=False, use_cache=False, overwrite=False)
             subset_times,
             lat,
             lon,
-            progressbar=progressbar,
-            use_cache=use_cache,
-            overwrite=overwrite,
         )

@@ -97,9 +97,6 @@ task_id = 0
 task_count = 1
 timeout = 3600
 use_cache = false
-tune = 500
-draws = 1000
-chains = 2
 ```
 
 This can be used to re-run a specific config

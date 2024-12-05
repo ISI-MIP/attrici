@@ -3,11 +3,10 @@ from datetime import date
 from pathlib import Path
 
 from attrici.commands import add_config_argument
+from attrici.detrend import Config, detrend
 
 
 def run(args):
-    from attrici.detrend import Config, detrend
-
     config_dict = vars(args).copy()
     del config_dict["config"]
     del config_dict["print_config"]
@@ -19,12 +18,7 @@ def run(args):
         print(config.to_toml())
         return
 
-    detrend(
-        config,
-        progressbar=args.progressbar,
-        use_cache=args.use_cache,
-        overwrite=args.overwrite,
-    )
+    detrend(config)
 
 
 def iso_date(argument_value):
@@ -81,7 +75,6 @@ def add_parser(subparsers):
     group.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("."),
         help="Output directory for the results",
     )
     group.add_argument(
@@ -93,7 +86,7 @@ def add_parser(subparsers):
     group.add_argument(
         "--modes",
         type=int,
-        default=4,
+        default=Config.__dataclass_fields__["modes"].default,
         help="Number of modes for fourier series of model (either one integer, used for"
         " all four series, or four comma-separated integers)",
     )
@@ -101,11 +94,14 @@ def add_parser(subparsers):
     group.add_argument(
         "--report-variables",
         nargs="+",
-        default=["all"],
+        default=Config.__dataclass_fields__["report_variables"].default,
         help="Variables to report, e.g. `--report-variables ds y cfact logp`",
     )
     group.add_argument(
-        "--seed", type=int, default=0, help="Seed for deterministic randomisation"
+        "--seed",
+        type=int,
+        default=Config.__dataclass_fields__["seed"].default,
+        help="Seed for deterministic randomisation",
     )
     group.add_argument(
         "--start-date",
@@ -118,43 +114,25 @@ def add_parser(subparsers):
         help="Stop date for the detrending period",
     )
     group.add_argument(
-        "--task-id", type=int, default=0, help="Task ID for parallel processing"
+        "--task-id",
+        type=int,
+        default=Config.__dataclass_fields__["task_id"].default,
+        help="Task ID for parallel processing",
     )
     group.add_argument(
         "--task-count",
         type=int,
-        default=1,
+        default=Config.__dataclass_fields__["task_count"].default,
         help="Number of tasks for parallel processing",
     )
     group.add_argument(
         "--timeout",
         type=int,
-        default=60 * 60,
+        default=Config.__dataclass_fields__["timeout"].default,
         help="Maximum time in seconds for sampler for a single grid cell",
     )
     group.add_argument(
         "--use-cache", action="store_true", help="Use cached results and write new ones"
-    )
-
-    # model parameters
-    group = parser.add_argument_group(title="Model parameters")
-    group.add_argument(
-        "--tune",
-        type=int,
-        default=500,
-        help="Number of draws to tune model",
-    )
-    group.add_argument(
-        "--draws",
-        type=int,
-        default=1000,
-        help="Number of sampling draws per chain",
-    )
-    group.add_argument(
-        "--chains",
-        type=int,
-        default=2,
-        help="Number of chains to calculate (min 2 to check for convergence)",
     )
 
     parser.set_defaults(func=run)

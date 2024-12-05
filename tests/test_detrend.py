@@ -1,39 +1,24 @@
-import subprocess
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-from loguru import logger
+
+from attrici.detrend import Config, detrend
 
 
 def detrend_run(variable_name):
-    command = [
-        "attrici",
-        "detrend",
-        "--gmt-file",
-        "./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc",
-        "--input-file",
-        "./tests/data/20CRv3-ERA5_germany_obs.nc",
-        "--mask-file",
-        "./tests/data/mask_lat50.75_lon9.25.nc",
-        "--output-dir",
-        "./tests/data/output",
-        "--variable",
-        variable_name,
-        "--stop-date",
-        "2021-12-31",
-        "--report-variables",
-        "ds",
-        "y",
-        "cfact",
-        "logp",
-        "--overwrite",
-    ]
-
-    logger.info("Running command: {}", " ".join(command))
-
-    status = subprocess.run(command, check=False)
-    status.check_returncode()
+    config = Config(
+        gmt_file=Path("./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc"),
+        input_file=Path("./tests/data/20CRv3-ERA5_germany_obs.nc"),
+        mask_file=Path("./tests/data/mask_lat50.75_lon9.25.nc"),
+        variable=variable_name,
+        output_dir=Path("./tests/data/output"),
+        overwrite=True,
+        report_variables=["ds", "y", "cfact", "logp"],
+        stop_date="2021-12-31",
+    )
+    detrend(config)
 
     desired = pd.read_hdf(
         f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
