@@ -104,6 +104,13 @@ def add_parser(subparsers):
         help="Seed for deterministic randomisation",
     )
     group.add_argument(
+        "--solver",
+        type=str,
+        choices=["pymc5"],
+        default="pymc5",
+        help="Solver library for statistical modelling",
+    )
+    group.add_argument(
         "--start-date",
         type=iso_date,
         help="Start date for the detrending period",

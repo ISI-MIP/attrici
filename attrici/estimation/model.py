@@ -2,14 +2,18 @@ from dataclasses import dataclass
 from typing import Callable
 
 
+class Parameter:
+    pass
+
+
 class AttriciGLM:
     @dataclass
-    class PredictorDependentParam:
+    class PredictorDependentParam(Parameter):
         link: Callable
         modes: int
 
     @dataclass
-    class PredictorIndependentParam:
+    class PredictorIndependentParam(Parameter):
         link: Callable
         modes: int
 

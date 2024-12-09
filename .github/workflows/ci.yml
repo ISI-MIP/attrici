@@ -15,6 +15,7 @@ jobs:
       matrix:
         python-version: [
           "3.11",
+          "3.12"
         ]
     steps:
     - uses: actions/checkout@v4
@@ -29,4 +30,4 @@ jobs:
       run: ruff check
 
     - name: Tests
-      run: THEANO_FLAGS="blas.ldflags=" pytest tests -r a
+      run: pytest tests -r a

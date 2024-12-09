@@ -10,20 +10,19 @@ authors = [
 ]
 description = "Counterfactual climate data from past datasets for the ISIMIP project."
 readme = "README.md"
-requires-python = ">=3.9,<3.12" # 3.12 doesn't work with Theano, can be updated once Theano is replaced
+requires-python = ">=3.9"
 keywords = ["climate", "impacts"]
 license = { text = "GPLv3" }
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
     "func_timeout",
-    "numpy<1.25",
+    "numpy",
     "pandas",
     "loguru",
     "netCDF4",
     "scipy",
-    "pymc3==3.7",
+    "pymc",
     "tables",
-    "Theano==1.0.5",
     "tomlkit",
     "tqdm",
     "xarray",

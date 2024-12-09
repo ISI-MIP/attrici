@@ -109,7 +109,6 @@ attrici detrend --config runconfig.toml
 
 As a computationally expensive operation, the `detrend` sub-command is designed to be run in parallel (for each geographical cell).
 To make use of this parallelization, specify the arguments `--task-id ID` and `--task-count COUNT` and start several instances with `N` going from `0` to `N-1`. `N` does not have to equal the number of cells - these will be distributed to instances accordingly.
-As, at this stage, the Theano library is used that compiles the estimatin model into a cache, make sure that the cache directory is different for each instance (using the `THEANO_FLAG` option `base_compiledir`; unfortunately, this implies that some of the joint compilation cannot be cached).
 
 For the SLURM scheduler, which is widely used on HPC platforms, you can use an `sbatch` run script such as the following (here `N=4`):
 
@@ -133,11 +132,6 @@ For the SLURM scheduler, which is widely used on HPC platforms, you can use an `
 # e.e.: source venv/bin/activate
 
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
-
-TMP_COMPILEDIR=$(mktemp -d)
-export THEANO_FLAGS="blas.ldflags=,base_compiledir=$TMP_COMPILEDIR"
-
-trap 'rm -r $TMP_COMPILEDIR' EXIT
 
 srun attrici \
      detrend \
@@ -175,10 +169,6 @@ If you prefer SLURM tasks rather than job arrays, an example scheduling script w
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 srun bash <<'EOF'
-TMP_COMPILEDIR=$(mktemp -d)
-export THEANO_FLAGS="blas.ldflags=,base_compiledir=$TMP_COMPILEDIR"
-
-trap 'rm -r $TMP_COMPILEDIR' EXIT
 
 exec attrici \
      detrend \

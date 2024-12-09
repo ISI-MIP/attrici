@@ -17,12 +17,12 @@ def check_bounds(data, lower=None, upper=None):
 def mask_thresholded(data, lower_threshold=None, upper_threshold=None):
     if lower_threshold is not None:
         logger.info(
-            "Mask {} values below lower bound.", (data <= lower_threshold).sum()
+            "Mask {} values below lower bound.", (data <= lower_threshold).sum().item()
         )
         data[data <= lower_threshold] = np.nan
     if upper_threshold is not None:
         logger.info(
-            "Mask {} values above upper bound.", (data >= upper_threshold).sum()
+            "Mask {} values above upper bound.", (data >= upper_threshold).sum().item()
         )
         data[data >= upper_threshold] = np.nan
 
@@ -390,7 +390,7 @@ class RsdsWeibull(Variable):
 
 class Tasrange(Variable):
     """Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Beta distribution.
+    mu and sigma parameters in a Beta distribution. TODO fix comment not Beta
     """
 
     def __init__(self, data):

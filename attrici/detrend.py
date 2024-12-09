@@ -13,7 +13,6 @@ from func_timeout import FunctionTimedOut, func_timeout
 from loguru import logger
 
 from attrici import variables
-from attrici.estimation.model_pymc3 import ModelPymc3
 from attrici.util import get_data_provenance_metadata, timeit
 
 MODEL_FOR_VAR = {
@@ -54,6 +53,8 @@ class Config:
     """List of variables to include in the output """
     seed: int = 0
     """Seed for deterministic randomisation"""
+    solver: str = "pymc5"
+    """Solver library for statistical modelling"""
     start_date: date | None = None
     """Optional start date YYYY-MM-DD"""
     stop_date: date | None = None
@@ -199,14 +200,7 @@ def save_trace(trace, filename):
         )  # TODO use a different format than pickle
 
 
-def detrend_cell(
-    config,
-    data,
-    gmt_scaled,
-    subset_times,
-    lat,
-    lon,
-):
+def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
     output_filename = (
         Path(config.output_dir)
         / "timeseries"
@@ -229,8 +223,9 @@ def detrend_cell(
     data[np.isinf(data)] = np.nan
 
     variable = MODEL_FOR_VAR[config.variable](data)
+
     statistical_model = variable.create_model(
-        ModelPymc3, gmt_scaled.sel(time=subset_times), config.modes
+        model_class, gmt_scaled.sel(time=subset_times), config.modes
     )
 
     trace = None
@@ -384,6 +379,13 @@ def detrend(config: Config):
         (obs_data.time >= startdate) & (obs_data.time <= stopdate)
     ]
 
+    if config.solver == "pymc5":
+        from attrici.estimation.model_pymc5 import ModelPymc5
+
+        model_class = ModelPymc5
+    else:
+        raise ValueError(f"Unknown solver {config.solver}")
+
     for lat, lat_index, lon, lon_index in indices:
         logger.info(
             "This is task {} working on lat,lon {},{}", config.task_id, lat, lon
@@ -396,4 +398,5 @@ def detrend(config: Config):
             subset_times,
             lat,
             lon,
+            model_class,
         )

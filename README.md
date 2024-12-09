@@ -15,7 +15,7 @@ Clone the repository and checkout the current development branch.
 Create a virtual environment.
 
 ```
-python3.11 -m venv env
+python3 -m venv env
 ```
 
 Activate the environment (adjust if using a non-default shell)
@@ -30,23 +30,6 @@ Install ATTRICI as a local development version with dev dependencies included
 pip install -e .[dev]
 ```
 
-At the current development stage ATTRICI uses Theano and you may need to create a Theano config file at `~/.theanorc` with settings like the following:
-
-```
-[global]
-device = cpu
-floatX = float64
-cxx = g++
-mode = FAST_RUN
-openmp = True
-
-[gcc]
-cxxflags = -O3 -march=native -funroll-loops
-
-[blas]
-ldflags =
-```
-
 
 ## Usage
 
@@ -54,7 +37,7 @@ See [USAGE.md](USAGE.md) for examples.
 
 ## Credits
 
-We rely on the [pymc3](https://github.com/pymc-devs/pymc3) package for probabilistic programming (Salvatier et al. 2016).
+We rely on the [PyMC](https://www.pymc.io/) package for probabilistic programming (Salvatier et al. 2016).
 
 An early version of the code on Bayesian estimation of parameters in timeseries with periodicity in PyMC3 was inspired by [Ritchie Vink's](https://www.ritchievink.com) [post](https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/) on Bayesian timeseries analysis with additive models.
 
