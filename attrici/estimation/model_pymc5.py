@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pymc as pm
-import pytensor.tensor as pt
+from pymc.pytensorf import pt
 
 from attrici import distributions
 from attrici.estimation.model import AttriciGLM, Model
