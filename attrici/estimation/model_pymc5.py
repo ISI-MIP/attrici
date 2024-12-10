@@ -1,3 +1,5 @@
+# Suppress verbose PyMC logging output
+import logging
 from dataclasses import dataclass
 
 import numpy as np
@@ -6,6 +8,9 @@ from pymc.pytensorf import pt
 
 from attrici import distributions
 from attrici.estimation.model import AttriciGLM, Model
+
+logger = logging.getLogger("pymc")
+logger.setLevel(logging.WARNING)
 
 
 def setup_parameter_model(name, parameter):

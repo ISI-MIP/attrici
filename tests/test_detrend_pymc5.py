@@ -13,9 +13,10 @@ def detrend_run(variable_name):
         input_file=Path("./tests/data/20CRv3-ERA5_germany_obs.nc"),
         mask_file=Path("./tests/data/mask_lat50.75_lon9.25.nc"),
         variable=variable_name,
-        output_dir=Path("./tests/data/output"),
+        output_dir=Path("./tests/data/output/pymc5"),
         overwrite=True,
         report_variables=["ds", "y", "cfact", "logp"],
+        solver="pymc5",
         stop_date="2021-12-31",
     )
     detrend(config)
@@ -24,7 +25,7 @@ def detrend_run(variable_name):
         f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
     )
     actual = pd.read_hdf(
-        f"./tests/data/output/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.h5"
+        f"./tests/data/output/pymc5/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.h5"
     )
 
     return actual, desired

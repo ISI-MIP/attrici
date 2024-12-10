@@ -106,7 +106,7 @@ def add_parser(subparsers):
     group.add_argument(
         "--solver",
         type=str,
-        choices=["pymc5"],
+        choices=["pymc5", "scipy"],
         default="pymc5",
         help="Solver library for statistical modelling",
     )

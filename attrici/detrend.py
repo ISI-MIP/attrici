@@ -383,6 +383,10 @@ def detrend(config: Config):
         from attrici.estimation.model_pymc5 import ModelPymc5
 
         model_class = ModelPymc5
+    elif config.solver == "scipy":
+        from attrici.estimation.model_scipy import ModelScipy
+
+        model_class = ModelScipy
     else:
         raise ValueError(f"Unknown solver {config.solver}")
 
