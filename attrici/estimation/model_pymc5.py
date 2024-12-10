@@ -238,27 +238,41 @@ class ModelPymc5(Model):
             else:
                 raise ValueError(f"Distribution {distribution} not supported")
 
-    def fit(self, progressbar=False):
-        self.trace = pm.find_MAP(model=self._model, progressbar=progressbar)
-        return self.trace
+    def fit(
+        self,
+        progressbar=False,
+        **kwargs,
+    ):
+        return pm.find_MAP(model=self._model, progressbar=progressbar)
 
-    def estimate_logp(self, progressbar=False):
+    def estimate_logp(
+        self,
+        trace,
+        progressbar=False,
+        **kwargs,
+    ):
         with self._model:
             sample = pm.sample_posterior_predictive(
-                [self.trace],
+                [trace],
                 var_names=["logp"],
                 progressbar=progressbar,
             )["posterior_predictive"]
 
             return sample["logp"].values.mean(axis=(0, 1))
 
-    def estimate_distribution(self, predictor, progressbar=False):
+    def estimate_distribution(
+        self,
+        trace,
+        predictor,
+        progressbar=False,
+        **kwargs,
+    ):
         with self._model:
             for parameter_model in self._parameter_models.values():
                 parameter_model.set_predictor_data(predictor)
 
             sample = pm.sample_posterior_predictive(
-                [self.trace],
+                [trace],
                 var_names=list(self._parameter_models.keys()),
                 progressbar=progressbar,
             )["posterior_predictive"]

@@ -292,23 +292,33 @@ class ModelScipy(Model):
         else:
             raise ValueError(f"Distribution {distribution} not supported")
 
-    def fit(self, **_):
+    def fit(self, **kwargs):
         result = minimize(
             lambda params: -sum(d.log_likelihood(params) for d in self._distributions),
             self._initial_params,
             method="L-BFGS-B",
         )
-        self.logp = -result.fun
-        self.trace = result.x
-        return self.trace
+        return {
+            "logp": -result.fun,
+            "params": result.x,
+        }
 
-    def estimate_logp(self, **_):
-        return self.logp
+    def estimate_logp(
+        self,
+        trace,
+        **kwargs,
+    ):
+        return trace["logp"]
 
-    def estimate_distribution(self, predictor, **_):
+    def estimate_distribution(
+        self,
+        trace,
+        predictor,
+        **kwargs,
+    ):
         params = {}
         for name, parameter_model in self._parameter_models.items():
             parameter_model.set_predictor_data(predictor)
-            params[name], _ = parameter_model.estimate(self.trace)
+            params[name], _ = parameter_model.estimate(trace["params"])
 
         return self._distribution_class(**params)

@@ -139,7 +139,9 @@ def add_parser(subparsers):
         help="Maximum time in seconds for sampler for a single grid cell",
     )
     group.add_argument(
-        "--use-cache", action="store_true", help="Use cached results and write new ones"
+        "--cache-dir",
+        type=Path,
+        help="Use cached results from this directory or write new ones",
     )
 
     parser.set_defaults(func=run)

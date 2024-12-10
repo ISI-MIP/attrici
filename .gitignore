@@ -5,6 +5,7 @@
 .ipynb_checkpoints/
 .pytensor/
 __pycache__/
+cache/
 env/
 log/
 runscripts/

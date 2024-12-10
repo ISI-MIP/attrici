@@ -16,12 +16,13 @@ license = { text = "GPLv3" }
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
     "func_timeout",
-    "numpy",
-    "pandas",
+    "joblib",
     "loguru",
     "netCDF4",
-    "scipy",
+    "numpy",
+    "pandas",
     "pymc",
+    "scipy",
     "tables",
     "tomlkit",
     "tqdm",

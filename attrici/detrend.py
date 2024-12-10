@@ -1,6 +1,5 @@
 """Detrend."""
 
-import pickle
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -9,6 +8,7 @@ import numpy as np
 import tomlkit
 import xarray as xr
 from func_timeout import FunctionTimedOut, func_timeout
+from joblib import Memory
 from loguru import logger
 
 from attrici import variables
@@ -64,8 +64,8 @@ class Config:
     """Task ID for parallel processing"""
     timeout: int = 60 * 60
     """Maximum time in seconds for sampler for a single grid cell"""
-    use_cache: bool = False
-    """Use cached results and write new ones"""
+    cache_dir: Path | None = None
+    """Use cached results from this directory or write new ones"""
 
     def as_dict(self):
         """Return configuration object as dictionary"""
@@ -134,47 +134,6 @@ def get_task_indices(indices, task_id, task_count):
     return indices[start_num : end_num + 1]
 
 
-def try_to_load_trace(filename):
-    """Load trace file.
-
-    Parameters
-    ----------
-    filename : str | os.PathLike
-
-    Returns
-    -------
-    dictionary
-    """
-    if not filename.exists():
-        return None
-    try:
-        with open(filename, "rb") as f:
-            return pickle.load(f)  # TODO use a different format than pickle
-    except Exception:
-        logger.exception("Problem with saved trace. Redo parameter estimation.")
-    return None
-
-
-def save_trace(trace, filename):
-    """Save trace information.
-
-    Parameters
-    ----------
-    trace : dictionary
-    filename : str | os.PathLike
-    """
-    free_params = {
-        key: value
-        for key, value in trace.items()
-        if key.startswith("weights") or key == "logp"
-    }
-    filename.parent.mkdir(parents=True, exist_ok=True)
-    with open(filename, "wb") as f:
-        pickle.dump(
-            free_params, f, protocol=pickle.HIGHEST_PROTOCOL
-        )  # TODO use a different format than pickle
-
-
 def log_invalid_count(indices, name):
     count = indices.sum().item()
     if count > 0:
@@ -214,39 +173,46 @@ def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
         model_class, gmt_scaled.sel(time=subset_times), config.modes
     )
 
-    trace = None
-    if config.use_cache:
-        trace_filename = (
-            config.output_dir
-            / "traces"
-            / config.variable
-            / f"lat_{lat}"
-            / f"traces_lat{lat}_lon{lon}.pkl"
+    memory = Memory(config.cache_dir, verbose=0)
+
+    def fit(inputs):
+        return statistical_model.fit(progressbar=config.progressbar)
+
+    def cache_validation_callback(*args):
+        logger.info("Using cached results")
+        return True
+
+    def fit_cached():
+        return memory.cache(
+            fit,
+            cache_validation_callback=cache_validation_callback,
+        )(
+            # the following are used to define the result from the cache perspective
+            # (hence, changes in these would result in new computation)
+            {
+                "data": data,
+                "modes": config.modes,
+                "predictor": gmt_scaled,
+                "seed": config.seed,
+                "solver": config.solver,
+                "subset_times": subset_times,
+            }
         )
-        trace = try_to_load_trace(trace_filename)
 
-    if trace is None:
-        try:
-            trace = func_timeout(
-                config.timeout,
-                lambda: statistical_model.fit(progressbar=config.progressbar),
-            )
-        except FunctionTimedOut:
-            logger.error("Sampling at {} {} timed out", lat, lon)
-            return
-        if config.use_cache:
-            save_trace(trace, trace_filename)
-
-    statistical_model.trace = trace  # TODO to be replaced by caching library
+    try:
+        trace = func_timeout(config.timeout, fit_cached)
+    except FunctionTimedOut:
+        logger.error("Sampling at {} {} timed out", lat, lon)
+        return
 
     distribution_ref = statistical_model.estimate_distribution(
-        predictor=gmt_scaled, progressbar=config.progressbar
+        trace, predictor=gmt_scaled, progressbar=config.progressbar
     )
 
     gmt_scaled_cfact = gmt_scaled.copy()
     gmt_scaled_cfact[:] = 0
     distribution_cfact = statistical_model.estimate_distribution(
-        predictor=gmt_scaled_cfact, progressbar=config.progressbar
+        trace, predictor=gmt_scaled_cfact, progressbar=config.progressbar
     )
 
     logger.info("Starting quantile mapping")
@@ -274,7 +240,9 @@ def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
             "gmt_scaled": gmt_scaled,
             "y_scaled": variable.y_scaled,
             "cfact_scaled": cfact_scaled,
-            "logp": statistical_model.estimate_logp(progressbar=config.progressbar),
+            "logp": statistical_model.estimate_logp(
+                trace, progressbar=config.progressbar
+            ),
             "cfact": cfact,
         },
         coords=data.coords,
