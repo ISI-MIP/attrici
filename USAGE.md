@@ -42,7 +42,7 @@ attrici detrend --gmt-file ./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc \
                 --input-file ./tests/data/20CRv3-ERA5_germany_obs.nc \
                 --variable tas \
                 --stop-date "2023-12-31" \
-                --report-variables ds y cfact logp
+                --report-variables y cfact logp
 ```
 
 Some cells can be omitted from the calculation with a mask via the `--mask-file` option, e.g. a land-sea-mask.
@@ -54,7 +54,7 @@ attrici detrend --gmt-file ./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc \
                 --mask-file ./tests/data/20CRv3-ERA5_germany_mask.nc \
                 --variable tas \
                 --stop-date "2023-12-31" \
-                --report-variables ds y cfact logp
+                --report-variables y cfact logp
 ```
 
 To change the logging level the `LOGURU_LEVEL` environment variable can be set.
@@ -66,7 +66,7 @@ LOGURU_LEVEL=WARNING attrici detrend \
                 --input-file ./tests/data/20CRv3-ERA5_germany_obs.nc \
                 --variable tas \
                 --stop-date "2023-12-31" \
-                --report-variables ds y cfact logp
+                --report-variables y cfact logp
 ```
 
 To print the current config set via defaults and command line options as TOML the `--print-config` flag can be used.
@@ -76,7 +76,7 @@ attrici detrend --gmt-file ./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc \
                 --input-file ./tests/data/20CRv3-ERA5_germany_obs.nc \
                 --variable tas \
                 --stop-date "2023-12-31" \
-                --report-variables ds y cfact logp \
+                --report-variables y cfact logp \
                 --print-config
 ```
 
@@ -140,7 +140,7 @@ srun attrici \
      --output-dir ./tests/data/output \
      --variable tas \
      --stop-date 2021-12-31 \
-     --report-variables ds y cfact logp \
+     --report-variables y cfact logp \
      --overwrite \
      --task-id "$SLURM_ARRAY_TASK_ID" \
      --task-count "$SLURM_ARRAY_TASK_COUNT"
@@ -177,7 +177,7 @@ exec attrici \
      --output-dir ./tests/data/output \
      --variable tas \
      --stop-date 2021-12-31 \
-     --report-variables ds y cfact logp \
+     --report-variables y cfact logp \
      --overwrite \
      --task-id "$SLURM_PROCID" \
      --task-count "$SLURM_NTASKS"

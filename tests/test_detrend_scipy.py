@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import netCDF4  # noqa Used to suppress warning https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 from attrici.detrend import Config, detrend
 
@@ -15,7 +17,7 @@ def detrend_run(variable_name):
         variable=variable_name,
         output_dir=Path("./tests/data/output/scipy"),
         overwrite=True,
-        report_variables=["ds", "y", "cfact"],
+        report_variables=["y", "cfact"],
         solver="scipy",
         stop_date="2021-12-31",
     )
@@ -24,9 +26,13 @@ def detrend_run(variable_name):
     desired = pd.read_hdf(
         f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
     )
-    actual = pd.read_hdf(
-        f"./tests/data/output/scipy/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.h5"
-    )
+    desired = desired.set_index(desired.ds)
+    desired.index.name = "time"
+    desired = desired.drop("ds", axis=1)
+
+    actual = xr.load_dataset(
+        f"./tests/data/output/pymc5/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.nc"
+    ).to_dataframe()
 
     return actual, desired
 

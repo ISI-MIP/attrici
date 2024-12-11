@@ -1,8 +1,10 @@
 from pathlib import Path
 
+import netCDF4  # noqa Used to suppress warning https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
 from attrici.detrend import Config, detrend
 
@@ -15,7 +17,7 @@ def detrend_run(variable_name):
         variable=variable_name,
         output_dir=Path("./tests/data/output/pymc5"),
         overwrite=True,
-        report_variables=["ds", "y", "cfact", "logp"],
+        report_variables=["y", "cfact", "logp"],
         solver="pymc5",
         stop_date="2021-12-31",
     )
@@ -24,9 +26,13 @@ def detrend_run(variable_name):
     desired = pd.read_hdf(
         f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
     )
-    actual = pd.read_hdf(
-        f"./tests/data/output/pymc5/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.h5"
-    )
+    desired = desired.set_index(desired.ds)
+    desired.index.name = "time"
+    desired = desired.drop("ds", axis=1)
+
+    actual = xr.load_dataset(
+        f"./tests/data/output/pymc5/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.nc"
+    ).to_dataframe()
 
     return actual, desired
 
@@ -54,8 +60,8 @@ def test_detrend_run_tasrange():
     np.testing.assert_allclose(actual.cfact, desired.cfact, rtol=1e-06, atol=1e-05)
     np.testing.assert_allclose(actual.y, desired.y)
 
-    # Skipping logp comparison for variables with inconsistent prior distributions
-    # Fixed in https://github.com/ISI-MIP/attrici/pull/101
+    # Skipping logp comparison for variables with inconsistent,
+    # prior distributions, fixed in https://github.com/ISI-MIP/attrici/pull/101
     # np.testing.assert_allclose(actual.logp, desired.logp)
 
 
@@ -75,8 +81,8 @@ def test_detrend_run_pr():
 
     np.testing.assert_allclose(actual.y, desired.y)
 
-    # Skipping logp comparison for variables with inconsistent prior distributions
-    # Fixed in https://github.com/ISI-MIP/attrici/pull/101
+    # Skipping logp comparison for variables with inconsistent
+    # prior distributions, fixed in https://github.com/ISI-MIP/attrici/pull/101
     # np.testing.assert_allclose(actual.logp, desired.logp)
 
 

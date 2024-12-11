@@ -55,8 +55,9 @@ select = [
     "I",
 ]
 ignore = [
-    "PLR0913", # Too many arguments 
     "PLR0912", # Too many branches
+    "PLR0913", # Too many arguments 
+    "PLR0915", # Too many statements
 ]
 
 [tool.pytest.ini_options]

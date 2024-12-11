@@ -95,7 +95,7 @@ def add_parser(subparsers):
         "--report-variables",
         nargs="+",
         default=Config.__dataclass_fields__["report_variables"].default,
-        help="Variables to report, e.g. `--report-variables ds y cfact logp`",
+        help="Variables to report, e.g. `--report-variables y cfact logp`",
     )
     group.add_argument(
         "--seed",

@@ -6,7 +6,6 @@ from datetime import date
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import tomlkit
 import xarray as xr
 from func_timeout import FunctionTimedOut, func_timeout
@@ -81,30 +80,6 @@ class Config:
                 if v is not None
             }
         )
-
-
-def save_to_disk(df, filename, lat, lon, metadata=None):
-    """Save DataFrame to disk.
-
-    Parameters
-    ----------
-    df : DataFrame
-    filename : str | os.PathLike
-    lat
-        Latitude
-    lon
-        Longitude
-    metadata : dictionary, optional
-        Dictionary with provenance metadata
-    """
-    filename.parent.mkdir(parents=True, exist_ok=True)
-    store = pd.HDFStore(filename, mode="w")
-    df_name = f"lat_{lat}_lon_{lon}"
-    store[df_name] = df
-    if metadata is not None:
-        store.get_storer(df_name).attrs.metadata = metadata
-    store.close()
-    logger.info("Saved timeseries to {}", filename)
 
 
 def get_task_indices(indices, task_id, task_count):
@@ -200,13 +175,24 @@ def save_trace(trace, filename):
         )  # TODO use a different format than pickle
 
 
+def log_invalid_count(indices, name):
+    count = indices.sum().item()
+    if count > 0:
+        logger.info(
+            "There are {} {} values from quantile mapping"
+            " (replaced with original value)",
+            count,
+            name,
+        )
+
+
 def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
     output_filename = (
         Path(config.output_dir)
         / "timeseries"
         / config.variable
         / f"lat_{lat}"
-        / f"ts_lat{lat}_lon{lon}.h5"
+        / f"ts_lat{lat}_lon{lon}.nc"
     )
 
     if output_filename.exists():
@@ -264,54 +250,48 @@ def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
     )
 
     logger.info("Starting quantile mapping")
-    cfact_scaled = data.astype(np.float64)
+    cfact_scaled = variable.y_scaled.astype(np.float64)
     cfact_scaled[:] = variable.quantile_mapping(distribution_ref, distribution_cfact)
     cfact = variable.rescale(cfact_scaled)
+    cfact.attrs = data.attrs
 
-    yna = cfact.isnull()
-    cfact[yna] = data[yna]
-    logger.info(
-        "There are {} NaN values from quantile mapping (replaced with original value)",
-        yna.sum().item(),
-    )
-    yinf = cfact.isin([np.inf])
-    cfact[yinf] = data[yinf]
-    logger.info(
-        "There are {} Inf values from quantile mapping (replaced with original value)",
-        yinf.sum().item(),
-    )
-    yminf = cfact.isin([-np.inf])
-    cfact[yminf] = data[yminf]
-    logger.info(
-        "There are {} -Inf values from quantile mapping (replaced with original value)",
-        yminf.sum().item(),
-    )
+    indices = cfact.isnull()
+    cfact[indices] = data[indices]
+    log_invalid_count(indices, "NaN")
+
+    indices = cfact.isin([np.inf])
+    cfact[indices] = data[indices]
+    log_invalid_count(indices, "Inf")
+
+    indices = cfact.isin([-np.inf])
+    cfact[indices] = data[indices]
+    log_invalid_count(indices, "-Inf")
 
     logger.info("Writing output")
-    df = pd.DataFrame(
+    ds = xr.Dataset(
         {
-            "ds": data.time,
             "y": data,
             "gmt_scaled": gmt_scaled,
             "y_scaled": variable.y_scaled,
             "cfact_scaled": cfact_scaled,
             "logp": statistical_model.estimate_logp(progressbar=config.progressbar),
             "cfact": cfact,
-        }
+        },
+        coords=data.coords,
     )
     for k, v in distribution_ref.__dict__.items():
-        df.loc[:, k] = v
+        ds[k] = variable.y_scaled.copy()
+        ds[k][:] = v
     for k, v in distribution_cfact.__dict__.items():
-        df.loc[:, f"{k}_ref"] = v
+        ds[f"{k}_ref"] = variable.y_scaled.copy()
+        ds[f"{k}_ref"][:] = v
     if "all" not in config.report_variables:
-        df = df.loc[:, config.report_variables]
-    save_to_disk(
-        df,
-        output_filename,
-        lat,
-        lon,
-        metadata=get_data_provenance_metadata(attrici_config=config.to_toml()),
-    )
+        ds = ds[config.report_variables]
+
+    output_filename.parent.mkdir(parents=True, exist_ok=True)
+    ds.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
+    ds.to_netcdf(output_filename)
+    logger.info("Saved timeseries to {}", output_filename)
 
 
 @timeit
