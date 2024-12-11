@@ -234,25 +234,31 @@ def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
     log_invalid_count(indices, "-Inf")
 
     logger.info("Writing output")
+
+    def array_on_cell(d, **kwargs):
+        return xr.DataArray(
+            [[d]],
+            coords={"time": data.time, "lon": [data.lon], "lat": [data.lat]},
+            dims=("lon", "lat", "time"),
+            **kwargs,
+        )
+
     ds = xr.Dataset(
         {
-            "y": data,
+            "y": array_on_cell(data, attrs=data.attrs),
             "gmt_scaled": gmt_scaled,
-            "y_scaled": variable.y_scaled,
-            "cfact_scaled": cfact_scaled,
+            "y_scaled": array_on_cell(variable.y_scaled),
+            "cfact_scaled": array_on_cell(cfact_scaled),
+            "cfact": array_on_cell(cfact, attrs=data.attrs),
             "logp": statistical_model.estimate_logp(
                 trace, progressbar=config.progressbar
             ),
-            "cfact": cfact,
         },
-        coords=data.coords,
     )
     for k, v in distribution_ref.__dict__.items():
-        ds[k] = variable.y_scaled.copy()
-        ds[k][:] = v
+        ds[k] = array_on_cell(v)
     for k, v in distribution_cfact.__dict__.items():
-        ds[f"{k}_ref"] = variable.y_scaled.copy()
-        ds[f"{k}_ref"][:] = v
+        ds[f"{k}_ref"] = array_on_cell(v)
     if "all" not in config.report_variables:
         ds = ds[config.report_variables]
 

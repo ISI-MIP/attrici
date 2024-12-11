@@ -15,6 +15,7 @@ keywords = ["climate", "impacts"]
 license = { text = "GPLv3" }
 classifiers = ["Programming Language :: Python :: 3"]
 dependencies = [
+    "dask",
     "func_timeout",
     "joblib",
     "loguru",
