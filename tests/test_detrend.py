@@ -63,6 +63,7 @@ def test_detrend_run_tasskew():
 
 @pytest.mark.slow
 def test_detrend_run_tasrange():
+    # Unit of tasrange: K
     actual, desired = detrend_run("tasrange")
     np.testing.assert_allclose(actual.cfact, desired.cfact, rtol=1e-06, atol=1e-05)
     np.testing.assert_allclose(actual.y, desired.y)
@@ -74,6 +75,7 @@ def test_detrend_run_tasrange():
 
 @pytest.mark.slow
 def test_detrend_run_pr():
+    # Unit of pr: kg m-2 s-1
     actual, desired = detrend_run("pr")
 
     # Days with rain in both
