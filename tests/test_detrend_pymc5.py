@@ -71,7 +71,9 @@ def test_detrend_run_pr():
     actual, desired = detrend_run("pr")
 
     # Days with rain in both
-    data = pd.DataFrame({"actual": actual.cfact, "desired": desired.cfact})
+    data = pd.DataFrame(
+        {"actual": actual.cfact.values, "desired": desired.cfact.values}
+    )
     test_data = data[(data.actual > 0) & (data.desired > 0)]
     np.testing.assert_allclose(test_data.actual, test_data.desired, atol=1e-07)
 
