@@ -31,7 +31,7 @@ def test_ssa():
     REFERENCE_FILE = "tests/data/20CRv3-ERA5_germany_ssa_gmt.nc"
 
     ssa(
-        input=INPUT_FILE,
+        filename=INPUT_FILE,
         variable="tas",
         window_size=365,
         subset=10,
