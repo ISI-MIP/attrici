@@ -67,9 +67,9 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 
-
 [project.optional-dependencies]
 dev = ["ruff", "pytest"]
+pymc3 = ["numpy<1.25", "pymc3==3.7", "Theano==1.0.5"]
 
 [project.scripts]
 attrici = "attrici.cli:main"

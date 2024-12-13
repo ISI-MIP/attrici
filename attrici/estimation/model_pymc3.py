@@ -1,25 +1,55 @@
+import collections
+import collections.abc
+import inspect
 import logging
+import os
+import sys
+import warnings
 from dataclasses import dataclass
 
 import numpy as np
-import pymc as pm
 from loguru import logger
-from pymc.pytensorf import pt
 
 from attrici import distributions
 from attrici.estimation.model import AttriciGLM, Model
 
-# Suppress verbose PyMC logging output
-logging.getLogger("pymc").setLevel(logging.WARNING)
+# monkey patch for newer numpy versions
+if not hasattr(np, "asscalar"):
+    np.asscalar = np.ndarray.item
 
-logger.info(f"Using PyMC5 version {pm.__version__}")
+np.bool = bool
+
+if not hasattr(collections, "Iterable"):
+    collections.Iterable = collections.abc.Iterable
+
+if not hasattr(inspect, "getargspec"):
+    inspect.getargspec = inspect.getfullargspec
+
+if sys.version_info >= (3, 12):
+    raise ImportError("PyMC3 module is not compatible with Python >3.11")
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore")
+    import numpy.distutils as numpy_distutils  # noqa: E402
+
+    if not hasattr(numpy_distutils.__config__, "blas_opt_info"):
+        os.environ["THEANO_FLAGS"] = "blas.ldflags=" + (
+            f",{os.environ['THEANO_FLAGS']}" if os.environ.get("THEANO_FLAGS") else ""
+        )
+
+    # need to be imported last after numpy and collections have been patched
+    import pymc3 as pm  # noqa: E402
+    import theano.tensor as tt  # noqa: E402
+
+logging.getLogger("pymc3").propagate = False  # needed to silence verbose pymc3
+logger.info(f"Using PyMC3 version {pm.__version__}")
 
 
 def setup_parameter_model(name, parameter):
     if isinstance(parameter, AttriciGLM.PredictorDependentParam):
-        return AttriciGLMPymc5.PredictorDependentParam(name, parameter)
+        return AttriciGLMPymc3.PredictorDependentParam(name, parameter)
     if isinstance(parameter, AttriciGLM.PredictorIndependentParam):
-        return AttriciGLMPymc5.PredictorIndependentParam(name, parameter)
+        return AttriciGLMPymc3.PredictorIndependentParam(name, parameter)
     raise ValueError(f"Parameter type {type(parameter)} not supported")
 
 
@@ -29,7 +59,7 @@ def calc_oscillations(t, modes):
     return np.concatenate((np.cos(x), np.sin(x)), axis=1)
 
 
-class AttriciGLMPymc5:
+class AttriciGLMPymc3:
     PRIOR_INTERCEPT_MU = 0
     PRIOR_INTERCEPT_SIGMA = 1
     PRIOR_TREND_MU = 0
@@ -43,14 +73,14 @@ class AttriciGLMPymc5:
         def build_linear_model(self, oscillations, predictor):
             weights_longterm_intercept = pm.Normal(
                 f"weights_{self.name}_longterm_intercept",
-                mu=AttriciGLMPymc5.PRIOR_INTERCEPT_MU,
-                sigma=AttriciGLMPymc5.PRIOR_INTERCEPT_SIGMA,
+                mu=AttriciGLMPymc3.PRIOR_INTERCEPT_MU,
+                sigma=AttriciGLMPymc3.PRIOR_INTERCEPT_SIGMA,
             )
             weights_fc_intercept = pm.math.concatenate(
                 [
                     pm.Normal(
                         f"weights_{self.name}_fc_intercept_{i}",
-                        mu=AttriciGLMPymc5.PRIOR_INTERCEPT_MU,
+                        mu=AttriciGLMPymc3.PRIOR_INTERCEPT_MU,
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
@@ -61,25 +91,25 @@ class AttriciGLMPymc5:
             covariates = pm.math.concatenate(
                 [
                     oscillations,
-                    pt.tile(predictor[:, None], (1, 2 * self.parameter.modes))
+                    tt.tile(predictor[:, None], (1, 2 * self.parameter.modes))
                     * oscillations,
                 ],
                 axis=1,
             )
             weights_longterm_trend = pm.Normal(
                 f"weights_{self.name}_longterm_trend",
-                mu=AttriciGLMPymc5.PRIOR_TREND_MU,
-                sigma=AttriciGLMPymc5.PRIOR_TREND_SIGMA,
+                mu=AttriciGLMPymc3.PRIOR_TREND_MU,
+                sigma=AttriciGLMPymc3.PRIOR_TREND_SIGMA,
             )
             weights_fc_trend = pm.Normal(
                 f"weights_{self.name}_fc_trend",
-                mu=AttriciGLMPymc5.PRIOR_TREND_MU,
-                sigma=AttriciGLMPymc5.PRIOR_TREND_SIGMA,
+                mu=AttriciGLMPymc3.PRIOR_TREND_MU,
+                sigma=AttriciGLMPymc3.PRIOR_TREND_SIGMA,
                 shape=2 * self.parameter.modes,
             )
             weights_fc = pm.math.concatenate([weights_fc_intercept, weights_fc_trend])
             return (
-                pt.dot(covariates, weights_fc)
+                tt.dot(covariates, weights_fc)
                 + weights_longterm_intercept
                 + weights_longterm_trend * predictor
             )
@@ -116,8 +146,8 @@ class AttriciGLMPymc5:
         def build_linear_model(self, oscillations):
             weights_longterm_intercept = pm.Normal(
                 f"weights_{self.name}_longterm_intercept",
-                mu=AttriciGLMPymc5.PRIOR_INTERCEPT_MU,
-                sigma=AttriciGLMPymc5.PRIOR_INTERCEPT_SIGMA,
+                mu=AttriciGLMPymc3.PRIOR_INTERCEPT_MU,
+                sigma=AttriciGLMPymc3.PRIOR_INTERCEPT_SIGMA,
             )
             weights_fc_intercept = pm.math.concatenate(
                 [
@@ -131,7 +161,7 @@ class AttriciGLMPymc5:
                 ]
             )
             return (
-                pt.dot(oscillations, weights_fc_intercept) + weights_longterm_intercept
+                tt.dot(oscillations, weights_fc_intercept) + weights_longterm_intercept
             )
 
         def build(self, predictor):
@@ -153,7 +183,7 @@ class AttriciGLMPymc5:
             )
 
 
-class ModelPymc5(Model):
+class ModelPymc3(Model):
     def __init__(
         self,
         distribution,
@@ -180,7 +210,7 @@ class ModelPymc5(Model):
                     predictor.sel(time=observed_gamma.time)
                 )
 
-                pm.Deterministic("logp", self._model.varlogp)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Bernoulli(
                     "observation_bernoulli",
                     p=p,
@@ -195,13 +225,13 @@ class ModelPymc5(Model):
 
             elif distribution == distributions.Bernoulli:
                 p = self._parameter_models["p"].build(predictor)
-                pm.Deterministic("logp", self._model.varlogp)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Bernoulli("observation", p=p, observed=observed)
 
             elif distribution == distributions.Gamma:
                 mu = self._parameter_models["mu"].build(predictor)
                 nu = self._parameter_models["nu"].build(predictor)
-                pm.Deterministic("logp", self._model.varlogp)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Gamma(
                     "observation",
                     mu=mu,
@@ -212,7 +242,7 @@ class ModelPymc5(Model):
             elif distribution == distributions.Normal:
                 mu = self._parameter_models["mu"].build(predictor)
                 sigma = self._parameter_models["sigma"].build(predictor)
-                pm.Deterministic("logp", self._model.varlogp)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Normal(
                     "observation",
                     mu=mu,
@@ -223,7 +253,7 @@ class ModelPymc5(Model):
             elif distribution == distributions.Beta:
                 mu = self._parameter_models["mu"].build(predictor)
                 phi = self._parameter_models["phi"].build(predictor)
-                pm.Deterministic("logp", self._model.varlogp)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Beta(
                     "observation",
                     alpha=pm.Deterministic("alpha", mu * phi),
@@ -234,7 +264,7 @@ class ModelPymc5(Model):
             elif distribution == distributions.Weibull:
                 alpha = self._parameter_models["alpha"].build(predictor)
                 beta = self._parameter_models["beta"].build(predictor)
-                pm.Deterministic("logp", self._model.varlogp)
+                pm.Deterministic("logp", self._model.logpt)
                 pm.Weibull("observation", alpha=alpha, beta=beta, observed=observed)
 
             else:
@@ -245,7 +275,9 @@ class ModelPymc5(Model):
         progressbar=False,
         **kwargs,
     ):
-        return pm.find_MAP(model=self._model, progressbar=progressbar)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore")
+            return pm.find_MAP(model=self._model, progressbar=progressbar)
 
     def estimate_logp(
         self,
@@ -257,10 +289,11 @@ class ModelPymc5(Model):
             sample = pm.sample_posterior_predictive(
                 [trace],
                 var_names=["logp"],
+                samples=1,
                 progressbar=progressbar,
-            )["posterior_predictive"]
+            )
 
-            return sample["logp"].values.mean(axis=(0, 1))
+            return sample["logp"].mean(axis=0)
 
     def estimate_distribution(
         self,
@@ -276,12 +309,13 @@ class ModelPymc5(Model):
             sample = pm.sample_posterior_predictive(
                 [trace],
                 var_names=list(self._parameter_models.keys()),
+                samples=1,
                 progressbar=progressbar,
-            )["posterior_predictive"]
+            )
 
         return self._distribution_class(
             **{
-                name: sample[name].values.mean(axis=(0, 1))
+                name: sample[name].mean(axis=0)
                 for name in self._parameter_models.keys()
             }
         )
