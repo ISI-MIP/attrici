@@ -200,7 +200,7 @@ def detrend_cell(variable, statistical_model, trace, data, predictor, **kwargs):
     # check if resulting data is also valid
     variable.validate(cfact)
 
-    return cfact_scaled, cfact, distribution_ref, distribution_cfact
+    return cfact_scaled, cfact, distribution_ref, distribution_cfact, replaced
 
 
 def fit_and_detrend_cell(
@@ -280,7 +280,7 @@ def fit_and_detrend_cell(
 
     logger.info("Starting quantile mapping")
 
-    cfact_scaled, cfact, distribution_ref, distribution_cfact = detrend_cell(
+    cfact_scaled, cfact, distribution_ref, distribution_cfact, replaced = detrend_cell(
         variable,
         statistical_model,
         trace,
@@ -345,7 +345,7 @@ def fit_and_detrend_cell(
                 model_class, gmt_scaled, config.modes
             )
             trace = statistical_model.fit()
-            _, cfact, _, _ = detrend_cell(
+            _, cfact, _, _, _ = detrend_cell(
                 variable, statistical_model, trace, data, gmt_scaled
             )
             return cfact
