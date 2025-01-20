@@ -16,8 +16,11 @@ def ssa(filename, variable, window_size, subset, output):
     )
 
     output_dataset = xr.Dataset(
-        data_vars={variable: ssa_values},
-        coords={"time": ssa_times},
+        data_vars={
+            variable: xr.DataArray(
+                ssa_values, coords={"time": ssa_times}, dims=("time",)
+            )
+        },
         attrs=get_data_provenance_metadata(
             input_file=Path(filename).name,
             subset=subset,

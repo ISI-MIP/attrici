@@ -76,6 +76,7 @@ def add_parser(subparsers):
         "--output-dir",
         type=Path,
         help="Output directory for the results",
+        required=True,
     )
     group.add_argument(
         "--overwrite", action="store_true", help="Overwrite existing files"
