@@ -19,6 +19,9 @@ class Normal(Distribution):
     def invcdf(self, quantile):
         return stats.norm.ppf(quantile, loc=self.mu, scale=self.sigma)
 
+    def expectation(self):
+        return self.mu
+
 
 @dataclass
 class BernoulliGamma(Distribution):
@@ -38,16 +41,22 @@ class BernoulliGamma(Distribution):
             scale=self.mu / self.nu**2.0,
         )
 
+    def expectation(self):
+        return (1 - self.p) * self.mu
+
 
 @dataclass
 class Bernoulli(Distribution):
     p: Any
 
     def cdf(self, y):
-        return self.p + (1 - self.p) * y
+        return stats.bernoulli.cdf(y, self.p)
 
     def invcdf(self, quantile):
-        return (quantile - self.p) / (1 - self.p)
+        return stats.bernoulli.ppf(quantile, self.p)
+
+    def expectation(self):
+        return self.p
 
 
 @dataclass
@@ -61,6 +70,9 @@ class Gamma(Distribution):
     def invcdf(self, quantile):
         return stats.gamma.ppf(quantile, self.nu**2.0, scale=self.mu / self.nu**2.0)
 
+    def expectation(self):
+        return self.mu
+
 
 @dataclass
 class Beta(Distribution):
@@ -73,6 +85,9 @@ class Beta(Distribution):
     def invcdf(self, quantile):
         return stats.beta.ppf(quantile, self.mu * self.phi, (1 - self.mu) * self.phi)
 
+    def expectation(self):
+        return self.mu
+
 
 @dataclass
 class Weibull(Distribution):
@@ -84,3 +99,6 @@ class Weibull(Distribution):
 
     def invcdf(self, quantile):
         return stats.weibull_min.ppf(quantile, self.alpha, scale=self.beta)
+
+    def expectation(self):
+        return stats.weibull_min.mean(self.alpha, scale=self.beta)

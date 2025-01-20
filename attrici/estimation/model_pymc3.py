@@ -277,7 +277,12 @@ class ModelPymc3(Model):
     ):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            return pm.find_MAP(model=self._model, progressbar=progressbar)
+            traces = pm.find_MAP(model=self._model, progressbar=progressbar)
+            return {
+                k: v
+                for k, v in traces.items()
+                if k == "logp" or k.startswith("weights_")
+            }
 
     def estimate_logp(
         self,

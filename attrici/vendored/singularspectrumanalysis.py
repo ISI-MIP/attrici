@@ -248,7 +248,7 @@ class SingularSpectrumAnalysis:
             or isinstance(self.groups, (int, list, tuple, np.ndarray))
         ):
             raise TypeError(
-                "'groups' must be either None, an integer, " "'auto' or array-like."
+                "'groups' must be either None, an integer, 'auto' or array-like."
             )
         FREQUENCY_BOUND = 0.5
         if not isinstance(self.lower_frequency_bound, (float, np.floating)):

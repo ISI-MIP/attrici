@@ -5,7 +5,6 @@ from attrici import __version__
 from attrici.commands import (
     detrend,
     merge_output,
-    merge_traces,
     postprocess_tas,
     preprocess_tas,
     ssa,
@@ -33,7 +32,6 @@ def main():
 
     detrend.add_parser(subparsers)
     merge_output.add_parser(subparsers)
-    merge_traces.add_parser(subparsers)
     preprocess_tas.add_parser(subparsers)
     postprocess_tas.add_parser(subparsers)
     ssa.add_parser(subparsers)

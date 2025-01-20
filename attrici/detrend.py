@@ -7,25 +7,11 @@ from pathlib import Path
 import numpy as np
 import tomlkit
 import xarray as xr
-from func_timeout import FunctionTimedOut, func_timeout
-from joblib import Memory
 from loguru import logger
+from tqdm import tqdm
 
-from attrici import variables
 from attrici.util import get_data_provenance_metadata, timeit
-
-MODEL_FOR_VAR = {
-    "tas": variables.Tas,
-    "tasrange": variables.Tasrange,
-    "tasskew": variables.Tasskew,
-    "pr": variables.Pr,
-    "hurs": variables.Hurs,
-    "wind": variables.Wind,
-    "sfcWind": variables.Wind,
-    "ps": variables.Ps,
-    "rsds": variables.Rsds,
-    "rlds": variables.Rlds,
-}
+from attrici.variables import create_variable
 
 
 @dataclass
@@ -36,16 +22,28 @@ class Config:
     """Path to (SSA-smoothed) Global Mean Temperature file"""
     input_file: Path
     """Path to input file"""
-    mask_file: Path
-    """Optional path to file with masking information"""
     variable: str
     """Variable to detrend"""
     output_dir: Path
     """Output directory for the results"""
+    gmt_variable: str = "tas"
+    """Variable name in GMT file"""
+    mask_file: Path | None = None
+    """Optional path to file with masking information"""
+    trace_file: Path | None = None
+    """Optional path to file with trace from previous fit"""
+    cells: list[tuple[float, float]] | None = None
+    """Optional list of lat,lon tuples to process, otherwise all cells are processed"""
     modes: int = 4
     """Number of modes for fourier series of model"""
+    bootstrap_sample_count: int = 0
+    """Number of bootstrap samples"""
     overwrite: bool = False
     """Overwrite existing files"""
+    write_trace: bool = False
+    """Save trace to file"""
+    fit_only: bool = False
+    """Calculate fit only"""
     progressbar: bool = False
     """Show progress bar"""
     report_variables: list[str] | tuple[str] = ("all",)
@@ -82,13 +80,13 @@ class Config:
         )
 
 
-def get_task_indices(indices, task_id, task_count):
+def get_task_indices(indices_len, task_id, task_count):
     """Get the indices of the grid cells that this task should work on.
 
     Parameters
     ----------
-    indices : np.ndarray
-        The indices of the grid cells
+    indices_len: int
+        The number of grid cells
     task_id : int
         The task ID
     task_count : int
@@ -102,19 +100,19 @@ def get_task_indices(indices, task_id, task_count):
     if task_id < 0 or task_id >= task_count:
         raise ValueError("Task ID must be between 0 and task count")
 
-    if len(indices) % (task_count) == 0:
+    if indices_len % (task_count) == 0:
         logger.info("Grid cells can be equally distributed to tasks")
-        calls_per_arrayjob = np.ones(task_count) * len(indices) // (task_count)
+        calls_per_arrayjob = np.ones(task_count) * indices_len // (task_count)
     else:
         logger.info(
             "Number of tasks not a divisor of number of grid cells"
             " - some tasks will be empty"
         )
-        calls_per_arrayjob = np.ones(task_count) * len(indices) // (task_count) + 1
-        discarded_jobs = np.where(np.cumsum(calls_per_arrayjob) > len(indices))
+        calls_per_arrayjob = np.ones(task_count) * indices_len // (task_count) + 1
+        discarded_jobs = np.where(np.cumsum(calls_per_arrayjob) > indices_len)
         calls_per_arrayjob[discarded_jobs] = 0
         calls_per_arrayjob[discarded_jobs[0][0]] = (
-            len(indices) - calls_per_arrayjob.sum()
+            indices_len - calls_per_arrayjob.sum()
         )
 
     # Calculate the starting and ending values for this task based
@@ -131,62 +129,132 @@ def get_task_indices(indices, task_id, task_count):
             start_num,
             end_num,
         )
-    return indices[start_num : end_num + 1]
+    return np.arange(start_num, end_num + 1)
 
 
-def log_invalid_count(indices, name):
-    count = indices.sum().item()
-    if count > 0:
-        logger.info(
-            "There are {} {} values from quantile mapping"
-            " (replaced with original value)",
-            count,
-            name,
-        )
-
-
-def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
-    output_filename = (
+def write_trace(config, trace, lat, lon):
+    trace_filename = (
         Path(config.output_dir)
-        / "timeseries"
+        / "trace"
         / config.variable
         / f"lat_{lat}"
-        / f"ts_lat{lat}_lon{lon}.nc"
+        / f"trace_lat{lat}_lon{lon}.nc"
+    )
+    trace_filename.parent.mkdir(parents=True, exist_ok=True)
+    trace_ds = xr.Dataset(
+        coords={"lon": [lon], "lat": [lat]},
+    )
+    for k, v in trace.items():
+        d = xr.DataArray(v)
+        for dim in list(d.dims):
+            d = d.rename({dim: f"{k}_{dim}"})
+        trace_ds[k] = d.expand_dims(dim=("lon", "lat"))
+    trace_ds.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
+    trace_ds.to_netcdf(trace_filename)
+
+    logger.info("Saved trace to {}", trace_filename)
+
+
+def detrend_cell(variable, statistical_model, trace, data, predictor, **kwargs):
+    distribution_ref = statistical_model.estimate_distribution(
+        trace, predictor=predictor, **kwargs
     )
 
-    if output_filename.exists():
-        if config.overwrite:
-            logger.warning("Existing data in {} will be overwritten", output_filename)
-        else:
-            logger.warning(
-                "Existing data in {} found. Calculation skipped", output_filename
+    predictor_cfact = predictor.copy()
+    predictor_cfact[:] = 0
+    distribution_cfact = statistical_model.estimate_distribution(
+        trace, predictor=predictor_cfact, **kwargs
+    )
+
+    def log_invalid_count(indices, name):
+        count = indices.sum().item()
+        if count > 0:
+            logger.info(
+                "There are {} {} values from quantile mapping"
+                " (replaced with original value)",
+                count,
+                name,
             )
-            return
-    elif config.overwrite:
-        logger.warning("No existing data in {}. Running calculation", output_filename)
+
+    cfact_scaled = variable.y_scaled.astype(np.float64)
+    cfact_scaled[:] = variable.quantile_mapping(distribution_ref, distribution_cfact)
+    cfact = variable.rescale(cfact_scaled)
+    cfact.attrs = data.attrs
+
+    replaced = np.zeros_like(cfact)
+    indices = cfact.isnull()
+    cfact[indices] = data[indices]
+    replaced[indices] = np.nan
+    log_invalid_count(indices, "NaN")
+
+    indices = cfact.isin([np.inf])
+    cfact[indices] = data[indices]
+    replaced[indices] = np.inf
+    log_invalid_count(indices, "Inf")
+
+    indices = cfact.isin([-np.inf])
+    cfact[indices] = data[indices]
+    replaced[indices] = -np.inf
+    log_invalid_count(indices, "-Inf")
+
+    # check if resulting data is also valid
+    variable.validate(cfact)
+
+    return cfact_scaled, cfact, distribution_ref, distribution_cfact
+
+
+def fit_and_detrend_cell(
+    config, data, gmt_scaled, subset_times, model_class, trace=None
+):
+    lat = data.lat.item()
+    lon = data.lon.item()
+
+    # set random seed individually for each cell - always use numpy random functions!
+    # (to avoid dependency on parallelization or processing order)
+    np.random.seed((config.seed + int(lat * 1e9) + int(lon * 1e6)) % 2**32)
+
+    if not config.fit_only:
+        output_filename = (
+            Path(config.output_dir)
+            / "timeseries"
+            / config.variable
+            / f"lat_{lat}"
+            / f"ts_lat{lat}_lon{lon}.nc"
+        )
+
+        if output_filename.exists():
+            if config.overwrite:
+                logger.warning(
+                    "Existing data in {} will be overwritten", output_filename
+                )
+            else:
+                logger.warning(
+                    "Existing data in {} found. Calculation skipped", output_filename
+                )
+                return
+        elif config.overwrite:
+            logger.warning(
+                "No existing data in {}. Running calculation", output_filename
+            )
 
     data[np.isinf(data)] = np.nan
 
-    variable = MODEL_FOR_VAR[config.variable](data)
+    variable = create_variable(config.variable, data)
+
+    if trace is not None:
+        variable.scaling = {
+            k[len("scaling_") :]: v
+            for k, v in trace.items()
+            if k.startswith("scaling_")
+        }
 
     statistical_model = variable.create_model(
         model_class, gmt_scaled.sel(time=subset_times), config.modes
     )
 
-    memory = Memory(config.cache_dir, verbose=0)
-
-    def fit(inputs):
-        return statistical_model.fit(progressbar=config.progressbar)
-
-    def cache_validation_callback(*args):
-        logger.info("Using cached results")
-        return True
-
-    def fit_cached():
-        return memory.cache(
-            fit,
-            cache_validation_callback=cache_validation_callback,
-        )(
+    if trace is None:
+        logger.info("Starting fitting")
+        trace = statistical_model.fit_cached(
             # the following are used to define the result from the cache perspective
             # (hence, changes in these would result in new computation)
             {
@@ -196,42 +264,31 @@ def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
                 "seed": config.seed,
                 "solver": config.solver,
                 "subset_times": subset_times,
-            }
+            },
+            cache_dir=config.cache_dir,
+            timeout=config.timeout,
+            progressbar=config.progressbar,
         )
 
-    try:
-        trace = func_timeout(config.timeout, fit_cached)
-    except FunctionTimedOut:
-        logger.error("Sampling at {} {} timed out", lat, lon)
+    if config.write_trace:
+        for k, v in variable.scaling.items():
+            trace[f"scaling_{k}"] = float(v)
+        write_trace(config, trace, lat, lon)
+
+    if config.fit_only:
         return
 
-    distribution_ref = statistical_model.estimate_distribution(
-        trace, predictor=gmt_scaled, progressbar=config.progressbar
-    )
-
-    gmt_scaled_cfact = gmt_scaled.copy()
-    gmt_scaled_cfact[:] = 0
-    distribution_cfact = statistical_model.estimate_distribution(
-        trace, predictor=gmt_scaled_cfact, progressbar=config.progressbar
-    )
-
     logger.info("Starting quantile mapping")
-    cfact_scaled = variable.y_scaled.astype(np.float64)
-    cfact_scaled[:] = variable.quantile_mapping(distribution_ref, distribution_cfact)
-    cfact = variable.rescale(cfact_scaled)
-    cfact.attrs = data.attrs
 
-    indices = cfact.isnull()
-    cfact[indices] = data[indices]
-    log_invalid_count(indices, "NaN")
-
-    indices = cfact.isin([np.inf])
-    cfact[indices] = data[indices]
-    log_invalid_count(indices, "Inf")
-
-    indices = cfact.isin([-np.inf])
-    cfact[indices] = data[indices]
-    log_invalid_count(indices, "-Inf")
+    cfact_scaled, cfact, distribution_ref, distribution_cfact = detrend_cell(
+        variable,
+        statistical_model,
+        trace,
+        data,
+        gmt_scaled,
+        progressbar=config.progressbar,
+    )
+    logp = statistical_model.estimate_logp(trace)
 
     logger.info("Writing output")
 
@@ -250,22 +307,116 @@ def detrend_cell(config, data, gmt_scaled, subset_times, lat, lon, model_class):
             "y_scaled": array_on_cell(variable.y_scaled),
             "cfact_scaled": array_on_cell(cfact_scaled),
             "cfact": array_on_cell(cfact, attrs=data.attrs),
-            "logp": statistical_model.estimate_logp(
-                trace, progressbar=config.progressbar
-            ),
+            "logp": logp,
+            "replaced": array_on_cell(replaced),
         },
     )
     for k, v in distribution_ref.__dict__.items():
         ds[k] = array_on_cell(v)
     for k, v in distribution_cfact.__dict__.items():
-        ds[f"{k}_ref"] = array_on_cell(v)
+        ds[f"{k}_cfact"] = array_on_cell(v)
     if "all" not in config.report_variables:
         ds = ds[config.report_variables]
 
     output_filename.parent.mkdir(parents=True, exist_ok=True)
     ds.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
-    ds.to_netcdf(output_filename)
+    encoding = {"replaced": {"_FillValue": 0}}
+    ds.to_netcdf(
+        output_filename,
+        encoding={k: v for k, v in encoding.items() if k in ds.data_vars},
+    )
     logger.info("Saved timeseries to {}", output_filename)
+
+    if config.bootstrap_sample_count > 0:
+        if (
+            np.any(subset_times != data.time)
+            or np.any(subset_times != gmt_scaled.time)
+            or len(subset_times) != len(data.time)
+            or len(subset_times) != len(gmt_scaled.time)
+        ):
+            raise ValueError("Bootstrap can only be done on full time series")
+
+        logger.info("Starting block bootstrap")
+
+        def fit_and_detrend_cell_simple(new_scaled_data=None):
+            if new_scaled_data is not None:
+                variable.y_scaled = new_scaled_data
+            statistical_model = variable.create_model(
+                model_class, gmt_scaled, config.modes
+            )
+            trace = statistical_model.fit()
+            _, cfact, _, _ = detrend_cell(
+                variable, statistical_model, trace, data, gmt_scaled
+            )
+            return cfact
+
+        blocks = [
+            block_indices
+            for year, block_indices in sorted(
+                data.time.groupby("time.year").groups.items(),
+                key=lambda group: group[0],
+            )
+        ]
+
+        expected_values = distribution_ref.expectation()
+        base_data = variable.y_scaled.copy()
+        base_data -= expected_values
+
+        def get_random_block(target_length):
+            block = np.random.randint(0, len(blocks))
+            block_indices = blocks[block]
+            if len(block_indices) < target_length:
+                missing = target_length - len(block_indices)
+                if block >= len(blocks) - 1:
+                    # last block -> take some indices from the block before
+                    block_indices = np.concatenate(
+                        [blocks[block - 1][-missing:], block_indices]
+                    )
+                else:
+                    block_indices = np.concatenate(
+                        [block_indices, blocks[block + 1][:missing]]
+                    )
+            return base_data[block_indices[:target_length]].values
+
+        def set_new_random_blocks(new_data):
+            new_data.values = (
+                np.concatenate(
+                    [get_random_block(len(block_indices)) for block_indices in blocks]
+                )
+                + expected_values
+            )
+            return new_data
+
+        new_data = base_data.copy()
+        bootstrapped = [
+            fit_and_detrend_cell_simple(set_new_random_blocks(new_data))
+            for _ in tqdm(range(config.bootstrap_sample_count))
+        ]
+
+        bootstrap = xr.Dataset(
+            {
+                "bootstrap_std": array_on_cell(
+                    np.std(bootstrapped, axis=0), attrs=data.attrs
+                ),
+                "bootstrap_mean": array_on_cell(
+                    np.mean(bootstrapped, axis=0), attrs=data.attrs
+                ),
+                "bootstrap_median": array_on_cell(
+                    np.median(bootstrapped, axis=0), attrs=data.attrs
+                ),
+            }
+        )
+        bootstrap.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
+        bootstrap_filename = (
+            Path(config.output_dir)
+            / "bootstrap"
+            / config.variable
+            / f"lat_{lat}"
+            / f"bootstrap_lat{lat}_lon{lon}.nc"
+        )
+        bootstrap_filename.parent.mkdir(parents=True, exist_ok=True)
+        bootstrap.to_netcdf(bootstrap_filename)
+        logger.info("Saved bootstrap to {}", bootstrap_filename)
 
 
 @timeit
@@ -279,33 +430,41 @@ def detrend(config: Config):
     """
     logger.info("Detrending with config:\n{}", config.to_toml())
 
-    gmt = xr.open_dataset(config.gmt_file)["tas"]
+    gmt = xr.open_dataset(config.gmt_file)[config.gmt_variable]
 
-    obs_ds = xr.open_dataset(config.input_file)
-    obs_lats = obs_ds["lat"]
-    obs_lons = obs_ds["lon"]
-    obs_data = obs_ds[config.variable]
+    # check dimensions and for valid values
+    if gmt.dims != ("time",):
+        raise ValueError("GMT data must have dimension 'time'")
+    if np.any(np.isnan(gmt)) or np.any(np.isinf(gmt)):
+        raise ValueError("GMT data must not contain NaN or infinite values")
+
+    obs_data = xr.open_dataset(config.input_file)[config.variable]
+
+    # check if dimensions are correct
+    if "lat" not in obs_data.dims or "lon" not in obs_data.dims:
+        if "latitude" in obs_data.dims and "longitude" in obs_data.dims:
+            obs_data = obs_data.rename({"latitude": "lat", "longitude": "lon"})
+        else:
+            raise ValueError(
+                "Input data must have lat and lon dimensions(or latitude and longitude)"
+            )
+    if set(obs_data.dims) != {"lat", "lon", "time"}:
+        raise ValueError("Input data must have dimensions lat, lon, time")
+
+    obs_data = obs_data.stack(latlon=("lat", "lon"))
+
+    if config.cells:
+        try:
+            obs_data = obs_data.sel(latlon=[(lat, lon) for lat, lon in config.cells])
+        except KeyError as e:
+            logger.error("Not all cells could be found in input data")
+            raise e
 
     if config.mask_file:
         mask_file = xr.open_dataset(config.mask_file)
-        if not np.allclose(mask_file["lat"], obs_lats) or not np.allclose(
-            mask_file["lon"], obs_lons
-        ):
-            raise ValueError("Mask grid does not match data grid")
-        mask = mask_file["mask"]
-    else:
-        mask = np.ones((len(obs_lats), len(obs_lons)))
-    lon_grid, lat_grid = np.meshgrid(np.arange(len(obs_lons)), np.arange(len(obs_lats)))
-    lat_lon_indices = [
-        (float(obs_lats[lat_index]), lat_index, float(obs_lons[lon_index]), lon_index)
-        for lat_index, lon_index in zip(
-            lat_grid[mask == 1].flatten(), lon_grid[mask == 1].flatten()
-        )
-    ]
-
-    logger.info("A total of {} grid cells to estimate", len(lat_lon_indices))
-
-    indices = get_task_indices(lat_lon_indices, config.task_id, config.task_count)
+        mask = mask_file["mask"].stack(latlon=("lat", "lon"))
+        mask = mask.where(mask == 1).dropna("latlon")["latlon"].values
+        obs_data = obs_data.sel(latlon=mask)
 
     t_scaled = (obs_data.time - obs_data.time.min()) / (
         obs_data.time.max() - obs_data.time.min()
@@ -348,17 +507,49 @@ def detrend(config: Config):
     else:
         raise ValueError(f"Unknown solver {config.solver}")
 
-    for lat, lat_index, lon, lon_index in indices:
-        logger.info(
-            "This is task {} working on lat,lon {},{}", config.task_id, lat, lon
+    if config.trace_file:
+        trace = (
+            xr.open_dataset(config.trace_file)
+            .stack(latlon=("lat", "lon"))
+            .sel(latlon=obs_data.latlon)
+        )
+        if config.write_trace:
+            logger.warning("Ignoring --write-trace as trace file is provided")
+            config.write_trace = False
+    else:
+        trace = None
+
+    if config.fit_only and not config.write_trace:
+        logger.warning(
+            "Fitting only, but no trace file will be written (forgot --write-trace?)"
         )
 
-        detrend_cell(
+    logger.info("A total of {} grid cells to estimate", len(obs_data.latlon))
+
+    indices = get_task_indices(len(obs_data.latlon), config.task_id, config.task_count)
+    for i in indices:
+        data = obs_data.isel(latlon=i)
+
+        logger.info(
+            "This is task {} working on lat,lon {},{}",
+            config.task_id,
+            data.lat.item(),
+            data.lon.item(),
+        )
+
+        if trace is not None:
+            cell_trace = {
+                k: v.values for k, v in trace.sel(latlon=data.latlon).data_vars.items()
+            }
+            logger.info("Using trace from previous fit")
+        else:
+            cell_trace = None
+
+        fit_and_detrend_cell(
             config,
-            obs_data[:, lat_index, lon_index],
+            data,
             gmt_scaled,
             subset_times,
-            lat,
-            lon,
             model_class,
+            trace=cell_trace,
         )

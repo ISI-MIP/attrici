@@ -27,24 +27,36 @@ def mask_thresholded(data, lower_threshold=None, upper_threshold=None):
         data[data >= upper_threshold] = np.nan
 
 
-def refill_and_rescale(scaled_data, datamin, scale):
+def refill_and_rescale(scaled_data, scaling):
     # TODO implement refilling of values that have been masked before
-    return scaled_data * scale
+    return scaled_data * scaling["scale"]
 
 
 def scale_to_unity(data):
-    """Take a TODO XARRAY pandas Series and scale it linearly to
-    lie within [0, 1]. Return pandas Series as well as the
-    data minimum and the scale."""
     datamin = data.min()
     scale = data.max() - datamin
     scaled_data = (data - datamin) / scale
-    return scaled_data, datamin, scale
+    return scaled_data, {"datamin": datamin, "scale": scale}
 
 
-def rescale_from_unity(scaled_data, datamin, scale):
+def rescale_from_unity(scaled_data, scaling):
     """Use a given datamin and scale to rescale to original."""
-    return scaled_data * scale + datamin
+    return scaled_data * scaling["scale"] + scaling["datamin"]
+
+
+def check_units(data, units):
+    if "units" in data.attrs:
+        if isinstance(units, str):
+            if data.units != units:
+                raise ValueError(
+                    f"Units of data are {data.units}, but expected {units}."
+                )
+        elif data.units not in units:
+            raise ValueError(
+                f"Units of data are {data.units}, but expected one of {units}."
+            )
+    else:
+        logger.warning("No units attribute found in data.")
 
 
 def identity(x):
@@ -66,8 +78,12 @@ class Tas(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = scale_to_unity(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = scale_to_unity(data)
+        check_units(data, "K")
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -84,15 +100,19 @@ class Tas(Variable):
         )
 
     def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.datamin, self.scale)
+        return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Pr(Variable):
-    THRESHOLD = 0.0000011574  # TODO = 0.1 / (86400s/day)
+    THRESHOLD = 0.0000011574  # in kg m-2 s-1; "dry day" == 0.1mm/day / (86400s/day)
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = self.scale(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.scale = self.scale(data)
+        check_units(data, "kg m-2 s-1")
 
     def scale(self, data):
         scaled_data = data - self.THRESHOLD
@@ -109,7 +129,7 @@ class Pr(Variable):
             scaled_data.min().item(),
             scaled_data.max().item(),
         )
-        return scaled_data, scale
+        return scaled_data, {"scale": scale}
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=predictor.time)
@@ -161,9 +181,7 @@ class Pr(Variable):
         cfact[do_normal_qm_1] = distribution_cfact.invcdf(quantile)[do_normal_qm_1]
         # some dry days need to be made wet. take a random quantile from
         # the quantile range that was dry days before
-        random_dry_day_q = (
-            np.random.rand(len(y)) * distribution_ref.p
-        )  # TODO properly handle stochasticity -> seed
+        random_dry_day_q = np.random.rand(len(y)) * distribution_ref.p
         map_to_wet = random_dry_day_q > distribution_cfact.p
         # map these dry days to wet, which are not dry in obs and
         # wet in counterfactual
@@ -189,7 +207,7 @@ class Pr(Variable):
 
     def rescale(self, scaled_data):
         # TODO implement refilling of values that have been masked before
-        data = scaled_data * self.scale + self.THRESHOLD
+        data = scaled_data * self.scaling["scale"] + self.THRESHOLD
         data[scaled_data <= 0] = 0
         return data
 
@@ -200,8 +218,12 @@ class Rlds(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = scale_to_unity(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = scale_to_unity(data)
+        check_units(data, "W m-2")
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -218,7 +240,7 @@ class Rlds(Variable):
         )
 
     def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.datamin, self.scale)
+        return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Ps(Variable):
@@ -227,8 +249,12 @@ class Ps(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = scale_to_unity(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = scale_to_unity(data)
+        check_units(data, "Pa")
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -245,7 +271,7 @@ class Ps(Variable):
         )
 
     def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.datamin, self.scale)
+        return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Hurs(Variable):
@@ -255,12 +281,15 @@ class Hurs(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = self.scale(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0, upper=100.0)
-        self.y_scaled, self.datamin, self.scale = self.scale(data)
+        check_units(data, "%")
 
     def scale(self, data):
         mask_thresholded(data, lower_threshold=0.01, upper_threshold=99.99)
-        datamin = data.min()
         scale = 100.0
         scaled_data = data / scale
         logger.info(
@@ -268,7 +297,7 @@ class Hurs(Variable):
             scaled_data.min().item(),
             scaled_data.max().item(),
         )
-        return scaled_data, datamin, scale
+        return scaled_data, {"scale": scale}
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -285,7 +314,7 @@ class Hurs(Variable):
         )
 
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.datamin, self.scale)
+        return refill_and_rescale(scaled_data, self.scaling)
 
 
 class Tasskew(Variable):
@@ -294,9 +323,14 @@ class Tasskew(Variable):
     """
 
     def __init__(self, data):
-        check_bounds(data, lower=0.0, upper=1.0)
+        self.validate(data)
         self.y_scaled = data.copy()
+        self.scaling = {}
         mask_thresholded(self.y_scaled, lower_threshold=0.0001, upper_threshold=0.9999)
+
+    def validate(self, data):
+        check_bounds(data, lower=0.0, upper=1.0)
+        check_units(data, {"1", "K"})
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -322,7 +356,7 @@ class Tasskew(Variable):
         return res
 
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.y_scaled.min(), 1.0)
+        return refill_and_rescale(scaled_data, {"scale": 1.0})
 
 
 class Rsds(Variable):
@@ -331,8 +365,12 @@ class Rsds(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = scale_to_unity(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = scale_to_unity(data)
+        check_units(data, "W m-2")
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -357,7 +395,7 @@ class Rsds(Variable):
         return res
 
     def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.datamin, self.scale)
+        return rescale_from_unity(scaled_data, self.scaling)
 
 
 class RsdsWeibull(Variable):
@@ -367,8 +405,12 @@ class RsdsWeibull(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = scale_to_unity(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = scale_to_unity(data)
+        check_units(data, "W m-2")
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -385,7 +427,7 @@ class RsdsWeibull(Variable):
         )
 
     def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.datamin, self.scale)
+        return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Tasrange(Variable):
@@ -394,8 +436,12 @@ class Tasrange(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = self.scale(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = self.scale(data)
+        check_units(data, "K")
 
     def scale(self, data):
         mask_thresholded(data, lower_threshold=0.01)
@@ -407,7 +453,7 @@ class Tasrange(Variable):
             scaled_data.min().item(),
             scaled_data.max().item(),
         )
-        return scaled_data, datamin, scale
+        return scaled_data, {"scale": scale}
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -424,7 +470,7 @@ class Tasrange(Variable):
         )
 
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.datamin, self.scale)
+        return refill_and_rescale(scaled_data, self.scaling)
 
 
 class Wind(Variable):
@@ -434,8 +480,12 @@ class Wind(Variable):
     """
 
     def __init__(self, data):
+        self.validate(data)
+        self.y_scaled, self.scaling = self.scale(data)
+
+    def validate(self, data):
         check_bounds(data, lower=0.0)
-        self.y_scaled, self.datamin, self.scale = self.scale(data)
+        check_units(data, "m s-1")
 
     def scale(self, data):
         mask_thresholded(data, lower_threshold=0.01)
@@ -447,7 +497,7 @@ class Wind(Variable):
             scaled_data.min().item(),
             scaled_data.max().item(),
         )
-        return scaled_data, datamin, scale
+        return scaled_data, {"scale": scale}
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
@@ -464,4 +514,22 @@ class Wind(Variable):
         )
 
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.datamin, self.scale)
+        return refill_and_rescale(scaled_data, self.scaling)
+
+
+def create_variable(variable, data):
+    MODEL_FOR_VAR = {
+        "hurs": Hurs,
+        "pr": Pr,
+        "ps": Ps,
+        "rlds": Rlds,
+        "rsds": Rsds,
+        "sfcWind": Wind,
+        "tas": Tas,
+        "tasrange": Tasrange,
+        "tasskew": Tasskew,
+        "wind": Wind,
+    }
+    if variable not in MODEL_FOR_VAR:
+        raise ValueError(f"Variable {variable} not supported.")
+    return MODEL_FOR_VAR[variable](data)
