@@ -1,27 +1,50 @@
-from pathlib import Path
-
 import netCDF4  # noqa Used to suppress warning https://github.com/pydata/xarray/issues/7259
 import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+import subprocess
+import importlib
+from loguru import logger
 
-from attrici.detrend import Config, detrend
+solvers = []
+if importlib.util.find_spec("pymc3") is not None:
+    solvers.append("pymc3")
+if importlib.util.find_spec("pymc") is not None:
+    solvers.append("pymc5")
+if len(solvers) == 0:
+    raise ImportError("Neither PyMC3 nor PyMC5 could be imported")
 
 
-def detrend_run(variable_name):
-    config = Config(
-        gmt_file=Path("./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc"),
-        input_file=Path("./tests/data/20CRv3-ERA5_germany_obs.nc"),
-        mask_file=Path("./tests/data/mask_lat50.75_lon9.25.nc"),
-        variable=variable_name,
-        output_dir=Path("./tests/data/output/pymc5"),
-        overwrite=True,
-        report_variables=["y", "cfact", "logp"],
-        solver="pymc5",
-        stop_date="2021-12-31",
-    )
-    detrend(config)
+def detrend_run(variable_name, solver):
+    command = [
+        "attrici",
+        "detrend",
+        "--gmt-file",
+        "./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc",
+        "--input-file",
+        "./tests/data/20CRv3-ERA5_germany_obs.nc",
+        "--mask-file",
+        "./tests/data/mask_lat50.75_lon9.25.nc",
+        "--output-dir",
+        f"./tests/data/output/{solver}",
+        "--variable",
+        variable_name,
+        "--stop-date",
+        "2021-12-31",
+        "--report-variables",
+        "y",
+        "cfact",
+        "logp",
+        "--solver",
+        solver,
+        "--overwrite",
+    ]
+
+    logger.info("Running command: {}", " ".join(command))
+
+    status = subprocess.run(command, check=False)
+    status.check_returncode()
 
     desired = pd.read_hdf(
         f"./tests/data/20CRv3-ERA5_germany_target_{variable_name}_lat50.75_lon9.25.h5"
@@ -31,32 +54,35 @@ def detrend_run(variable_name):
     desired = desired.drop("ds", axis=1)
 
     actual = xr.load_dataset(
-        f"./tests/data/output/pymc5/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.nc"
+        f"./tests/data/output/{solver}/timeseries/{variable_name}/lat_50.75/ts_lat50.75_lon9.25.nc"
     ).to_dataframe()
 
     return actual, desired
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_tas():
-    actual, desired = detrend_run("tas")
+def test_detrend_run_tas(solver):
+    actual, desired = detrend_run("tas", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_tasskew():
-    actual, desired = detrend_run("tasskew")
+def test_detrend_run_tasskew(solver):
+    actual, desired = detrend_run("tasskew", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_tasrange():
+def test_detrend_run_tasrange(solver):
     # Unit of tasrange: K
-    actual, desired = detrend_run("tasrange")
+    actual, desired = detrend_run("tasrange", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact, rtol=1e-06, atol=1e-05)
     np.testing.assert_allclose(actual.y, desired.y)
 
@@ -65,10 +91,11 @@ def test_detrend_run_tasrange():
     # np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_pr():
+def test_detrend_run_pr(solver):
     # Unit of pr: kg m-2 s-1
-    actual, desired = detrend_run("pr")
+    actual, desired = detrend_run("pr", solver)
 
     # Days with rain in both
     data = pd.DataFrame(
@@ -88,41 +115,46 @@ def test_detrend_run_pr():
     # np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_ps():
-    actual, desired = detrend_run("ps")
+def test_detrend_run_ps(solver):
+    actual, desired = detrend_run("ps", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_hurs():
-    actual, desired = detrend_run("hurs")
+def test_detrend_run_hurs(solver):
+    actual, desired = detrend_run("hurs", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_rsds():
-    actual, desired = detrend_run("rsds")
+def test_detrend_run_rsds(solver):
+    actual, desired = detrend_run("rsds", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_rlds():
-    actual, desired = detrend_run("rlds")
+def test_detrend_run_rlds(solver):
+    actual, desired = detrend_run("rlds", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
 
 
+@pytest.mark.parametrize("solver", solvers)
 @pytest.mark.slow
-def test_detrend_run_sfc_wind():
-    actual, desired = detrend_run("sfcWind")
+def test_detrend_run_sfc_wind(solver):
+    actual, desired = detrend_run("sfcWind", solver)
     np.testing.assert_allclose(actual.cfact, desired.cfact)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
