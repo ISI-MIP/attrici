@@ -307,7 +307,11 @@ def fit_and_detrend_cell(
             "y_scaled": array_on_cell(variable.y_scaled),
             "cfact_scaled": array_on_cell(cfact_scaled),
             "cfact": array_on_cell(cfact, attrs=data.attrs),
-            "logp": logp,
+            "logp": xr.DataArray(
+                [[logp]],
+                coords={"lon": [data.lon], "lat": [data.lat]},
+                dims=("lon", "lat"),
+            ),
             "replaced": array_on_cell(replaced),
         },
     )
