@@ -70,6 +70,7 @@ markers = [
 [project.optional-dependencies]
 dev = ["ruff", "pytest"]
 pymc3 = ["numpy<1.25", "pymc3==3.7", "Theano==1.0.5"]
+notebook = ["notebook", "hvplot", "geoviews"]
 
 [project.scripts]
 attrici = "attrici.cli:main"

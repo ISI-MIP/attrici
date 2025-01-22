@@ -404,6 +404,7 @@ def fit_and_detrend_cell(
                 "bootstrap_median": array_on_cell(
                     np.median(bootstrapped, axis=0), attrs=data.attrs
                 ),
+                "cfact": array_on_cell(cfact, attrs=data.attrs),
             }
         )
         bootstrap.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
