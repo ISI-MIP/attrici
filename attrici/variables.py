@@ -36,7 +36,7 @@ def scale_to_unity(data):
     datamin = data.min()
     scale = data.max() - datamin
     scaled_data = (data - datamin) / scale
-    return scaled_data, {"datamin": datamin, "scale": scale}
+    return scaled_data, {"datamin": datamin.item(), "scale": scale.item()}
 
 
 def rescale_from_unity(scaled_data, scaling):
@@ -129,7 +129,7 @@ class Pr(Variable):
             scaled_data.min().item(),
             scaled_data.max().item(),
         )
-        return scaled_data, {"scale": scale}
+        return scaled_data, {"scale": scale.item()}
 
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=predictor.time)

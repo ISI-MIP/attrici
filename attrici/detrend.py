@@ -155,56 +155,8 @@ def write_trace(config, trace, lat, lon):
     logger.info("Saved trace to {}", trace_filename)
 
 
-def detrend_cell(variable, statistical_model, trace, data, predictor, **kwargs):
-    distribution_ref = statistical_model.estimate_distribution(
-        trace, predictor=predictor, **kwargs
-    )
-
-    predictor_cfact = predictor.copy()
-    predictor_cfact[:] = 0
-    distribution_cfact = statistical_model.estimate_distribution(
-        trace, predictor=predictor_cfact, **kwargs
-    )
-
-    def log_invalid_count(indices, name):
-        count = indices.sum().item()
-        if count > 0:
-            logger.info(
-                "There are {} {} values from quantile mapping"
-                " (replaced with original value)",
-                count,
-                name,
-            )
-
-    cfact_scaled = variable.y_scaled.astype(np.float64)
-    cfact_scaled[:] = variable.quantile_mapping(distribution_ref, distribution_cfact)
-    cfact = variable.rescale(cfact_scaled)
-    cfact.attrs = data.attrs
-
-    replaced = np.zeros_like(cfact)
-    indices = cfact.isnull()
-    cfact[indices] = data[indices]
-    replaced[indices] = np.nan
-    log_invalid_count(indices, "NaN")
-
-    indices = cfact.isin([np.inf])
-    cfact[indices] = data[indices]
-    replaced[indices] = np.inf
-    log_invalid_count(indices, "Inf")
-
-    indices = cfact.isin([-np.inf])
-    cfact[indices] = data[indices]
-    replaced[indices] = -np.inf
-    log_invalid_count(indices, "-Inf")
-
-    # check if resulting data is also valid
-    variable.validate(cfact)
-
-    return cfact_scaled, cfact, distribution_ref, distribution_cfact, replaced
-
-
 def fit_and_detrend_cell(
-    config, data, gmt_scaled, subset_times, model_class, trace=None
+    config, data, predictor, subset_times, model_class, trace=None
 ):
     lat = data.lat.item()
     lon = data.lon.item()
@@ -249,7 +201,7 @@ def fit_and_detrend_cell(
         }
 
     statistical_model = variable.create_model(
-        model_class, gmt_scaled.sel(time=subset_times), config.modes
+        model_class, predictor.sel(time=subset_times), config.modes
     )
 
     if trace is None:
@@ -260,7 +212,7 @@ def fit_and_detrend_cell(
             {
                 "data": data,
                 "modes": config.modes,
-                "predictor": gmt_scaled,
+                "predictor": predictor,
                 "seed": config.seed,
                 "solver": config.solver,
                 "subset_times": subset_times,
@@ -272,7 +224,7 @@ def fit_and_detrend_cell(
 
     if config.write_trace:
         for k, v in variable.scaling.items():
-            trace[f"scaling_{k}"] = float(v)
+            trace[f"scaling_{k}"] = v
         write_trace(config, trace, lat, lon)
 
     if config.fit_only:
@@ -280,14 +232,50 @@ def fit_and_detrend_cell(
 
     logger.info("Starting quantile mapping")
 
-    cfact_scaled, cfact, distribution_ref, distribution_cfact, replaced = detrend_cell(
-        variable,
-        statistical_model,
-        trace,
-        data,
-        gmt_scaled,
-        progressbar=config.progressbar,
+    distribution_ref = statistical_model.estimate_distribution(
+        trace, predictor=predictor, progressbar=config.progressbar
     )
+
+    predictor_cfact = predictor.copy()
+    predictor_cfact[:] = 0
+    distribution_cfact = statistical_model.estimate_distribution(
+        trace, predictor=predictor_cfact, progressbar=config.progressbar
+    )
+
+    def log_invalid_count(indices, name):
+        count = indices.sum().item()
+        if count > 0:
+            logger.info(
+                "There are {} {} values from quantile mapping"
+                " (replaced with original value)",
+                count,
+                name,
+            )
+
+    cfact_scaled = variable.y_scaled.astype(np.float64)
+    cfact_scaled[:] = variable.quantile_mapping(distribution_ref, distribution_cfact)
+    cfact = variable.rescale(cfact_scaled)
+    cfact.attrs = data.attrs
+
+    replaced = np.zeros_like(cfact)
+    indices = cfact.isnull()
+    cfact[indices] = data[indices]
+    replaced[indices] = np.nan
+    log_invalid_count(indices, "NaN")
+
+    indices = cfact.isin([np.inf])
+    cfact[indices] = data[indices]
+    replaced[indices] = np.inf
+    log_invalid_count(indices, "Inf")
+
+    indices = cfact.isin([-np.inf])
+    cfact[indices] = data[indices]
+    replaced[indices] = -np.inf
+    log_invalid_count(indices, "-Inf")
+
+    # check if resulting data is also valid
+    variable.validate(cfact)
+
     logp = statistical_model.estimate_logp(trace)
 
     logger.info("Writing output")
@@ -303,7 +291,7 @@ def fit_and_detrend_cell(
     ds = xr.Dataset(
         {
             "y": array_on_cell(data, attrs=data.attrs),
-            "gmt_scaled": gmt_scaled,
+            "gmt_scaled": predictor,
             "y_scaled": array_on_cell(variable.y_scaled),
             "cfact_scaled": array_on_cell(cfact_scaled),
             "cfact": array_on_cell(cfact, attrs=data.attrs),
@@ -334,25 +322,13 @@ def fit_and_detrend_cell(
     if config.bootstrap_sample_count > 0:
         if (
             np.any(subset_times != data.time)
-            or np.any(subset_times != gmt_scaled.time)
+            or np.any(subset_times != predictor.time)
             or len(subset_times) != len(data.time)
-            or len(subset_times) != len(gmt_scaled.time)
+            or len(subset_times) != len(predictor.time)
         ):
             raise ValueError("Bootstrap can only be done on full time series")
 
         logger.info("Starting block bootstrap")
-
-        def fit_and_detrend_cell_simple(new_scaled_data=None):
-            if new_scaled_data is not None:
-                variable.y_scaled = new_scaled_data
-            statistical_model = variable.create_model(
-                model_class, gmt_scaled, config.modes
-            )
-            trace = statistical_model.fit()
-            _, cfact, _, _, _ = detrend_cell(
-                variable, statistical_model, trace, data, gmt_scaled
-            )
-            return cfact
 
         blocks = [
             block_indices
@@ -362,11 +338,7 @@ def fit_and_detrend_cell(
             )
         ]
 
-        expected_values = distribution_ref.expectation()
-        base_data = variable.y_scaled.copy()
-        base_data -= expected_values
-
-        def get_random_block(target_length):
+        def get_random_block_indices(target_length):
             block = np.random.randint(0, len(blocks))
             block_indices = blocks[block]
             if len(block_indices) < target_length:
@@ -374,43 +346,66 @@ def fit_and_detrend_cell(
                 if block >= len(blocks) - 1:
                     # last block -> take some indices from the block before
                     block_indices = np.concatenate(
-                        [blocks[block - 1][-missing:], block_indices]
+                        (blocks[block - 1][-missing:], block_indices)
                     )
                 else:
                     block_indices = np.concatenate(
-                        [block_indices, blocks[block + 1][:missing]]
+                        (block_indices, blocks[block + 1][:missing])
                     )
-            return base_data[block_indices[:target_length]].values
+            return block_indices[:target_length]
 
-        def set_new_random_blocks(new_data):
-            new_data.values = (
-                np.concatenate(
-                    [get_random_block(len(block_indices)) for block_indices in blocks]
-                )
-                + expected_values
+        original_quantiles = distribution_ref.cdf(variable.y_scaled)
+        bootstrapped_expected_values = []
+        for _ in tqdm(range(config.bootstrap_sample_count)):
+            new_quantiles = np.concatenate(
+                [
+                    original_quantiles[get_random_block_indices(len(block_indices))]
+                    for block_indices in blocks
+                ]
             )
-            return new_data
+            variable.y_scaled.values = distribution_ref.invcdf(new_quantiles)
+            statistical_model = variable.create_model(
+                model_class, predictor, config.modes
+            )
+            new_trace = statistical_model.fit()
+            new_distribution = statistical_model.estimate_distribution(
+                new_trace, predictor=predictor
+            )
+            bootstrapped_expected_values.append(
+                variable.rescale(new_distribution.expectation())
+            )
 
-        new_data = base_data.copy()
-        bootstrapped = [
-            fit_and_detrend_cell_simple(set_new_random_blocks(new_data))
-            for _ in tqdm(range(config.bootstrap_sample_count))
-        ]
-
+        quantiles = [0, 0.01, 0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975, 0.99, 1]
         bootstrap = xr.Dataset(
             {
+                "expected_values": array_on_cell(
+                    variable.rescale(distribution_ref.expectation()), attrs=data.attrs
+                ),
                 "bootstrap_std": array_on_cell(
-                    np.std(bootstrapped, axis=0), attrs=data.attrs
+                    np.std(bootstrapped_expected_values, axis=0), attrs=data.attrs
                 ),
                 "bootstrap_mean": array_on_cell(
-                    np.mean(bootstrapped, axis=0), attrs=data.attrs
+                    np.mean(bootstrapped_expected_values, axis=0), attrs=data.attrs
                 ),
-                "bootstrap_median": array_on_cell(
-                    np.median(bootstrapped, axis=0), attrs=data.attrs
+                "bootstrap_quantiles": xr.DataArray(
+                    np.asarray(
+                        [
+                            np.percentile(bootstrapped_expected_values, q * 100, axis=0)
+                            for q in quantiles
+                        ]
+                    ).reshape((1, 1, len(quantiles), len(data.time))),
+                    coords={
+                        "lon": [data.lon],
+                        "lat": [data.lat],
+                        "quantile": quantiles,
+                        "time": data.time,
+                    },
+                    dims=("lon", "lat", "quantile", "time"),
+                    attrs=data.attrs,
                 ),
-                "cfact": array_on_cell(cfact, attrs=data.attrs),
             }
         )
+
         bootstrap.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
         bootstrap_filename = (
             Path(config.output_dir)
@@ -532,14 +527,16 @@ def detrend(config: Config):
     logger.info("A total of {} grid cells to estimate", len(obs_data.latlon))
 
     indices = get_task_indices(len(obs_data.latlon), config.task_id, config.task_count)
-    for i in indices:
-        data = obs_data.isel(latlon=i)
+    for i, latlon in enumerate(indices):
+        data = obs_data.isel(latlon=latlon)
 
         logger.info(
-            "This is task {} working on lat,lon {},{}",
+            "This is task {} working on lat,lon {},{} (cell {}/{})",
             config.task_id,
             data.lat.item(),
             data.lon.item(),
+            i + 1,
+            len(indices),
         )
 
         if trace is not None:
@@ -553,8 +550,8 @@ def detrend(config: Config):
         fit_and_detrend_cell(
             config,
             data,
-            gmt_scaled,
-            subset_times,
-            model_class,
+            predictor=gmt_scaled,
+            subset_times=subset_times,
+            model_class=model_class,
             trace=cell_trace,
         )
