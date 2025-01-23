@@ -42,7 +42,10 @@ with warnings.catch_warnings():
     import theano.tensor as tt  # noqa: E402
 
 logging.getLogger("pymc3").propagate = False  # needed to silence verbose pymc3
-logger.info(f"Using PyMC3 version {pm.__version__}")
+
+
+def initialize():
+    logger.info("Using PyMC3 version {}", pm.__version__)
 
 
 def setup_parameter_model(name, parameter):

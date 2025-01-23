@@ -180,6 +180,13 @@ def add_parser(subparsers):
         help="Number of tasks for parallel processing",
     )
     group.add_argument(
+        "--compile-timeout",
+        type=int,
+        default=Config.__dataclass_fields__["compile_timeout"].default,
+        help="Timeout for PyMC5 model compilation in s",
+    )
+
+    group.add_argument(
         "--timeout",
         type=int,
         default=Config.__dataclass_fields__["timeout"].default,

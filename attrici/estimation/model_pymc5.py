@@ -12,7 +12,14 @@ from attrici.estimation.model import AttriciGLM, Model
 # Suppress verbose PyMC logging output
 logging.getLogger("pymc").setLevel(logging.WARNING)
 
-logger.info(f"Using PyMC5 version {pm.__version__}")
+
+def initialize(compile_timeout):
+    """Set PyTensor `compile__timeout`.
+
+    Note that PyTensor's flag uses two underscores."""
+    pt.pytensor.config.compile__timeout = compile_timeout
+    logger.info("Using PyMC5 version {}", pm.__version__)
+    logger.info("PyTensor compilation timeout is {}s", compile_timeout)
 
 
 def setup_parameter_model(name, parameter):

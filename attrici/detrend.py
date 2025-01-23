@@ -64,6 +64,8 @@ class Config:
     """Maximum time in seconds for sampler for a single grid cell"""
     cache_dir: Path | None = None
     """Use cached results from this directory or write new ones"""
+    compile_timeout: int = 600
+    """Timeout for PyMC5 model compilation in s"""
 
     def as_dict(self):
         """Return configuration object as dictionary"""
@@ -521,16 +523,18 @@ def detrend(config: Config):
     ]
 
     if config.solver == "pymc5":
-        from attrici.estimation.model_pymc5 import ModelPymc5
+        from attrici.estimation.model_pymc5 import ModelPymc5, initialize
 
+        initialize(config.compile_timeout)
         model_class = ModelPymc5
     elif config.solver == "scipy":
         from attrici.estimation.model_scipy import ModelScipy
 
         model_class = ModelScipy
     elif config.solver == "pymc3":
-        from attrici.estimation.model_pymc3 import ModelPymc3
+        from attrici.estimation.model_pymc3 import ModelPymc3, initialize
 
+        initialize()
         model_class = ModelPymc3
     else:
         raise ValueError(f"Unknown solver {config.solver}")
