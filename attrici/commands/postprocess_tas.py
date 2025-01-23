@@ -53,6 +53,7 @@ def add_parser(subparsers):
         "postprocess-tas",
         help="Derive tasmin and tasmax from tas, tasrange, and tasskew",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
     parser.add_argument("tas", type=Path, help="Input tas file")
     parser.add_argument("tasrange", type=Path, help="Input tasrange file")

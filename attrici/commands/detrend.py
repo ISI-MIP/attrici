@@ -71,6 +71,7 @@ def add_parser(subparsers):
         "detrend",
         help="Detrend a dataset",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
     add_config_argument(parser)
 

@@ -21,6 +21,7 @@ def main():
         Method: https://doi.org/10.5194/gmd-14-5269-2021
         """,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
 
     # global arguments

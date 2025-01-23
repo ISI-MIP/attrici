@@ -21,6 +21,7 @@ def add_parser(subparsers):
         "merge-output",
         help="Merge detrended output or trace files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
     parser.add_argument(
         "directory",

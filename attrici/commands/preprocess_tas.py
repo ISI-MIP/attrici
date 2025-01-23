@@ -53,6 +53,7 @@ def add_parser(subparsers):
         "preprocess-tas",
         help="Derive tasrange and tasskew from tas, tasmin, and tasmax",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
     parser.add_argument("tas", type=Path, help="Input tas file")
     parser.add_argument("tasmin", type=Path, help="Input tasmin file")
