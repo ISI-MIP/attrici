@@ -132,6 +132,25 @@ def get_task_indices(indices_len, task_id, task_count):
     return np.arange(start_num, end_num + 1)
 
 
+def save_compressed_netcdf(ds, filename, chunks=None, encoding=None):
+    def get_full_encoding(varname):
+        enc = encoding.get(varname, {})
+        enc["zlib"] = True
+        chunks = ds[varname].chunks
+        if chunks is not None:
+            enc["chunksizes"] = list(c[0] for c in chunks)
+        return enc
+
+    if encoding is None:
+        encoding = {}
+    if chunks is not None:
+        ds = ds.chunk(chunks)
+    ds.to_netcdf(
+        filename,
+        encoding={varname: get_full_encoding(varname) for varname in ds.data_vars},
+    )
+
+
 def write_trace(config, trace, lat, lon):
     trace_filename = (
         Path(config.output_dir)
@@ -142,15 +161,15 @@ def write_trace(config, trace, lat, lon):
     )
     trace_filename.parent.mkdir(parents=True, exist_ok=True)
     trace_ds = xr.Dataset(
-        coords={"lon": [lon], "lat": [lat]},
+        coords={"lat": [lat], "lon": [lon]},
     )
     for k, v in trace.items():
         d = xr.DataArray(v)
         for dim in list(d.dims):
             d = d.rename({dim: f"{k}_{dim}"})
-        trace_ds[k] = d.expand_dims(dim=("lon", "lat"))
+        trace_ds[k] = d.expand_dims(dim=("lat", "lon"))
     trace_ds.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
-    trace_ds.to_netcdf(trace_filename)
+    save_compressed_netcdf(trace_ds, trace_filename)
 
     logger.info("Saved trace to {}", trace_filename)
 
@@ -281,10 +300,14 @@ def fit_and_detrend_cell(
     logger.info("Writing output")
 
     def array_on_cell(d, **kwargs):
+        if isinstance(d, xr.DataArray):
+            d = d.expand_dims(dim=("lat", "lon"), axis=(1, 2))
+        else:
+            d = d.reshape((len(data.time), 1, 1))
         return xr.DataArray(
-            [[d]],
-            coords={"time": data.time, "lon": [data.lon], "lat": [data.lat]},
-            dims=("lon", "lat", "time"),
+            d,
+            coords={"time": data.time, "lat": [data.lat], "lon": [data.lon]},
+            dims=("time", "lat", "lon"),
             **kwargs,
         )
 
@@ -297,8 +320,8 @@ def fit_and_detrend_cell(
             "cfact": array_on_cell(cfact, attrs=data.attrs),
             "logp": xr.DataArray(
                 [[logp]],
-                coords={"lon": [data.lon], "lat": [data.lat]},
-                dims=("lon", "lat"),
+                coords={"lat": [data.lat], "lon": [data.lon]},
+                dims=("lat", "lon"),
             ),
             "replaced": array_on_cell(replaced),
         },
@@ -312,10 +335,11 @@ def fit_and_detrend_cell(
 
     output_filename.parent.mkdir(parents=True, exist_ok=True)
     ds.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
-    encoding = {"replaced": {"_FillValue": 0}}
-    ds.to_netcdf(
+    save_compressed_netcdf(
+        ds,
         output_filename,
-        encoding={k: v for k, v in encoding.items() if k in ds.data_vars},
+        chunks={"time": "auto", "lat": 1, "lon": 1},
+        encoding={"replaced": {"_FillValue": 0}},
     )
     logger.info("Saved timeseries to {}", output_filename)
 
@@ -393,14 +417,14 @@ def fit_and_detrend_cell(
                             np.percentile(bootstrapped_expected_values, q * 100, axis=0)
                             for q in quantiles
                         ]
-                    ).reshape((1, 1, len(quantiles), len(data.time))),
+                    ).reshape((len(quantiles), len(data.time), 1, 1)),
                     coords={
-                        "lon": [data.lon],
-                        "lat": [data.lat],
                         "quantile": quantiles,
                         "time": data.time,
+                        "lat": [data.lat],
+                        "lon": [data.lon],
                     },
-                    dims=("lon", "lat", "quantile", "time"),
+                    dims=("quantile", "time", "lat", "lon"),
                     attrs=data.attrs,
                 ),
             }
@@ -415,7 +439,11 @@ def fit_and_detrend_cell(
             / f"bootstrap_lat{lat}_lon{lon}.nc"
         )
         bootstrap_filename.parent.mkdir(parents=True, exist_ok=True)
-        bootstrap.to_netcdf(bootstrap_filename)
+        save_compressed_netcdf(
+            bootstrap,
+            bootstrap_filename,
+            chunks={"quantile": "auto", "time": "auto", "lat": 1, "lon": 1},
+        )
         logger.info("Saved bootstrap to {}", bootstrap_filename)
 
 

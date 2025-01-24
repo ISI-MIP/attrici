@@ -11,6 +11,7 @@ def run(args):
         parallel=True,
         engine="h5netcdf",
         # for parallel=True, only engine="h5netcdf" seems to work for now
+        combine="nested",
     )
     ds.to_netcdf(args.output_filename)
     logger.info(f"Saved merged output to {args.output_filename}")
