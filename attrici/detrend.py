@@ -380,7 +380,8 @@ def fit_and_detrend_cell(
                     )
             return block_indices[:target_length]
 
-        original_quantiles = distribution_ref.cdf(variable.y_scaled)
+        original_y_scaled = variable.y_scaled.copy()
+        original_quantiles = distribution_ref.cdf(original_y_scaled)
         bootstrapped_expected_values = []
         for _ in tqdm(range(config.bootstrap_sample_count)):
             new_quantiles = np.concatenate(
@@ -390,6 +391,8 @@ def fit_and_detrend_cell(
                 ]
             )
             variable.y_scaled.values = distribution_ref.invcdf(new_quantiles)
+            invalid_indices = np.isnan(variable.y_scaled) | np.isinf(variable.y_scaled)
+            variable.y_scaled[invalid_indices] = original_y_scaled[invalid_indices]
             statistical_model = variable.create_model(
                 model_class, predictor, config.modes
             )
