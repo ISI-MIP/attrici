@@ -214,6 +214,10 @@ def fit_and_detrend_cell(
 
     variable = create_variable(config.variable, data)
 
+    if not variable.y_scaled.notnull().any().item():
+        logger.warning("No valid data for lat,lon {:g},{:g} - skipping", lat, lon)
+        return
+
     if trace is not None:
         variable.scaling = {
             k[len("scaling_") :]: v
