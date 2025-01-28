@@ -383,6 +383,7 @@ def fit_and_detrend_cell(
         original_y_scaled = variable.y_scaled.copy()
         original_quantiles = distribution_ref.cdf(original_y_scaled)
         bootstrapped_expected_values = []
+        bootstrap_replaced = np.zeros_like(original_y_scaled)
         for _ in tqdm(range(config.bootstrap_sample_count)):
             new_quantiles = np.concatenate(
                 [
@@ -392,6 +393,7 @@ def fit_and_detrend_cell(
             )
             variable.y_scaled.values = distribution_ref.invcdf(new_quantiles)
             invalid_indices = np.isnan(variable.y_scaled) | np.isinf(variable.y_scaled)
+            bootstrap_replaced[invalid_indices] += 1
             variable.y_scaled[invalid_indices] = original_y_scaled[invalid_indices]
             statistical_model = variable.create_model(
                 model_class, predictor, config.modes
@@ -432,6 +434,7 @@ def fit_and_detrend_cell(
                     dims=("quantile", "time", "lat", "lon"),
                     attrs=data.attrs,
                 ),
+                "bootstrap_replaced": array_on_cell(bootstrap_replaced),
             }
         )
 
