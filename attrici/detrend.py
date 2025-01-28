@@ -158,8 +158,8 @@ def write_trace(config, trace, lat, lon):
         Path(config.output_dir)
         / "trace"
         / config.variable
-        / f"lat_{lat}"
-        / f"trace_lat{lat}_lon{lon}.nc"
+        / f"lat_{lat:g}"
+        / f"trace_lat{lat:g}_lon{lon:g}.nc"
     )
     trace_filename.parent.mkdir(parents=True, exist_ok=True)
     trace_ds = xr.Dataset(
@@ -191,8 +191,8 @@ def fit_and_detrend_cell(
             Path(config.output_dir)
             / "timeseries"
             / config.variable
-            / f"lat_{lat}"
-            / f"ts_lat{lat}_lon{lon}.nc"
+            / f"lat_{lat:g}"
+            / f"ts_lat{lat:g}_lon{lon:g}.nc"
         )
 
         if output_filename.exists():
@@ -443,8 +443,8 @@ def fit_and_detrend_cell(
             Path(config.output_dir)
             / "bootstrap"
             / config.variable
-            / f"lat_{lat}"
-            / f"bootstrap_lat{lat}_lon{lon}.nc"
+            / f"lat_{lat:g}"
+            / f"bootstrap_lat{lat:g}_lon{lon:g}.nc"
         )
         bootstrap_filename.parent.mkdir(parents=True, exist_ok=True)
         save_compressed_netcdf(
@@ -569,7 +569,7 @@ def detrend(config: Config):
         data = obs_data.isel(latlon=latlon)
 
         logger.info(
-            "This is task {} working on lat,lon {},{} (cell {}/{})",
+            "This is task {} working on lat,lon {:g},{:g} (cell {}/{})",
             config.task_id,
             data.lat.item(),
             data.lon.item(),
