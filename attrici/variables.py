@@ -120,9 +120,18 @@ class Pr(Variable):
             "Mask {} values below lower bound.", (scaled_data <= 0).sum().item()
         )
         scaled_data[scaled_data <= 0] = np.nan
-        fa, _, fscale = stats.gamma.fit(scaled_data[~np.isnan(scaled_data)], floc=0)
-        scale = fscale * fa**0.5
-        scaled_data = scaled_data / scale
+        if not scaled_data.notnull().any().item():
+            return scaled_data, {"scale": np.nan}
+        try:
+            fa, _, fscale = stats.gamma.fit(
+                scaled_data[~np.isnan(scaled_data)],
+                floc=0,
+            )
+            scale = fscale * fa**0.5
+            scaled_data = scaled_data / scale
+        except ValueError as e:
+            logger.warning("Failed to fit to derive scaling: {}", e)
+            return scaled_data, {"scale": np.nan}
 
         logger.info(
             "Min, max after scaling: {}, {}",
