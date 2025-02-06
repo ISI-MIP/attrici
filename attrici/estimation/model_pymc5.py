@@ -1,4 +1,7 @@
+import atexit
 import logging
+import shutil
+import tempfile
 from dataclasses import dataclass
 
 import numpy as np
@@ -13,13 +16,31 @@ from attrici.estimation.model import AttriciGLM, Model
 logging.getLogger("pymc").setLevel(logging.WARNING)
 
 
-def initialize(compile_timeout):
-    """Set PyTensor `compile__timeout`.
+def initialize(compile_timeout, use_tmp_compiledir):
+    """Initialize the PyMC5 backend."""
 
-    Note that PyTensor's flag uses two underscores."""
+    # set PyTensor `compile__timeout`, note that PyTensor's flag uses two underscores
     pt.pytensor.config.compile__timeout = compile_timeout
+
+    # if there are several processes running in parallel, we need to use a temporary
+    # directory for each process individually to avoid conflicts
+    if use_tmp_compiledir:
+        tmpdir = tempfile.mkdtemp()
+        pt.pytensor.config.compiledir = tmpdir
+        # register a handler that removes the temporary directory on exit:
+        atexit.register(shutil.rmtree, tmpdir)
+
     logger.info("Using PyMC5 version {}", pm.__version__)
-    logger.info("PyTensor compilation timeout is {}s", compile_timeout)
+    logger.info(
+        "PyTensor compilation timeout (in sec): `pytensor.config.compile__timeout`={}",
+        pt.pytensor.config.compile__timeout,
+    )
+    if use_tmp_compiledir:
+        logger.info(
+            "Using temporary directory for PyTensor compilation: "
+            "`pytensor.config.compiledir`={}",
+            pt.pytensor.config.compiledir,
+        )
 
 
 def setup_parameter_model(name, parameter):

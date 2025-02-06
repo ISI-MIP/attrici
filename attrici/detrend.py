@@ -535,7 +535,7 @@ def detrend(config: Config):
     if config.solver == "pymc5":
         from attrici.estimation.model_pymc5 import ModelPymc5, initialize
 
-        initialize(config.compile_timeout)
+        initialize(config.compile_timeout, use_tmp_compiledir=config.task_count > 1)
         model_class = ModelPymc5
     elif config.solver == "scipy":
         from attrici.estimation.model_scipy import ModelScipy
@@ -544,7 +544,7 @@ def detrend(config: Config):
     elif config.solver == "pymc3":
         from attrici.estimation.model_pymc3 import ModelPymc3, initialize
 
-        initialize()
+        initialize(config.compile_timeout, use_tmp_compiledir=config.task_count > 1)
         model_class = ModelPymc3
     else:
         raise ValueError(f"Unknown solver {config.solver}")
