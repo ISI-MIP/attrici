@@ -3,6 +3,7 @@ import sys
 
 from attrici import __version__
 from attrici.commands import (
+    derive_huss,
     detrend,
     merge_output,
     postprocess_tas,
@@ -31,10 +32,12 @@ def main():
 
     subparsers = parser.add_subparsers(help="Action to perform", required=True)
 
+    # commands
+    derive_huss.add_parser(subparsers)
     detrend.add_parser(subparsers)
     merge_output.add_parser(subparsers)
-    preprocess_tas.add_parser(subparsers)
     postprocess_tas.add_parser(subparsers)
+    preprocess_tas.add_parser(subparsers)
     ssa.add_parser(subparsers)
 
     if len(sys.argv) == 1:
