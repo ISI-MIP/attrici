@@ -50,12 +50,12 @@ def lat_lons(argument_value):
     Parameters
     ----------
     argument_value : str
-            The string value of the argument
+        The string value of the argument
 
     Returns
     -------
     list of tuple
-            A list of lat,lon tuples
+        A list of lat,lon tuples
     """
     try:
         return [

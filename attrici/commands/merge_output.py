@@ -61,11 +61,21 @@ def run(args):
                 raise ValueError(
                     f"Variable {var_name} has lat/lon dimensions in the wrong order"
                 )
+            chunksizes = [c[0] for c in var.chunks] if var.chunks else None
+            if args.chunksizes:
+                if chunksizes is None:
+                    chunksizes = [args.chunksizes.get(dim, None) for dim in var.dims]
+                else:
+                    for i, dim in enumerate(var.dims):
+                        if dim in args.chunksizes:
+                            chunksizes[i] = args.chunksizes[dim]
+            print(args.chunksizes)
+            print(chunksizes)
             nc.createVariable(
                 var_name,
                 var.dtype,
                 var.dims,
-                chunksizes=[c[0] for c in var.chunks] if var.chunks else None,
+                chunksizes=chunksizes,
                 fill_value=var.attrs.get("_FillValue", None),
                 zlib=True,
             )
@@ -90,12 +100,44 @@ def run(args):
     logger.info(f"Saved merged output to {args.output_filename}")
 
 
+def chunksizes(argument_value):
+    """
+    Try parsing `argument_value` from a comma-separated string of dimension-chunksize
+    pairs (separated by '=')
+
+    Parameters
+    ----------
+    argument_value : str
+        The string value of the argument
+
+    Returns
+    -------
+    dict
+        A dictionary mapping dimension names to chunk sizes
+    """
+    try:
+        return {
+            dim: int(chunksize)
+            for dim, chunksize in [
+                pair.split("=") for pair in argument_value.split(",")
+            ]
+        }
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(e)
+
+
 def add_parser(subparsers):
     parser = subparsers.add_parser(
         "merge-output",
         help="Merge detrended output or trace files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         allow_abbrev=False,
+    )
+    parser.add_argument(
+        "--chunksizes",
+        type=chunksizes,
+        default=None,
+        help="Chunk sizes for dimensions (comma-separated list of dim=chunksize pairs)",
     )
     parser.add_argument(
         "directory",
