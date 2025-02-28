@@ -66,6 +66,9 @@ class Config:
     """Use cached results from this directory or write new ones"""
     compile_timeout: int = 600
     """Timeout for PyMC5 model compilation in s"""
+    full_extrapolation: bool = False
+    """Extrapolate few missing days of GMT instead of stretching it to the full time
+    series"""
 
     def as_dict(self):
         """Return configuration object as dictionary"""
@@ -506,16 +509,27 @@ def detrend(config: Config):
         mask = mask.where(mask == 1).dropna("latlon")["latlon"].values
         obs_data = obs_data.sel(latlon=mask)
 
-    t_scaled = (obs_data.time - obs_data.time.min()) / (
-        obs_data.time.max() - obs_data.time.min()
-    )
-    gmt_on_obs_times = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-    gmt_scaled_values = (gmt_on_obs_times - gmt_on_obs_times.min()) / (
-        gmt_on_obs_times.max() - gmt_on_obs_times.min()
-    )
-    gmt_scaled = xr.DataArray(
-        gmt_scaled_values, coords={"time": obs_data.time}, dims=("time",)
-    )
+    if config.full_extrapolation:
+        # `gmt.time` is a subset of `obs_data.time` (e.g. every 10th day)
+        # hence, interpolate these values to the full time series
+        # the last few days are extrapolated
+        gmt_on_obs_times = gmt.interp(
+            time=obs_data.time, kwargs={"fill_value": "extrapolate"}
+        )
+        gmt_scaled = (gmt_on_obs_times - gmt_on_obs_times.min()) / (
+            gmt_on_obs_times.max() - gmt_on_obs_times.min()
+        )
+    else:
+        t_scaled = (obs_data.time - obs_data.time.min()) / (
+            obs_data.time.max() - obs_data.time.min()
+        )
+        gmt_on_obs_times = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
+        gmt_scaled_values = (gmt_on_obs_times - gmt_on_obs_times.min()) / (
+            gmt_on_obs_times.max() - gmt_on_obs_times.min()
+        )
+        gmt_scaled = xr.DataArray(
+            gmt_scaled_values, coords={"time": obs_data.time}, dims=("time",)
+        )
 
     startdate = config.start_date
     if startdate is None:

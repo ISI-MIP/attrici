@@ -137,6 +137,12 @@ def add_parser(subparsers):
         default=Config.__dataclass_fields__["bootstrap_sample_count"].default,
         help="Number of bootstrap samples",
     )
+    group.add_argument(
+        "--full-extrapolation",
+        action="store_true",
+        help="Extrapolate few missing days of GMT instead of stretching it to the full"
+        " time series",
+    )
     group.add_argument("--progressbar", action="store_true", help="Show progress bar")
     group.add_argument(
         "--report-variables",
