@@ -134,7 +134,7 @@ def run(args):
                 var.dtype,
                 ("time", "lat", "lon"),
                 chunksizes=[c[0] for c in var.chunks],
-                fill_value=var.encoding.get("_FillValue", None),
+                fill_value=var.attrs.get("_FillValue", None),
                 zlib=True,
             )
             nc[var_name].setncattr("units", "kg kg-1")
