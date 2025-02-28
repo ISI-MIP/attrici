@@ -65,7 +65,7 @@ def run(args):
                 var_name,
                 var.dtype,
                 var.dims,
-                chunksizes=[c[0] for c in var.chunks],
+                chunksizes=[c[0] for c in var.chunks] if var.chunks else None,
                 fill_value=var.encoding.get("_FillValue", None),
                 zlib=True,
             )
