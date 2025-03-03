@@ -1,12 +1,11 @@
 name: website
 
 # build the documentation whenever there are new commits on the specified branch
-# TODO use main (or master)
 on:
   push:
     branches:
-      - docs
-    # Alternative: only build for tags. TODO Decide what to use
+      - main
+    # Alternative: only build for tags.
     # tags:
     #   - '*'
 
