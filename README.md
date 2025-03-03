@@ -1,46 +1,46 @@
+<!--- pyml disable-next-line line-length, first-line-h1 -->
+[![GitHub Repository](https://img.shields.io/badge/GitHub-blue?style=for-the-badge&logo=github&logoColor=white&labelColor=%23555555&color=%23838996)](https://github.com/ISI-MIP/attrici) [![Docs](https://img.shields.io/badge/Docs-%23ff8c00?style=for-the-badge)](https://isi-mip.github.io/attrici) [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ISI-MIP/attrici/ci.yml?style=for-the-badge)](https://github.com/ISI-MIP/attrici/actions) [![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FISI-MIP%2Fattrici%2Frefs%2Fheads%2Fpdoc%2Fpyproject.toml&style=for-the-badge)](https://github.com/ISI-MIP/attrici/blob/pdoc/pyproject.toml) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge)](https://github.com/astral-sh/ruff)
+
 # ATTRICI - counterfactual climate for impact attribution
 
-Code implementing the methods described in the paper [`ATTRICI 1.1 - counterfactual climate for impact attribution`](https://doi.org/10.5194/gmd-14-5269-2021) in Geoscientific Model Development. The code is archived at [ZENODO](https://doi.org/10.5281/zenodo.3828914).
+Code implementing the methods described in the paper
+[`ATTRICI 1.1 - counterfactual climate for impact attribution`](https://doi.org/10.5194/gmd-14-5269-2021)
+in Geoscientific Model Development.
 
+From the article's abstract:
 
-## Project Structure
-* The probability model for different climate variables is specified in [variables.py](attrici/variables.py)
-* The choice of the probability model for a variable is specified in [estimator.py](attrici/estimator.py)
+> We here present ATTRICI (ATTRIbuting Climate Impacts), an approach to construct the required counterfactual
+> stationary climate data from observational (factual) climate data. Our method identifies the long-term shifts
+> in the considered daily climate variables that are correlated to global mean temperature change assuming a smooth
+> annual cycle of the associated scaling coefficients for each day of the year. The produced counterfactual climate
+> datasets are used as forcing data within the impact attribution setup of the Inter-Sectoral Impact Model
+> Intercomparison Project (ISIMIP3a). Our method preserves the internal variability of the observed data in the sense
+> that factual and counterfactual data for a given day have the same rank in their respective statistical distributions.
 
+<https://doi.org/10.5194/gmd-14-5269-2021>
 
-## Install instructions for the development version
+The code accompanying the manuscript is archived at [Zenodo](https://doi.org/10.5281/zenodo.3828914).
 
-Clone the repository and checkout the current development branch.
+This repository contains further updates to the code. It includes optimization routines based
+on the originally used [PyMC3](https://pypi.org/project/pymc3/) (PyMC3 is no longer maintained but included for
+reproducibility), an updated version using [PyMC5](https://www.pymc.io) and a version based on [Scipy](https://scipy.org/).
 
-Create a virtual environment.
-
-```
-python3 -m venv env
-```
-
-Activate the environment (adjust if using a non-default shell)
-
-```
-source env/bin/activate
-```
-
-Install ATTRICI as a local development version with dev dependencies included
-
-```
-pip install -e .[dev]
-```
-
-
-## Usage
-
-See [USAGE.md](USAGE.md) for examples.
+[Documentation](https://isi-mip.github.io/attrici) is available online.
+It is build for the latest commit in the current main branch.
+See also the [notebooks](https://github.com/isi-mip/attrici/tree/main/notebooks) folder for further examples.
 
 ## Credits
 
-We rely on the [PyMC](https://www.pymc.io/) package for probabilistic programming (Salvatier et al. 2016).
+ATTRICI uses the [PyMC](https://www.pymc.io/) package for probabilistic programming (Salvatier et al. 2016).
 
-An early version of the code on Bayesian estimation of parameters in timeseries with periodicity in PyMC3 was inspired by [Ritchie Vink's](https://www.ritchievink.com) [post](https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/) on Bayesian timeseries analysis with additive models.
+An early version of the code on Bayesian estimation of parameters in timeseries with periodicity in PyMC3
+was inspired by [Ritchie Vink's](https://www.ritchievink.com)
+[post](https://www.ritchievink.com/blog/2018/10/09/build-facebooks-prophet-in-pymc3-bayesian-time-series-analyis-with-generalized-additive-models/)
+on Bayesian timeseries analysis with additive models.
+
+The Singular Spectrum Analysis included in ATTRICI comes from [pyts](https://pyts.readthedocs.io/en/stable/generated/pyts.decomposition.SingularSpectrumAnalysis.html).
 
 ## License
 
-This code is licensed under GPLv3, see the [LICENSE.txt](LICENSE.txt). See commit history for authors.
+This code is licensed under GPLv3, see the [LICENSE.txt](https://github.com/ISI-MIP/attrici/blob/main/LICENSE.txt).
+See commit history for authors.

@@ -1,3 +1,34 @@
+"""
+ATTRICI Command Line Interface (CLI)
+
+Output from `attrici --help`:
+```
+usage: attrici [-h] [--version] {detrend, merge-output, merge-traces, \\
+    preprocess-tas, postprocess-tas, ssa} ...
+
+Calculates counterfactual climate data from past datasets.
+
+positional arguments:
+  {detrend,merge-output,merge-traces,preprocess-tas,postprocess-tas,ssa}
+                        Action to perform
+    detrend             Detrend a dataset
+    merge-output        Merge detrended output
+    merge-traces        Merge traces from detrend run
+    preprocess-tas      Derive tasrange and tasskew from tas, tasmin, and tasmax
+    postprocess-tas     Derive tasmin and tasmax from tas, tasrange, and tasskew
+    ssa                 Perform singular spectrum analysis
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+
+Source code: https://github.com/ISI-MIP/attrici
+Method: https://doi.org/10.5194/gmd-14-5269-2021
+```
+
+See `attrici.commands` for sub-commands.
+"""
+
 import argparse
 import sys
 
@@ -13,8 +44,13 @@ from attrici.commands import (
 
 
 def main():
+    """
+    Main entry point for the attrici command-line tool.
+
+    This function sets up the command-line interface using `argparse`.
+    """
     parser = argparse.ArgumentParser(
-        prog="ATTRICI",
+        prog="attrici",
         description="Calculates counterfactual climate data from past datasets.",
         epilog="""
         Source code: https://github.com/ISI-MIP/attrici

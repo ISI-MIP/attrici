@@ -6,8 +6,10 @@
 .pytensor/
 __pycache__/
 cache/
-env/
+venv*/
+env*/
 log/
 runscripts/
 tests/data/output/
 venv/
+.coverage

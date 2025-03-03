@@ -1,3 +1,19 @@
+"""
+ATTRICI CLI command: derive-huss
+
+```
+usage: attrici derive-huss --hurs HURS --ps PS --tas TAS output_filename
+
+positional arguments:
+  output_filename  Merged output file
+
+options:
+  --hurs HURS      File containing timeseries for hurs
+  --ps PS          File containing timeseries for ps
+  --tas TAS        File containing timeseries for tas
+```
+"""
+
 import argparse
 from pathlib import Path
 
@@ -11,10 +27,29 @@ from tqdm import tqdm
 def calc_huss_weedon2010(hurs_in, ps_in, tas_in):
     """
     Calculate specific humidity from relative humidity, air pressure, and
-    temperature using the equations of Buck (1981) Journal of Applied Meteorology 20,
-    1527-1532, doi:10.1175/1520-0450(1981)020<1527:NEFCVP>2.0.CO;2 as described in
-    Weedon et al. (2010) WATCH Technical Report 22,
-    https://www.eu-watch.org/publications/technical-reports
+    temperature using the equations of
+
+    > Buck (1981) Journal of Applied Meteorology 20,
+    > 1527-1532, doi:10.1175/1520-0450(1981)020<1527:NEFCVP>2.0.CO;2
+
+    as described in
+
+    > Weedon et al. (2010) WATCH Technical Report 22,
+    > https://www.eu-watch.org/publications/technical-reports
+
+    Parameters
+    ----------
+    hurs_in : array_like
+        Relative humidity [%]
+    ps_in : array_like
+        Air pressure [Pa]
+    tas_in : array_like
+        Temperature [K]
+
+    Returns
+    -------
+    array_like
+        Specific humidity [kg kg-1]
     """
 
     hurs = hurs_in / 100  # relative humidity [1]
@@ -65,6 +100,15 @@ def calc_huss_weedon2010(hurs_in, ps_in, tas_in):
 
 
 def run(args):
+    """
+    Derive specific humidity from relative humidity, air pressure, and temperature.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments
+    """
+
     logger.info(f"Loading input files {args.hurs}, {args.ps}, {args.tas}")
 
     hurs_ds = xr.open_dataset(
@@ -154,6 +198,14 @@ def run(args):
 
 
 def add_parser(subparsers):
+    """
+    Add an argparse parser for the 'derive-huss' command.
+
+    Parameters
+    ----------
+    subparsers : argparse._SubParsersAction
+        The subparsers object to which the new parser will be added.
+    """
     parser = subparsers.add_parser(
         "derive-huss",
         help="Derive specific humidity from relative humidity, air pressure, and"
@@ -165,19 +217,19 @@ def add_parser(subparsers):
         "--hurs",
         type=Path,
         required=True,
-        help="File containing output timeseries for hurs",
+        help="File containing timeseries for hurs",
     )
     parser.add_argument(
         "--ps",
         type=Path,
         required=True,
-        help="File containing output timeseries for ps",
+        help="File containing timeseries for ps",
     )
     parser.add_argument(
         "--tas",
         type=Path,
         required=True,
-        help="File containing output timeseries for tas",
+        help="File containing timeseries for tas",
     )
     parser.add_argument("output_filename", type=Path, help="Merged output file")
     parser.set_defaults(func=run)

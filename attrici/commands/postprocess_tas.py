@@ -1,4 +1,20 @@
+"""
+ATTRICI CLI command: postprocess-tas
+
+```
+usage: attrici postprocess-tas tas tasrange tasskew tasmin tasmax
+
+positional arguments:
+  tas         Input tas file
+  tasrange    Input tasrange file
+  tasskew     Input tasskew file
+  tasmin      Output tasmin file
+  tasmax      Output tasmax file
+```
+"""
+
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -6,7 +22,18 @@ from loguru import logger
 
 
 def run(args):
-    import subprocess
+    """
+    Post-processes temperature data by deriving 'tasmin' and 'tasmax' from 'tas',
+    'tasrange', and 'tasskew' using [CDO (Climate Data
+    Operators)](https://code.mpimet.mpg.de/projects/cdo). Input files are processed with
+    subprocess calls to `cdo` which needs to be installed and on the path.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The arguments containing input and output file paths for 'tas', 'tasrange',
+        'tasskew', 'tasmin', and 'tasmax'.
+    """
 
     try:
         cdo_version = (
@@ -49,6 +76,15 @@ def run(args):
 
 
 def add_parser(subparsers):
+    """
+    Adds the 'postprocess-tas' command to the parser for command-line interface (CLI)
+    usage.
+
+    Parameters
+    ----------
+    subparsers : argparse._SubParsersAction
+        The subparsers action that allows adding subcommands to the main parser.
+    """
     parser = subparsers.add_parser(
         "postprocess-tas",
         help="Derive tasmin and tasmax from tas, tasrange, and tasskew",

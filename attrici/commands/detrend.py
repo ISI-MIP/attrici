@@ -1,3 +1,76 @@
+"""
+ATTRICI CLI command: detrend
+
+```
+attrici detrend [-h] [--config CONFIG] [--print-config] --gmt-file GMT_FILE
+                       [--gmt-variable GMT_VARIABLE] --input-file INPUT_FILE
+                       [--mask-file MASK_FILE] --variable VARIABLE [--trace-file
+                       TRACE_FILE] [--fit-only] [--cells CELLS] --output-dir OUTPUT_DIR
+                       [--overwrite] [--write-trace] [--modes MODES]
+                       [--bootstrap-sample-count BOOTSTRAP_SAMPLE_COUNT] [--progressbar]
+                       [--report-variables REPORT_VARIABLES [REPORT_VARIABLES ...]]
+                       [--seed SEED] [--solver {pymc5,scipy,pymc3}] [--start-date
+                       START_DATE] [--stop-date STOP_DATE] [--task-id TASK_ID]
+                       [--task-count TASK_COUNT] [--compile-timeout COMPILE_TIMEOUT]
+                       [--timeout TIMEOUT] [--cache-dir CACHE_DIR]
+
+options:
+  -h, --help            show this help message and exit
+  --config CONFIG       Configuration file (default: None)
+  --print-config        Print current config as TOML and exit (default: False)
+
+Input:
+  --gmt-file GMT_FILE   (SSA-smoothed) Global Mean Temperature file (default: None)
+  --gmt-variable GMT_VARIABLE
+                        (SSA-smoothed) Global Mean Temperature variable name (default:
+                        tas)
+  --input-file INPUT_FILE
+                        Input file (default: None)
+  --mask-file MASK_FILE
+                        Mask file (default: None)
+  --variable VARIABLE   Variable to detrend (default: None)
+  --trace-file TRACE_FILE
+                        Trace file (default: None)
+  --fit-only            Only fit the model (default: False)
+  --cells CELLS         Semicolon-separated lat,lon tuples to process, otherwise all
+                        cells are processed (default: None)
+
+Output:
+  --output-dir OUTPUT_DIR
+                        Output directory for the results (default: None)
+  --overwrite           Overwrite existing files (default: False)
+  --write-trace         Save trace to file (default: False)
+
+Run parameters:
+  --modes MODES         Number of modes for fourier series of model (either one integer,
+                        used for all four series, or four comma-separated integers)
+                        (default: 4)
+  --bootstrap-sample-count BOOTSTRAP_SAMPLE_COUNT
+                        Number of bootstrap samples (default: 0)
+  --progressbar         Show progress bar (default: False)
+  --report-variables REPORT_VARIABLES [REPORT_VARIABLES ...]
+                        Variables to report, e.g. `--report-variables y cfact logp`
+                        (default: ('all',))
+  --seed SEED           Seed for deterministic randomisation (default: 0)
+  --solver {pymc5,scipy,pymc3}
+                        Solver library for statistical modelling (default: pymc5)
+  --start-date START_DATE
+                        Start date for the detrending period (default: None)
+  --stop-date STOP_DATE
+                        Stop date for the detrending period (default: None)
+  --task-id TASK_ID     Task ID for parallel processing (default: 0)
+  --task-count TASK_COUNT
+                        Number of tasks for parallel processing (default: 1)
+  --compile-timeout COMPILE_TIMEOUT
+                        Timeout for PyMC5 model compilation in s (default: 600)
+  --timeout TIMEOUT     Maximum time in seconds for sampler for a single grid cell
+                        (default: 3600)
+  --cache-dir CACHE_DIR
+                        Use cached results from this directory or write new ones
+                        (default: None)
+```
+"""
+
 import argparse
 from datetime import date
 from pathlib import Path
@@ -7,6 +80,14 @@ from attrici.detrend import Config, detrend
 
 
 def run(args):
+    """
+    Run detrend command.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Command-line arguments
+    """
     config_dict = vars(args).copy()
     del config_dict["config"]
     del config_dict["print_config"]
@@ -67,6 +148,14 @@ def lat_lons(argument_value):
 
 
 def add_parser(subparsers):
+    """
+    Add an argparse parser for the 'detrend' command.
+
+    Parameters
+    ----------
+    subparsers : argparse._SubParsersAction
+        The subparsers object to which the new parser will be added.
+    """
     parser = subparsers.add_parser(
         "detrend",
         help="Detrend a dataset",

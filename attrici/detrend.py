@@ -1,4 +1,33 @@
-"""Detrend."""
+"""
+The `detrend` module is the main one in ATTRICI. It provides the functionality for
+detrending climatological data using statistical models.
+
+Usage:
+The `detrend` function needs to be called with an instance of the configuration
+class `Config` to perform detrending on the specified dataset.
+
+Example:
+```python
+from datetime import date
+from pathlib import Path
+from attrici.detrend import Config, detrend
+
+config = Config(
+    gmt_file=Path("./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc"),
+    input_file=Path("./tests/data/20CRv3-ERA5_germany_obs.nc"),
+    variable="tas",
+    output_dir=Path("./example-output"),
+    start_date=date(2000, 1, 1),
+    stop_date=date(2020, 12, 31),
+    solver="pymc5"
+)
+detrend(config)
+```
+
+For the implementations of the used solvers, see `attrici.estimation`.
+
+For command line usage, see `attrici.commands.detrend`.
+"""
 
 from dataclasses import dataclass
 from datetime import date
@@ -16,7 +45,7 @@ from attrici.variables import create_variable
 
 @dataclass
 class Config:
-    """Configuration object for detrending run."""
+    """Object to hold full configuration for a detrending run."""
 
     gmt_file: Path
     """Path to (SSA-smoothed) Global Mean Temperature file"""
@@ -86,7 +115,8 @@ class Config:
 
 
 def get_task_indices(indices_len, task_id, task_count):
-    """Get the indices of the grid cells that this task should work on.
+    """
+    Get the indices of the grid cells that this task should work on.
 
     Parameters
     ----------
@@ -138,7 +168,37 @@ def get_task_indices(indices_len, task_id, task_count):
 
 
 def save_compressed_netcdf(ds, filename, chunks=None, encoding=None):
-    def get_full_encoding(varname):
+    """
+    Save an xarray Dataset to a compressed NetCDF file.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset to be saved.
+    filename : str or Path
+        The filename or path where the NetCDF file will be saved.
+    chunks : dict, optional
+        Dictionary specifying the chunk sizes for each dimension.
+        If `None`, no chunking is applied.
+    encoding : dict, optional
+        Dictionary specifying the encoding options for each variable.
+        If `None`, default encoding is used.
+    """
+
+    def _get_full_encoding(varname):
+        """
+        Get the full encoding for a variable.
+
+        Parameters
+        ----------
+        varname : str
+            The name of the variable
+
+        Returns
+        -------
+        dict
+            The full encoding for the variable
+        """
         enc = encoding.get(varname, {})
         enc["zlib"] = True
         chunks = ds[varname].chunks
@@ -152,11 +212,25 @@ def save_compressed_netcdf(ds, filename, chunks=None, encoding=None):
         ds = ds.chunk(chunks)
     ds.to_netcdf(
         filename,
-        encoding={varname: get_full_encoding(varname) for varname in ds.data_vars},
+        encoding={varname: _get_full_encoding(varname) for varname in ds.data_vars},
     )
 
 
 def write_trace(config, trace, lat, lon):
+    """
+    Write the trace data, i.e. the result from fitting to the data, to a NetCDF file.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object
+    trace : dict
+        Trace data dictionary
+    lat : float
+        Latitude of the cell
+    lon : float
+        Longitude of the cell
+    """
     trace_filename = (
         Path(config.output_dir)
         / "trace"
@@ -182,6 +256,25 @@ def write_trace(config, trace, lat, lon):
 def fit_and_detrend_cell(
     config, data, predictor, subset_times, model_class, trace=None
 ):
+    """
+    Fit the model to the data and perform quantile mapping for a single grid cell.
+
+    Parameters
+    ----------
+    config : Config
+        Configuration object
+    data : xarray.DataArray
+        The time series for the grid cell (including time, lat, lon dimensions)
+    predictor : xarray.DataArray
+        The predictor time series (e.g. global mean temperature; including time
+        dimension)
+    subset_times : xarray.DataArray
+        The subset of time points to use
+    model_class : class
+        The class of the model to use (e.g. `attrici.estimation.ModelPymc5`)
+    trace : dict, optional
+        The trace data dictionary (if fitting was already done)
+    """
     lat = data.lat.item()
     lon = data.lon.item()
 
@@ -271,6 +364,16 @@ def fit_and_detrend_cell(
     )
 
     def log_invalid_count(indices, name):
+        """
+        Log the number of invalid values from quantile mapping.
+
+        Parameters
+        ----------
+        indices : xarray.DataArray or numpy.ndarray
+            Boolean array indicating the positions of invalid values.
+        name : str
+            Name of the type of invalid values (e.g., "NaN", "Inf").
+        """
         count = indices.sum().item()
         if count > 0:
             logger.info(
@@ -309,6 +412,21 @@ def fit_and_detrend_cell(
     logger.info("Writing output")
 
     def array_on_cell(d, **kwargs):
+        """
+        Create a DataArray with the given data on the cell dimensions.
+
+        Parameters
+        ----------
+        d : xarray.DataArray or numpy.ndarray or list[float]
+            The data to put on the cell
+        kwargs : dict, optional
+            Additional arguments passed on to `xr.DataArray`
+
+        Returns
+        -------
+        xarray.DataArray
+            The data array with the data on the cell
+        """
         if isinstance(d, xr.DataArray):
             d = d.expand_dims(dim=("lat", "lon"), axis=(1, 2))
         else:
@@ -363,6 +481,8 @@ def fit_and_detrend_cell(
 
         logger.info("Starting block bootstrap")
 
+        # create blocks of indices of data points for each year, i.e. a list of lists of
+        # indices, each list containing the indices of the data points for one year
         blocks = [
             block_indices
             for year, block_indices in sorted(
@@ -372,9 +492,25 @@ def fit_and_detrend_cell(
         ]
 
         def get_random_block_indices(target_length):
+            """
+            Get data point indices from a random block while adjusting for target
+            block length.
+
+            Parameters
+            ----------
+            target_length : int
+                The target length of the block
+
+            Returns
+            -------
+            np.ndarray
+                The indices of the data points from the block
+            """
             block = np.random.randint(0, len(blocks))
             block_indices = blocks[block]
             if len(block_indices) < target_length:
+                # due to different lengths of years, we might need to take some indices
+                # from the neighbouring blocks
                 missing = target_length - len(block_indices)
                 if block >= len(blocks) - 1:
                     # last block -> take some indices from the block before
@@ -382,6 +518,7 @@ def fit_and_detrend_cell(
                         (blocks[block - 1][-missing:], block_indices)
                     )
                 else:
+                    # otherwise take some indices from the next block
                     block_indices = np.concatenate(
                         (block_indices, blocks[block + 1][:missing])
                     )
@@ -392,16 +529,28 @@ def fit_and_detrend_cell(
         bootstrapped_expected_values = []
         bootstrap_replaced = np.zeros_like(original_y_scaled)
         for _ in tqdm(range(config.bootstrap_sample_count)):
+            # we here generate bootstrapped data by reshuffling the quantiles of the
+            # original data in blocks of one year each
             new_quantiles = np.concatenate(
                 [
                     original_quantiles[get_random_block_indices(len(block_indices))]
                     for block_indices in blocks
                 ]
             )
+            # then we derive new data time series from the bootstrapped quantiles
+            # by inverting the CDF as for each original time step, i.e. deriving
+            # sampling from the original distribution according to the shuffled
+            # quantiles
             variable.y_scaled.values = distribution_ref.invcdf(new_quantiles)
+
+            # some derived values might be out of bounds or NaN/Inf, so we replace them
+            # with the original values (and count how often this happens)
             invalid_indices = np.isnan(variable.y_scaled) | np.isinf(variable.y_scaled)
             bootstrap_replaced[invalid_indices] += 1
             variable.y_scaled[invalid_indices] = original_y_scaled[invalid_indices]
+
+            # now we fit the model to the bootstrapped data and derive the expected
+            # values from the fitted distributions
             statistical_model = variable.create_model(
                 model_class, predictor, config.modes
             )
@@ -413,18 +562,26 @@ def fit_and_detrend_cell(
                 variable.rescale(new_distribution.expectation())
             )
 
+        # quantiles to calculate for the bootstrapped expected values
         quantiles = [0, 0.01, 0.025, 0.05, 0.25, 0.5, 0.75, 0.95, 0.975, 0.99, 1]
         bootstrap = xr.Dataset(
             {
+                # expected values from the distribution fit to the original data
                 "expected_values": array_on_cell(
                     variable.rescale(distribution_ref.expectation()), attrs=data.attrs
                 ),
+                # standard deviation of the expected values from the distribution fit to
+                # the bootstrapped data
                 "bootstrap_std": array_on_cell(
                     np.std(bootstrapped_expected_values, axis=0), attrs=data.attrs
                 ),
+                # mean of the expected values from the distribution fit to the
+                # bootstrapped data
                 "bootstrap_mean": array_on_cell(
                     np.mean(bootstrapped_expected_values, axis=0), attrs=data.attrs
                 ),
+                # quantiles of the expected values from the distribution fit to the
+                # bootstrapped data
                 "bootstrap_quantiles": xr.DataArray(
                     np.asarray(
                         [
@@ -441,6 +598,8 @@ def fit_and_detrend_cell(
                     dims=("quantile", "time", "lat", "lon"),
                     attrs=data.attrs,
                 ),
+                # number of times a value was replaced in the bootstrapping process
+                # (i.e. the number of times the value was NaN or Inf)
                 "bootstrap_replaced": array_on_cell(bootstrap_replaced),
             }
         )
@@ -464,7 +623,9 @@ def fit_and_detrend_cell(
 
 @timeit
 def detrend(config: Config):
-    """Run detrending.
+    """
+    Run the detrending process, i.e. load the data, fit the model, perform quantile
+    mapping, and save the results.
 
     Parameters
     ----------

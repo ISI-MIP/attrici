@@ -1,3 +1,22 @@
+"""
+ATTRICI model based on the legacy version of PyMC,
+[PyMC3](https://pypi.org/project/pymc3/).
+
+The `initialize` function needs to be called once to import PyMC3 and configure settings
+before using any other part of the module. See `attrici.detrend`.
+
+> [!WARNING]
+> Note that this module uses the no longer supported or maintained version 3 of PyMC. It
+> includes a number of workarounds and patches to allow for compatibility with newer
+> versions of Numpy or Python.
+> It requires Python 3.11 and is thus not installed by default.
+
+This is based on the version used in the [Attrici
+paper](https://doi.org/10.5194/gmd-14-5269-2021).
+
+For a version using PyMC5, see `attrici.estimation.model_pymc5`.
+"""
+
 import atexit
 import collections
 import collections.abc
@@ -15,6 +34,7 @@ from loguru import logger
 
 from attrici import distributions
 from attrici.estimation.model import AttriciGLM, Model
+from attrici.util import calc_oscillations
 
 # monkey patch for newer numpy versions
 if not hasattr(np, "asscalar"):
@@ -40,6 +60,14 @@ def initialize(compile_timeout, use_tmp_compiledir):
     """Initialize the PyMC3 backend."""
 
     def add_theano_flag(flag):
+        """
+        Add a flag to the Theano configuration (`THEANO_FLAGS` environment variable).
+
+        Parameters
+        ----------
+        flag : str
+            The flag to be added.
+        """
         os.environ["THEANO_FLAGS"] = flag + (
             f",{os.environ['THEANO_FLAGS']}" if os.environ.get("THEANO_FLAGS") else ""
         )
@@ -88,6 +116,27 @@ def initialize(compile_timeout, use_tmp_compiledir):
 
 
 def setup_parameter_model(name, parameter):
+    """
+    Setup a parameter model based on the type of parameter.
+
+    Parameters
+    ----------
+    name : str
+        The name of the parameter.
+    parameter : Parameter
+        The parameter object, either PredictorDependentParam or
+        PredictorIndependentParam.
+
+    Returns
+    -------
+    AttriciGLMPymc3.PredictorDependentParam or AttriciGLMPymc3.PredictorIndependentParam
+        A corresponding model based on the type of parameter.
+
+    Raises
+    ------
+    ValueError
+        If the parameter type is not supported.
+    """
     if isinstance(parameter, AttriciGLM.PredictorDependentParam):
         return AttriciGLMPymc3.PredictorDependentParam(name, parameter)
     if isinstance(parameter, AttriciGLM.PredictorIndependentParam):
@@ -95,13 +144,23 @@ def setup_parameter_model(name, parameter):
     raise ValueError(f"Parameter type {type(parameter)} not supported")
 
 
-def calc_oscillations(t, modes):
-    t_scaled = (t - t.min()) / (np.timedelta64(365, "D") + np.timedelta64(6, "h"))
-    x = (2 * np.pi * (np.arange(modes) + 1)) * t_scaled.to_numpy()[:, None]
-    return np.concatenate((np.cos(x), np.sin(x)), axis=1)
-
-
 class AttriciGLMPymc3:
+    """
+    A class for building and estimating parameters in a Generalized Linear Model
+    with PyMC3.
+
+    Attributes
+    ----------
+    PRIOR_INTERCEPT_MU : float
+        The prior mean for intercept parameters.
+    PRIOR_INTERCEPT_SIGMA : float
+        The prior standard deviation for intercept parameters.
+    PRIOR_TREND_MU : float
+        The prior mean for trend parameters.
+    PRIOR_TREND_SIGMA : float
+        The prior standard deviation for trend parameters.
+    """
+
     PRIOR_INTERCEPT_MU = 0
     PRIOR_INTERCEPT_SIGMA = 1
     PRIOR_TREND_MU = 0
@@ -109,10 +168,37 @@ class AttriciGLMPymc3:
 
     @dataclass
     class PredictorDependentParam:
+        """
+        A dataclass representing parameters dependent on the predictor.
+
+        Attributes
+        ----------
+        name : str
+            The name of the parameter.
+        parameter : AttriciGLM.PredictorDependentParam
+            The associated parameter object from AttriciGLM.
+
+        """
+
         name: str
         parameter: AttriciGLM.PredictorDependentParam
 
         def build_linear_model(self, oscillations, predictor):
+            """
+            Setup the linear model for the predictor-dependent parameter.
+
+            Parameters
+            ----------
+            oscillations : theano.tensor.TensorVariable
+                The oscillations (cosine and sine terms) based on the time.
+            predictor : theano.tensor.TensorVariable
+                The predictor data.
+
+            Returns
+            -------
+            theano.tensor.TensorVariable
+                The linear model as a sum of weighted oscillations and trends.
+            """
             weights_longterm_intercept = pm.Normal(
                 f"weights_{self.name}_longterm_intercept",
                 mu=AttriciGLMPymc3.PRIOR_INTERCEPT_MU,
@@ -157,6 +243,19 @@ class AttriciGLMPymc3:
             )
 
         def build(self, predictor):
+            """
+            Build the deterministic model for the predictor-dependent parameter.
+
+            Parameters
+            ----------
+            predictor : theano.tensor.TensorVariable
+                The predictor data.
+
+            Returns
+            -------
+            theano.tensor.TensorVariable
+                A deterministic output based on the model.
+            """
             oscillations = pm.Data(
                 f"{self.name}_oscillations",
                 calc_oscillations(predictor.time, self.parameter.modes),
@@ -171,6 +270,14 @@ class AttriciGLMPymc3:
             )
 
         def set_predictor_data(self, data):
+            """
+            Set the predictor data for the model.
+
+            Parameters
+            ----------
+            data : xarray.DataArray
+                A xarray containing the predictor data with time.
+            """
             pm.set_data(
                 {
                     f"{self.name}_oscillations": calc_oscillations(
@@ -182,10 +289,34 @@ class AttriciGLMPymc3:
 
     @dataclass
     class PredictorIndependentParam:
+        """
+        A dataclass representing parameters independent of the predictor.
+
+        Attributes
+        ----------
+        name : str
+            The name of the parameter.
+        parameter : AttriciGLM.PredictorIndependentParam
+            The associated parameter object from AttriciGLM.
+        """
+
         name: str
         parameter: AttriciGLM.PredictorIndependentParam
 
         def build_linear_model(self, oscillations):
+            """
+            Setup the linear model for the predictor-independent parameter.
+
+            Parameters
+            ----------
+            oscillations : theano.tensor.TensorVariable
+                The oscillations (cosine and sine terms).
+
+            Returns
+            -------
+            theano.tensor.TensorVariable
+                The linear model based on oscillations and intercept.
+            """
             weights_longterm_intercept = pm.Normal(
                 f"weights_{self.name}_longterm_intercept",
                 mu=AttriciGLMPymc3.PRIOR_INTERCEPT_MU,
@@ -207,6 +338,19 @@ class AttriciGLMPymc3:
             )
 
         def build(self, predictor):
+            """
+            Build the deterministic model for the predictor-independent parameter.
+
+            Parameters
+            ----------
+            predictor : theano.tensor.TensorVariable
+                The predictor data.
+
+            Returns
+            -------
+            theano.tensor.TensorVariable
+                A deterministic output based on the model.
+            """
             oscillations = pm.Data(
                 f"{self.name}_oscillations",
                 calc_oscillations(predictor.time, self.parameter.modes),
@@ -216,6 +360,14 @@ class AttriciGLMPymc3:
             )
 
         def set_predictor_data(self, data):
+            """
+            Set the predictor data for the model.
+
+            Parameters
+            ----------
+            data : pd.DataFrame
+                A DataFrame containing the predictor data with time.
+            """
             pm.set_data(
                 {
                     f"{self.name}_oscillations": calc_oscillations(
@@ -226,13 +378,24 @@ class AttriciGLMPymc3:
 
 
 class ModelPymc3(Model):
-    def __init__(
-        self,
-        distribution,
-        parameters,
-        observed,
-        predictor,
-    ):
+    """A class for building a PyMC3 model for a given distribution and parameter set."""
+
+    def __init__(self, distribution, parameters, observed, predictor):
+        """
+        Initialize the PyMC3 model.
+
+        Parameters
+        ----------
+        distribution : class
+            The distribution class (e.g., distributions.Bernoulli).
+        parameters : dict
+            A dictionary of parameter names and their respective parameter objects.
+        observed : xarray.DataArray
+            The observed data to be used for the model.
+        predictor : xarray.DataArray
+            The predictor data to be used in the model.
+        """
+        logger.info(f"Using PyMC3 version {pm.__version__}")
         self._distribution_class = distribution
         self._model = pm.Model()
         with self._model:
@@ -264,11 +427,6 @@ class ModelPymc3(Model):
                     sigma=mu / nu,
                     observed=observed_gamma,
                 )
-
-            elif distribution == distributions.Bernoulli:
-                p = self._parameter_models["p"].build(predictor)
-                pm.Deterministic("logp", self._model.logpt)
-                pm.Bernoulli("observation", p=p, observed=observed)
 
             elif distribution == distributions.Gamma:
                 mu = self._parameter_models["mu"].build(predictor)
@@ -312,11 +470,20 @@ class ModelPymc3(Model):
             else:
                 raise ValueError(f"Distribution {distribution} not supported")
 
-    def fit(
-        self,
-        progressbar=False,
-        **kwargs,
-    ):
+    def fit(self, progressbar=False, **kwargs):
+        """
+        Fit the model using maximum a posteriori (MAP) estimation.
+
+        Parameters
+        ----------
+        progressbar : bool, optional
+            Whether to display a progress bar during fitting, by default False.
+
+        Returns
+        -------
+        pymc3.model.Model
+            The fitted PyMC3 model.
+        """
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
             traces = pm.find_MAP(model=self._model, progressbar=progressbar)
@@ -326,12 +493,22 @@ class ModelPymc3(Model):
                 if k == "logp" or k.startswith("weights_")
             }
 
-    def estimate_logp(
-        self,
-        trace,
-        progressbar=False,
-        **kwargs,
-    ):
+    def estimate_logp(self, trace, progressbar=False, **kwargs):
+        """
+        Estimate the log-probability of the model.
+
+        Parameters
+        ----------
+        trace : pymc3.backends.base.MultiTrace
+            The trace of the posterior samples.
+        progressbar : bool, optional
+            Whether to display a progress bar during the estimation, by default False.
+
+        Returns
+        -------
+        float
+            The estimated log-probability.
+        """
         with self._model:
             sample = pm.sample_posterior_predictive(
                 [trace],
@@ -342,13 +519,24 @@ class ModelPymc3(Model):
 
             return sample["logp"].mean(axis=0)
 
-    def estimate_distribution(
-        self,
-        trace,
-        predictor,
-        progressbar=False,
-        **kwargs,
-    ):
+    def estimate_distribution(self, trace, predictor, progressbar=False, **kwargs):
+        """
+        Estimate the distribution for the given predictor.
+
+        Parameters
+        ----------
+        trace : pymc3.backends.base.MultiTrace
+            The trace of the posterior samples.
+        predictor : xarray.DataArray
+            The predictor data.
+        progressbar : bool, optional
+            Whether to display a progress bar during the estimation, by default False.
+
+        Returns
+        -------
+        attrici.distributions.Distribution
+            The estimated distribution based on the model.
+        """
         with self._model:
             for parameter_model in self._parameter_models.values():
                 parameter_model.set_predictor_data(predictor)

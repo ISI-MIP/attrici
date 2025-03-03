@@ -1,4 +1,20 @@
-"""Code for Singular Spectrum Analysis."""
+"""
+Code for Singular Spectrum Analysis vendored from
+[pyts](https://pyts.readthedocs.io/).
+
+```
+# Copyright (c) 2018, Johann Faouzi and pyts contributors
+# All rights reserved.
+# License: BSD-3-Clause
+```
+
+The code was included with minor modifications to simplify installation
+and work around memory issues on some systems.
+
+See <https://github.com/ISI-MIP/attrici/pull/102>
+
+Tests from pyts for the SSA are also vendored in `tests/test_vendored_ssa.py`.
+"""
 
 # Copyright (c) 2018, Johann Faouzi and pyts contributors
 # All rights reserved.
@@ -38,6 +54,7 @@ from numpy.lib.stride_tricks import as_strided
 
 
 def _outer_dot(v, X, n_samples, window_size, n_windows):
+    """Outer Dot."""
     X_new = np.empty((n_samples, window_size, window_size, n_windows))
     for i in range(n_samples):
         for j in range(window_size):
@@ -48,6 +65,7 @@ def _outer_dot(v, X, n_samples, window_size, n_windows):
 def _diagonal_averaging(
     X, n_samples, n_timestamps, window_size, n_windows, grouping_size, gap
 ):
+    """Diagonal Averaging."""
     X_new = np.empty((n_samples, grouping_size, n_timestamps))
     first_row = [(0, col) for col in range(n_windows)]
     last_col = [(row, n_windows - 1) for row in range(1, window_size)]
@@ -62,6 +80,7 @@ def _diagonal_averaging(
 
 
 def _windowed_view(X, n_samples, n_timestamps, window_size, window_step):
+    """Windowed View."""
     overlap = window_size - window_step
     shape_new = (n_samples, (n_timestamps - overlap) // window_step, window_size // 1)
     s0, s1 = X.strides
@@ -70,7 +89,8 @@ def _windowed_view(X, n_samples, n_timestamps, window_size, window_step):
 
 
 class SingularSpectrumAnalysis:
-    """Singular Spectrum Analysis.
+    """
+    Singular Spectrum Analysis.
 
     Parameters
     ----------
@@ -101,22 +121,11 @@ class SingularSpectrumAnalysis:
 
     References
     ----------
-    .. [1] N. Golyandina, and A. Zhigljavsky, "Singular Spectrum Analysis for
+    [1] N. Golyandina, and A. Zhigljavsky, "Singular Spectrum Analysis for
            Time Series". Springer-Verlag Berlin Heidelberg (2013).
 
-    .. [2] T. Alexandrov, "A Method of Trend Extraction Using Singular
+    [2] T. Alexandrov, "A Method of Trend Extraction Using Singular
            Spectrum Analysis", REVSTAT (2008).
-
-    Examples
-    --------
-    >>> from pyts.datasets import load_gunpoint
-    >>> from pyts.decomposition import SingularSpectrumAnalysis
-    >>> X, _, _, _ = load_gunpoint(return_X_y=True)
-    >>> transformer = SingularSpectrumAnalysis(window_size=5)
-    >>> X_new = transformer.transform(X)
-    >>> X_new.shape
-    (50, 5, 150)
-
     """
 
     def __init__(
@@ -126,13 +135,28 @@ class SingularSpectrumAnalysis:
         lower_frequency_bound=0.075,
         lower_frequency_contribution=0.85,
     ):
+        """
+        Initialize the SSA.
+
+        Parameters
+        ----------
+        window_size : int, optional
+            Size of the window for analysis, by default 4.
+        groups : list or None, optional
+            Grouping information, by default None.
+        lower_frequency_bound : float, optional
+            Lower bound for frequency filtering, by default 0.075.
+        lower_frequency_contribution : float, optional
+            Contribution of the lower frequency component, by default 0.85.
+        """
         self.window_size = window_size
         self.groups = groups
         self.lower_frequency_bound = lower_frequency_bound
         self.lower_frequency_contribution = lower_frequency_contribution
 
     def transform(self, X):
-        """Transform the provided data.
+        """
+        Transform the provided data.
 
         Parameters
         ----------
@@ -148,7 +172,6 @@ class SingularSpectrumAnalysis:
             to three. If ``groups`` is array-like, ``n_splits`` is equal to
             the length of ``groups``. If ``n_splits=1``, ``X_new`` is squeezed
             and its shape is (n_samples, n_timestamps).
-
         """
         n_samples, n_timestamps = X.shape
         window_size = self._check_params(n_timestamps)
@@ -184,6 +207,7 @@ class SingularSpectrumAnalysis:
         return np.squeeze(X_ssa)
 
     def _grouping(self, X, n_samples, window_size, n_windows, v):
+        """Grouping."""
         if self.groups is None:
             grouping_size = window_size
             X_new = X
@@ -223,6 +247,7 @@ class SingularSpectrumAnalysis:
         return X_new, grouping_size
 
     def _check_params(self, n_timestamps):
+        """Check Params."""
         if not isinstance(self.window_size, (int, np.integer, float, np.floating)):
             raise TypeError("'window_size' must be an integer or a float.")
         if isinstance(self.window_size, (int, np.integer)):
