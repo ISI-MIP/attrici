@@ -30,14 +30,14 @@ Additionally, different estimators for the statistical model use different solve
 
 For ATTRICI's main functionality, the detrending of timeseries data, a statistical model is built to estimate the distribution parameters of the data. The detrending process is as follows (separate for each geographical cell and climate variable):
 
-1. Scale the timeseries data (e.g. to the unit interval; *specific for the respective climate variable*)
+1. Scale the timeseries data for normalization (e.g. to the unit interval; *specific for the respective climate variable*)
 2. Setup the statistical model (*variable-specific*)
 3. Set external values for the statistical model — the predictor data (e.g. the smoothed global mean temperature (GMT))
 4. Fit the model to the (scaled) timeseries data
-5. Estimate the timeseries of distribution parameters for the input timeseries — deriving the "reference" distribution
-6. Estimate the timeseries of distribution parameters for the counterfactual by setting the predictor to `0` — deriving the "counterfactual" distribution
+5. Estimate the timeseries of distribution parameters for the input timeseries — deriving the "factual" distribution including the trend estimated from the predictor data
+6. Estimate the timeseries of distribution parameters for the counterfactual by setting the predictor to `0` — deriving the "counterfactual" distribution without the estimated trend
 7. Quantile map the observed value in the reference distribution to the respective quantile value in the counterfactual distribution
-8. Re-scale the quantile-mapped value to the original scale (*variable-specific*)
+8. Re-scale the normalized quantile-mapped values to the original scale (*variable-specific*)
 
 This functionality is brought together in the `attrici.detrend` module, where the `detrend` function is the main entry point for detrending a timeseries. For the specific steps:
 
