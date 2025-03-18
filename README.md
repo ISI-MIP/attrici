@@ -40,6 +40,11 @@ on Bayesian timeseries analysis with additive models.
 
 The Singular Spectrum Analysis included in ATTRICI comes from [pyts](https://pyts.readthedocs.io/en/stable/generated/pyts.decomposition.SingularSpectrumAnalysis.html).
 
+## Funding
+
+This project has received funding from the European Union's HORIZON Research and Innovation Actions Programme
+under Grant Agreement No. 101135481 (COMPASS).
+
 ## License
 
 This code is licensed under GPLv3, see the [LICENSE.txt](https://github.com/ISI-MIP/attrici/blob/main/LICENSE.txt).
