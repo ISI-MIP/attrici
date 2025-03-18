@@ -83,8 +83,8 @@ LOGURU_LEVEL=WARNING attrici detrend \
                 --report-variables y cfact logp
 ```
 
-To print the current config set via defaults and command line options as [TOML](https://toml.io/)
-the `--print-config` flag can be used.
+To print the current config with the used defaults and command line options to standard out
+as [TOML](https://toml.io/) the `--print-config` flag can be used.
 
 ```bash
 attrici detrend --gmt-file ./tests/data/20CRv3-ERA5_germany_ssa_gmt.nc \
