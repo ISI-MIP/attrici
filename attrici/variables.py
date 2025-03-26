@@ -230,7 +230,7 @@ class Variable:
         """
         raise NotImplementedError
 
-    def create_model(self, statistical_model, predictor, modes):
+    def create_model(self, statistical_model, predictor, **kwargs):
         """
         Create a model.
 
@@ -241,8 +241,8 @@ class Variable:
             a subclass of `attrici.estimation.model.AttriciGLM`.
         predictor : xarray.DataArray
             The predictor data used for the model.
-        modes : int
-            The number of modes to be considered in the model.
+        **kwargs
+            Additional keyword arguments for the model.
 
         Returns
         -------
@@ -303,18 +303,19 @@ class Tas(Variable):
         check_units(data, "K")
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=identity, dependent=True),
+                "sigma": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -387,18 +388,19 @@ class Pr(Variable):
         return scaled_data, {"scale": scale.item()}
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=predictor.time)
 
         return statistical_model_class(
             distribution=distributions.BernoulliGamma,
             parameters={
-                "p": AttriciGLM.PredictorDependentParam(link=invlogit, modes=modes),
-                "mu": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
-                "nu": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "p": AttriciGLM.Parameter(link=invlogit, dependent=True),
+                "mu": AttriciGLM.Parameter(link=np.exp, dependent=True),
+                "nu": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor,
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -486,18 +488,19 @@ class Rlds(Variable):
         check_units(data, "W m-2")
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=identity, dependent=True),
+                "sigma": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -521,18 +524,19 @@ class Ps(Variable):
         check_units(data, "Pa")
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=identity, dependent=True),
+                "sigma": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -576,18 +580,19 @@ class Hurs(Variable):
         return scaled_data, {"scale": scale}
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Beta,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=invlogit, modes=modes),
-                "phi": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=invlogit, dependent=True),
+                "phi": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -614,18 +619,19 @@ class Tasskew(Variable):
         check_units(data, {"1", "K"})
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=identity, dependent=True),
+                "sigma": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -661,18 +667,19 @@ class Rsds(Variable):
         check_units(data, "W m-2")
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=identity, dependent=True),
+                "sigma": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -720,18 +727,19 @@ class Tasrange(Variable):
         return scaled_data, {"scale": scale}
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Gamma,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
-                "nu": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=np.exp, dependent=True),
+                "nu": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited
@@ -769,18 +777,19 @@ class Wind(Variable):
         return scaled_data, {"scale": scale}
 
     # docstr-coverage:inherited
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Weibull,
             parameters={
-                "alpha": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
-                "beta": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
+                "alpha": AttriciGLM.Parameter(link=np.exp, dependent=False),
+                "beta": AttriciGLM.Parameter(link=np.exp, dependent=True),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
 
     # docstr-coverage:inherited

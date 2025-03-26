@@ -27,43 +27,25 @@ class AttriciGLM:
 
     Attributes
     ----------
-    PredictorDependentParam : dataclass
-        A data structure for parameters dependent on the predictor.
-    PredictorIndependentParam : dataclass
-        A data structure for parameters independent of the predictor.
+    Parameter : dataclass
+        A data structure for parameters.
     """
 
     @dataclass
-    class PredictorDependentParam(Parameter):
+    class Parameter(Parameter):
         """
         A data structure for parameters that depend on the predictor.
 
         Attributes
         ----------
         link : Callable
-            The link function to be applied to the predictor.
-        modes : int
-            The number of modes for the parameter.
-        """
-
-        link: Callable
-        modes: int
-
-    @dataclass
-    class PredictorIndependentParam(Parameter):
-        """
-        A data structure for parameters that are independent of the predictor.
-
-        Attributes
-        ----------
-        link : Callable
             The link function to be applied.
-        modes : int
-            The number of modes for the parameter.
+        dependent : bool
+            Whether the parameter is dependent on the predictor.
         """
 
         link: Callable
-        modes: int
+        dependent: bool
 
 
 class Model:

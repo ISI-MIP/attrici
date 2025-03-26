@@ -51,23 +51,26 @@ For each climate variable, a class is defined in `attrici.variables` that handle
 
 - `__init__(self, data)` to initialise the variable. This function should validate the input data, e.g. bounds and units, by calling the variable's `validate` method. Also, the function should set the variable's `y_scaled` attribute to the scaled data as well as store information necessary for rescaling in the `scaling`attribute (a dictionary).
 - `validate(self, data)` to validate the input data, e.g. bounds and units. This method should raise a `ValueError` if the data is not valid.
-- `create_model(self, statistical_model, predictor, modes)` to create the statistical model. The `statistical_model` argument is the statistical model class to be used for creating the model (a subclass of `attrici.estimation.model.AttriciGLM`). The `predictor` argument is the predictor data used for the model. The `modes` argument is the number of seasonal (Fourier) modes to be considered in the model. The method should return an instance of the created model. In particular, when instantiating the model, the variable-specific distribution and parameters are to be set. For instance, for near-surface air temperature, the distribution is a normal distribution with mean and standard deviation as parameters:
+- `create_model(self, statistical_model, predictor, **kwargs)` to create the statistical model. The `statistical_model` argument is the statistical model class to be used for creating the model (a subclass of `attrici.estimation.model.AttriciGLM`). The `predictor` argument is the predictor data used for the model. The `modes` argument is the number of seasonal (Fourier) modes to be considered in the model. The method should return an instance of the created model. In particular, when instantiating the model, the variable-specific distribution and parameters are to be set. For instance, for near-surface air temperature, the distribution is a normal distribution with mean and standard deviation as parameters:
 
     ```python
-    def create_model(self, statistical_model_class, predictor, modes):
+    def create_model(self, statistical_model_class, predictor, **kwargs):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
         )
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.Parameter(link=identity, dependent=True),
+                "sigma": AttriciGLM.Parameter(link=np.exp, dependent=False),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
+            **kwargs,
         )
     ```
+
+    Note: make sure to pass `**kwargs` to `statistical_model_class`!
 
 - `quantile_mapping(self, distribution_ref, distribution_cfact)` to map the (scaled) data (in the `y_scaled` attribute) to the respective quantile in the reference distribution. This method should return the data mapped to the respective quantile in the counterfactual distribution. This method is implemented by default in the `Variable` class to simply lookup each time step's quantile according to the reference distribution and return the respective value in the counterfactual distribution:
 
@@ -88,7 +91,7 @@ Each statistical model is implemented as a class in the `attrici.estimation.mode
 - `estimate_logp(self, trace)` to estimate the log-probability of the observed data given the estimated model parameters.
 - `estimate_distribution(self, trace, predictor)` to estimate the fitted distribution given the estimated model parameters in `trace` and the `predictor` data. This method should return an instance of a `distributions.Distribution` class with the estimated distribution parameters.
 
-The inner model for each parameter of the distribution is described by an instance of the respective parameter class. For now, only the `attrici.estimation.model.AttriciGLM.PredictorDependentParam` and `attrici.estimation.model.AttriciGLM.PredictorIndependentParam` classes are available representing the ATTRICI Generalized Linear Model (GLM) for a parameter that depends on the predictor and a parameter that does not depend on the predictor, respectively. The `link` argument is the link function to be used for the parameter, and the `modes` argument is the number of modes to be considered in the model. For instance, in the `attrici.estimation.model_pymc5.ModelPymc5` class, these classes are remapped to data structures describing the inner model in `PyMC5` structures (e.g. `pm.Deterministic`).
+The inner model for each parameter of the distribution is described by an instance of the respective parameter class. For now, only the `attrici.estimation.model.AttriciGLM.Parameter` class is available representing the ATTRICI Generalized Linear Model (GLM). The `link` argument is the link function to be used for the parameter, and the `dependent` argument describes whether the parameter is dependent on the predictor data or not. The `link` argument should be a function that maps the parameter to the respective space (e.g. `np.exp` for the standard deviation of a normal distribution). For instance, in the `attrici.estimation.model_pymc5.ModelPymc5` class, these classes are remapped to data structures describing the inner model in `PyMC5` structures (e.g. `pm.Deterministic`).
 
 ### Distributions
 
