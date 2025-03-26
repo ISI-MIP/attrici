@@ -1,4 +1,4 @@
-# Overview
+# Architectural overview
 
 ## Modules
 
@@ -6,7 +6,7 @@ In the `attrici` folder you will find the package's modules:
 
 - For the Command Line Interface (CLI), the `attrici.cli` module, which is called when you run the `attrici` command in the terminal. It includes the particular commands (i.e., the first argument after `attrici` in the terminal) from the `attrici.commands` module. For each of these commands, the respective module implements an `add_parser` function that defines the command's arguments and options via `argparse`. The actual command is implemented in a function that is called when the command is executed, the `run` function.
 
-- The `attrici.preprocessing` module contains functions for preprocessing the data — for example, a function to calculate the smoothed global mean temperature (GMT) using Singular Spectrum Analysis (SSA), which itself is implemented in the `attrici.ssa` module. This, in turn, calls functions from the `attrici.vendored` module, which contains the SSA implementation from the [pyts](https://pyts.readthedocs.io/) package (the code was included with minor modifications to simplify installation and work around memory issues on some systems).
+- The `attrici.preprocessing` module contains functions for preprocessing the data — for example, a function to calculate the smoothed global mean temperature (GMT) using Singular Spectrum Analysis (SSA), which itself is implemented in the `attrici.ssa` module. This, in turn, calls functions from the `attrici.vendored` module, which contains the SSA implementation from the [pyts](https://pyts.readthedocs.io/) package (the code was included with minor modifications to simplify installation and work around memory issues on some systems - the `pyts` package itself is not needed).
 
 - The `attrici.detrend` module contains the main detrending functionality. The `detrend` function is the main entry point for detrending a timeseries. It takes a timeseries and a variable name as input, and returns the detrended timeseries. The function uses the `attrici.variables` module to get the variable's distribution and the `attrici.estimation` module to estimate the distribution parameters. For details see [Statistical model and detrending](#statistical-model-and-detrending).
 
