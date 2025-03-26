@@ -127,13 +127,17 @@ attrici detrend --config runconfig.toml
 
 ## Running on HPC platforms
 
-As a computationally expensive operation, the `detrend` sub-command is designed to be run in parallel (for each
-geographical cell). To make use of this parallelization, specify the arguments `--task-id ID` and
-`--task-count COUNT` and start several instances with `N` going from `0` to `N-1`. `N` does not have to equal
-the number of cells - these will be distributed to instances accordingly.
+As a computationally expensive operation, the `detrend` sub-command is designed to be run in parallel. As in ATTRICI
+the modelling for one cell is independent of the others, the cells can be handled in parallel by different processes
+without any not interfere with each other. Hence, this outputcan be merged later on (see `merge-output`
+sub-command). To make use of communication between them. The output for each cell is stored in separate files, so
+that processes for different cells do this parallelization, specify the arguments `--task-id ID` and `--task-count
+COUNT` and start several instances with `ID` going from `0` to `COUNT-1`. `COUNT` does not have to equal the number
+of cells - these will be distributed to instances accordingly (ideally equally when the number of cells is a
+multiple of `COUNT`).
 
 For the SLURM scheduler, which is widely used on HPC platforms, you can use an `sbatch` run script such as the
-following (here `N=4`):
+following (here `COUNT=4`):
 
 ```bash
 #!/usr/bin/env bash
@@ -206,6 +210,10 @@ exec attrici \
      --task-count "$SLURM_NTASKS"
 EOF
 ```
+
+SLURM tasks are counted as on large job which needs all resources at once. SLURM arrays, on the other hand, defined
+smaller jobs that run independently. As there is no communication between tasks needed in the case of ATTRICI, the
+array approach is likely more suitable.
 
 Both scripts assume that you schedule them from a setup suitable to run ATTRICI, i.e. with a virtual environment
 activated being able to run ATTRICI locally. Otherwise, adjust the scripts to setup that environment as given
