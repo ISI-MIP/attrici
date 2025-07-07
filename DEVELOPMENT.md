@@ -8,7 +8,7 @@ Create a virtual environment, since the different optimization libraries don't w
 recommended to set the version explicitly.
 
 ```bash
-python3.12 -m venv env
+python3.13 -m venv env
 ```
 
 Activate the environment (adjust if using a non-default shell)
