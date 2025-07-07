@@ -60,6 +60,7 @@ ignore = [
     "PLR0912", # Too many branches
     "PLR0913", # Too many arguments 
     "PLR0915", # Too many statements
+    "PLC0415", # Import outside top level
 ]
 
 [tool.pytest.ini_options]
