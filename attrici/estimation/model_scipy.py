@@ -10,12 +10,12 @@ from attrici.estimation.model import AttriciGLM, Model
 
 
 def setup_parameter_model(name, parameter, params_first_index):
-    if isinstance(parameter, AttriciGLM.PredictorDependentParam):
-        return AttriciGLMScipy.PredictorDependentParam(
+    if isinstance(parameter, AttriciGLM.ParametersDependentOnLongTermPredictor):
+        return AttriciGLMScipy.ParametersDependentOnLongTermPredictor(
             name=name, parameter=parameter, params_first_index=params_first_index
         )
-    if isinstance(parameter, AttriciGLM.PredictorIndependentParam):
-        return AttriciGLMScipy.PredictorIndependentParam(
+    if isinstance(parameter, AttriciGLM.ParametersIndependentOfLongTermPredictor):
+        return AttriciGLMScipy.ParametersIndependentOfLongTermPredictor(
             name=name, parameter=parameter, params_first_index=params_first_index
         )
     raise ValueError(f"Parameter type {type(parameter)} not supported")
@@ -38,10 +38,10 @@ class AttriciGLMScipy:
     PRIOR_TREND_SIGMA = 0.1
 
     @dataclass
-    class PredictorDependentParam(ParameterScipy):
+    class ParametersDependentOnLongTermPredictor(ParameterScipy):
         name: str
         params_first_index: int
-        parameter: AttriciGLM.PredictorDependentParam
+        parameter: AttriciGLM.ParametersDependentOnLongTermPredictor
         covariates: Any = None
 
         def get_initial_params(self):
@@ -114,10 +114,10 @@ class AttriciGLMScipy:
             self.predictor = data
 
     @dataclass
-    class PredictorIndependentParam(ParameterScipy):
+    class ParametersIndependentOfLongTermPredictor(ParameterScipy):
         name: str
         params_first_index: int
-        parameter: AttriciGLM.PredictorIndependentParam
+        parameter: AttriciGLM.ParametersIndependentOfLongTermPredictor
         oscillations: Any = None
 
         def get_initial_params(self):

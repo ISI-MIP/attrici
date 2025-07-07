@@ -46,10 +46,10 @@ logger.info(f"Using PyMC3 version {pm.__version__}")
 
 
 def setup_parameter_model(name, parameter):
-    if isinstance(parameter, AttriciGLM.PredictorDependentParam):
-        return AttriciGLMPymc3.PredictorDependentParam(name, parameter)
-    if isinstance(parameter, AttriciGLM.PredictorIndependentParam):
-        return AttriciGLMPymc3.PredictorIndependentParam(name, parameter)
+    if isinstance(parameter, AttriciGLM.ParametersDependentOnLongTermPredictor):
+        return AttriciGLMPymc3.ParametersDependentOnLongTermPredictor(name, parameter)
+    if isinstance(parameter, AttriciGLM.ParametersIndependentOfLongTermPredictor):
+        return AttriciGLMPymc3.ParametersIndependentOfLongTermPredictor(name, parameter)
     raise ValueError(f"Parameter type {type(parameter)} not supported")
 
 
@@ -66,9 +66,9 @@ class AttriciGLMPymc3:
     PRIOR_TREND_SIGMA = 0.1
 
     @dataclass
-    class PredictorDependentParam:
+    class ParametersDependentOnLongTermPredictor:
         name: str
-        parameter: AttriciGLM.PredictorDependentParam
+        parameter: AttriciGLM.ParametersDependentOnLongTermPredictor
 
         def build_linear_model(self, oscillations, predictor):
             weights_longterm_intercept = pm.Normal(
@@ -139,9 +139,9 @@ class AttriciGLMPymc3:
             )
 
     @dataclass
-    class PredictorIndependentParam:
+    class ParametersIndependentOfLongTermPredictor:
         name: str
-        parameter: AttriciGLM.PredictorIndependentParam
+        parameter: AttriciGLM.ParametersIndependentOfLongTermPredictor
 
         def build_linear_model(self, oscillations):
             weights_longterm_intercept = pm.Normal(

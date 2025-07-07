@@ -8,12 +8,12 @@ class Parameter:
 
 class AttriciGLM:
     @dataclass
-    class PredictorDependentParam(Parameter):
+    class ParametersDependentOnLongTermPredictor(Parameter):
         link: Callable
         modes: int
 
     @dataclass
-    class PredictorIndependentParam(Parameter):
+    class ParametersIndependentOfLongTermPredictor(Parameter):
         link: Callable
         modes: int
 

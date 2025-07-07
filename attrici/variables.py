@@ -76,8 +76,12 @@ class Tas(Variable):
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=identity, modes=modes
+                ),
+                "sigma": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -117,9 +121,15 @@ class Pr(Variable):
         return statistical_model_class(
             distribution=distributions.BernoulliGamma,
             parameters={
-                "p": AttriciGLM.PredictorDependentParam(link=invlogit, modes=modes),
-                "mu": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
-                "nu": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "p": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=invlogit, modes=modes
+                ),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
+                "nu": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor,
@@ -210,8 +220,12 @@ class Rlds(Variable):
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=identity, modes=modes
+                ),
+                "sigma": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -237,8 +251,12 @@ class Ps(Variable):
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=identity, modes=modes
+                ),
+                "sigma": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -277,8 +295,12 @@ class Hurs(Variable):
         return statistical_model_class(
             distribution=distributions.Beta,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=invlogit, modes=modes),
-                "phi": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=invlogit, modes=modes
+                ),
+                "phi": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -305,8 +327,12 @@ class Tasskew(Variable):
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=identity, modes=modes
+                ),
+                "sigma": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -341,8 +367,12 @@ class Rsds(Variable):
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=identity, modes=modes),
-                "sigma": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=identity, modes=modes
+                ),
+                "sigma": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -377,8 +407,12 @@ class RsdsWeibull(Variable):
         return statistical_model_class(
             distribution=distributions.Weibull,
             parameters={
-                "alpha": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
-                "beta": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "alpha": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
+                "beta": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -416,8 +450,12 @@ class Tasrange(Variable):
         return statistical_model_class(
             distribution=distributions.Gamma,
             parameters={
-                "mu": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
-                "nu": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
+                "mu": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
+                "nu": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
@@ -456,8 +494,12 @@ class Wind(Variable):
         return statistical_model_class(
             distribution=distributions.Weibull,
             parameters={
-                "alpha": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
-                "beta": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
+                "alpha": AttriciGLM.ParametersIndependentOfLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
+                "beta": AttriciGLM.ParametersDependentOnLongTermPredictor(
+                    link=np.exp, modes=modes
+                ),
             },
             observed=observation,
             predictor=predictor.sel(time=observation.time),
