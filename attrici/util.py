@@ -85,6 +85,7 @@ def timeit(func):
 def calc_oscillations(t, modes):
     """
     Calculate oscillations based on time and modes.
+    Implements oscillation part of equations (1)/(3) in Mengel et al. (2021).
 
     Parameters
     ----------

@@ -79,6 +79,7 @@ class AttriciGLMScipy:
     class PredictorDependentParam(ParameterScipy):
         """
         Class for handling predictor dependent parameters.
+        Implements equations (1) and (2) of Mengel et al. (2021).
 
         Attributes
         ----------
@@ -199,6 +200,7 @@ class AttriciGLMScipy:
     class PredictorIndependentParam(ParameterScipy):
         """
         Class for handling predictor independent parameters.
+        Implements equation (3) of Mengel et al. (2021).
 
         Attributes
         ----------

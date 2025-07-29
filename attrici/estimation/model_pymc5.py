@@ -111,6 +111,7 @@ class AttriciGLMPymc5:
         """
         Class for predictor-dependent parameters in the model when using the modes
         based approach.
+        Implements equations (1) and (2) of Mengel et al. (2021).
 
         Attributes
         ----------
@@ -259,6 +260,7 @@ class AttriciGLMPymc5:
         """
         Class for predictor-independent parameters in the model when using the modes
         based approach.
+        Implements equation (3) of Mengel et al. (2021).
 
         Attributes
         ----------
