@@ -12,45 +12,53 @@ from scipy import stats
 from scipy.optimize import minimize
 
 from attrici import distributions
-from attrici.estimation.model import AttriciGLM, Model
+from attrici.estimation.model import Model
 from attrici.util import calc_oscillations
 
 
-def setup_parameter_model(name, parameter, params_first_index):
+def setup_parameter_model(
+    name, parameter, params_first_index, modes=None, window_size=None
+):
     """
     Setup a parameter model based on the type of parameter.
 
     Parameters
     ----------
     name : str
-        The name of the parameter.
-    parameter : AttriciGLM.PredictorDependentParam or
-                AttriciGLM.PredictorIndependentParam
-        The parameter to setup.
+        The name of the parameter model.
+    parameter : AttriciGLM.Parameter
+        The parameter to be used in the model.
     params_first_index : int
         The index of the first parameter.
+    modes : int, optional
+        The number of modes to use for the oscillations.
+    window_size : int, optional
+        The size of the window to use for rolling window fitting.
 
     Returns
     -------
     AttriciGLMScipy.PredictorDependentParam or AttriciGLMScipy.PredictorIndependentParam
-        The parameter model.
-
-    Raises
-    ------
-    ValueError
-        If the parameter type is not supported.
+        The corresponding model object for the given parameter.
     """
-    if isinstance(parameter, AttriciGLM.PredictorDependentParam):
-        return AttriciGLMScipy.PredictorDependentParam(
-            name=name, parameter=parameter, params_first_index=params_first_index
-        )
-    if isinstance(parameter, AttriciGLM.PredictorIndependentParam):
+    if modes is not None:
+        if parameter.dependent:
+            return AttriciGLMScipy.PredictorDependentParam(
+                name=name,
+                link=parameter.link,
+                modes=modes,
+                params_first_index=params_first_index,
+            )
         return AttriciGLMScipy.PredictorIndependentParam(
-            name=name, parameter=parameter, params_first_index=params_first_index
+            name=name,
+            link=parameter.link,
+            modes=modes,
+            params_first_index=params_first_index,
         )
-    raise ValueError(
-        f"Parameter type {type(parameter)} not supported"
-    )  # pragma: no cover
+
+    if window_size is not None:
+        raise NotImplementedError
+
+    raise ValueError("Exactly one of `modes` and `window_size` must be set")
 
 
 class ParameterScipy:
@@ -78,15 +86,18 @@ class AttriciGLMScipy:
             Name of the parameter.
         params_first_index : int
             Index of the first parameter.
-        parameter : AttriciGLM.PredictorDependentParam
-            The predictor dependent parameter.
+        link : Callable
+            The link function to be applied.
+        modes : int
+            The number of modes to use for the oscillations.
         covariates : ArrayLike or None
             Covariates for the parameter.
         """
 
         name: str
         params_first_index: int
-        parameter: AttriciGLM.PredictorDependentParam
+        link: Callable
+        modes: int
         covariates: ArrayLike | None = None
 
         def get_initial_params(self):
@@ -98,7 +109,7 @@ class AttriciGLMScipy:
             ndarray
                 Initial parameters as a numpy array.
             """
-            return np.zeros(2 + 4 * self.parameter.modes)
+            return np.zeros(2 + 4 * self.modes)
 
         def estimate(self, params):
             """
@@ -119,14 +130,12 @@ class AttriciGLMScipy:
             weights_fc_intercept = params[
                 self.params_first_index + 2 : self.params_first_index
                 + 2
-                + 2 * self.parameter.modes
+                + 2 * self.modes
             ]
             weights_fc_trend = params[
-                self.params_first_index
+                self.params_first_index + 2 + 2 * self.modes : self.params_first_index
                 + 2
-                + 2 * self.parameter.modes : self.params_first_index
-                + 2
-                + 4 * self.parameter.modes
+                + 4 * self.modes
             ]
 
             logp_prior = stats.norm.logpdf(
@@ -146,7 +155,7 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_INTERCEPT_MU,
                         scale=1 / (2 * i + 1),
                     )
-                    for i in range(self.parameter.modes)
+                    for i in range(self.modes)
                 ]
             )
             logp_prior += np.sum(
@@ -156,7 +165,7 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_TREND_MU,
                         scale=AttriciGLMScipy.PRIOR_TREND_SIGMA,
                     )
-                    for i in range(self.parameter.modes)
+                    for i in range(self.modes)
                 ]
             )
 
@@ -176,12 +185,11 @@ class AttriciGLMScipy:
             data : xarray.DataArray
                 Array of predictor data.
             """
-            oscillations = calc_oscillations(data.time, self.parameter.modes)
+            oscillations = calc_oscillations(data.time, self.modes)
             self.covariates = np.concatenate(
                 [
                     oscillations,
-                    np.tile(data.values[:, None], (1, 2 * self.parameter.modes))
-                    * oscillations,
+                    np.tile(data.values[:, None], (1, 2 * self.modes)) * oscillations,
                 ],
                 axis=1,
             )
@@ -198,15 +206,18 @@ class AttriciGLMScipy:
             Name of the parameter.
         params_first_index : int
             Index of the first parameter.
-        parameter : AttriciGLM.PredictorIndependentParam
-            The predictor independent parameter.
+        link : Callable
+            The link function to be applied.
+        modes : int
+            The number of modes to use for the oscillations.
         oscillations : ArrayLike or None
             Oscillations for the parameter.
         """
 
         name: str
         params_first_index: int
-        parameter: AttriciGLM.PredictorIndependentParam
+        link: Callable
+        modes: int
         oscillations: ArrayLike | None = None
 
         def get_initial_params(self):
@@ -218,7 +229,7 @@ class AttriciGLMScipy:
             ndarray
                 Initial parameters as a numpy array.
             """
-            return np.zeros(1 + 2 * self.parameter.modes)
+            return np.zeros(1 + 2 * self.modes)
 
         def estimate(self, params):
             """
@@ -238,7 +249,7 @@ class AttriciGLMScipy:
             weights_fc_intercept = params[
                 self.params_first_index + 1 : self.params_first_index
                 + 1
-                + 2 * self.parameter.modes
+                + 2 * self.modes
             ]
             logp_prior = stats.norm.logpdf(
                 weights_longterm_intercept,
@@ -252,12 +263,12 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_INTERCEPT_MU,
                         scale=1 / (2 * i + 1),
                     )
-                    for i in range(self.parameter.modes)
+                    for i in range(self.modes)
                 ]
             )
 
             return (
-                self.parameter.link(
+                self.link(
                     np.dot(self.oscillations, weights_fc_intercept)
                     + weights_longterm_intercept
                 ),
@@ -273,7 +284,7 @@ class AttriciGLMScipy:
             data : xarray.DataArray
                 Array of predictor data.
             """
-            self.oscillations = calc_oscillations(data.time, self.parameter.modes)
+            self.oscillations = calc_oscillations(data.time, self.modes)
 
 
 @dataclass
@@ -369,27 +380,39 @@ class ModelScipy(Model):
         parameters,
         observed,
         predictor,
+        modes=None,
+        window_size=None,
     ):
         """
         Initialize a Model using Scipy.
 
         Parameters
         ----------
-        distribution : type
-            Distribution class.
+        distribution : class
+            The distribution class to be used (e.g., distributions.Normal).
         parameters : dict
-            Dictionary of model parameters.
+            A dictionary of parameters to be used in the model.
         observed : xarray.DataArray
-            Observed data.
+            The observed data.
         predictor : xarray.DataArray
-            Predictor data.
+            The predictor data.
+        modes : int, optional
+            The number of modes to use for the oscillations.
+        window_size : int, optional
+            The size of the window to use for rolling window fitting.
         """
         self._distribution_class = distribution
         self._distributions = []
         self._initial_params = np.asarray([])
         self._parameter_models = {}
         for name, parameter in parameters.items():
-            p = setup_parameter_model(name, parameter, len(self._initial_params))
+            p = setup_parameter_model(
+                name,
+                parameter,
+                len(self._initial_params),
+                modes=modes,
+                window_size=window_size,
+            )
             self._initial_params = np.concatenate(
                 [self._initial_params, p.get_initial_params()]
             )
@@ -481,6 +504,11 @@ class ModelScipy(Model):
         """
         Fit the model using maximum likelihood estimation.
 
+        Parameters
+        ----------
+        **kwargs :
+            Additional arguments - not used.
+
         Returns
         -------
         dict
@@ -504,6 +532,8 @@ class ModelScipy(Model):
         ----------
         trace : dict
             Dictionary containing the trace of parameter values.
+        **kwargs :
+            Additional arguments - not used.
 
         Returns
         -------
@@ -522,6 +552,8 @@ class ModelScipy(Model):
             Dictionary containing the trace of parameter values.
         predictor : xarray.DataArray
             Predictor data.
+        **kwargs :
+            Additional arguments - not used.
 
         Returns
         -------

@@ -20,6 +20,7 @@ def detrend_run(variable_name):
         report_variables=["y", "cfact"],
         solver="scipy",
         stop_date="2021-12-31",
+        modes=4,
     )
     detrend(config)
 

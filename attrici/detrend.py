@@ -63,8 +63,10 @@ class Config:
     """Optional path to file with trace from previous fit"""
     cells: list[tuple[float, float]] | None = None
     """Optional list of lat,lon tuples to process, otherwise all cells are processed"""
-    modes: int = 4
+    modes: int | None = None
     """Number of modes for fourier series of model"""
+    window_size: int | None = None
+    """Size of the window around each day of the year"""
     bootstrap_sample_count: int = 0
     """Number of bootstrap samples"""
     overwrite: bool = False
@@ -322,7 +324,10 @@ def fit_and_detrend_cell(
         }
 
     statistical_model = variable.create_model(
-        model_class, predictor.sel(time=subset_times), config.modes
+        model_class,
+        predictor.sel(time=subset_times),
+        modes=config.modes,
+        window_size=config.window_size,
     )
 
     if trace is None:
@@ -333,6 +338,7 @@ def fit_and_detrend_cell(
             {
                 "data": data,
                 "modes": config.modes,
+                "window_size": config.window_size,
                 "predictor": predictor,
                 "seed": config.seed,
                 "solver": config.solver,
@@ -552,7 +558,10 @@ def fit_and_detrend_cell(
             # now we fit the model to the bootstrapped data and derive the expected
             # values from the fitted distributions
             statistical_model = variable.create_model(
-                model_class, predictor, config.modes
+                model_class,
+                predictor,
+                modes=config.modes,
+                window_size=config.window_size,
             )
             new_trace = statistical_model.fit()
             new_distribution = statistical_model.estimate_distribution(
@@ -633,6 +642,11 @@ def detrend(config: Config):
         Configuration object
     """
     logger.info("Detrending with config:\n{}", config.to_toml())
+
+    if (config.modes is None) == (config.window_size is None):
+        raise ValueError("Exactly one of `modes` and `window_size` must be set")
+    if config.window_size is not None and config.window_size % 2 == 0:
+        raise ValueError("Window size must be an odd number")
 
     gmt = xr.open_dataset(config.gmt_file)[config.gmt_variable]
 

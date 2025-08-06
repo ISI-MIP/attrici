@@ -28,12 +28,13 @@ import sys
 import tempfile
 import warnings
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 from loguru import logger
 
 from attrici import distributions
-from attrici.estimation.model import AttriciGLM, Model
+from attrici.estimation.model import Model
 from attrici.util import calc_oscillations
 
 # monkey patch for newer numpy versions
@@ -115,33 +116,35 @@ def initialize(compile_timeout, use_tmp_compiledir):
         logging.getLogger("pymc3").propagate = False
 
 
-def setup_parameter_model(name, parameter):
+def setup_parameter_model(name, parameter, modes=None, window_size=None):
     """
     Setup a parameter model based on the type of parameter.
 
     Parameters
     ----------
     name : str
-        The name of the parameter.
-    parameter : Parameter
-        The parameter object, either PredictorDependentParam or
-        PredictorIndependentParam.
+        The name of the parameter model.
+    parameter : AttriciGLM.Parameter
+        The parameter to be used in the model.
+    modes : int, optional
+        The number of modes to use for the oscillations.
+    window_size : int, optional
+        The size of the window to use for rolling window fitting.
 
     Returns
     -------
     AttriciGLMPymc3.PredictorDependentParam or AttriciGLMPymc3.PredictorIndependentParam
-        A corresponding model based on the type of parameter.
-
-    Raises
-    ------
-    ValueError
-        If the parameter type is not supported.
+        The corresponding model object for the given parameter.
     """
-    if isinstance(parameter, AttriciGLM.PredictorDependentParam):
-        return AttriciGLMPymc3.PredictorDependentParam(name, parameter)
-    if isinstance(parameter, AttriciGLM.PredictorIndependentParam):
-        return AttriciGLMPymc3.PredictorIndependentParam(name, parameter)
-    raise ValueError(f"Parameter type {type(parameter)} not supported")
+    if modes is not None:
+        if parameter.dependent:
+            return AttriciGLMPymc3.PredictorDependentParam(name, parameter.link, modes)
+        return AttriciGLMPymc3.PredictorIndependentParam(name, parameter.link, modes)
+
+    if window_size is not None:
+        raise NotImplementedError
+
+    raise ValueError("Exactly one of `modes` and `window_size` must be set")
 
 
 class AttriciGLMPymc3:
@@ -169,19 +172,20 @@ class AttriciGLMPymc3:
     @dataclass
     class PredictorDependentParam:
         """
-        A dataclass representing parameters dependent on the predictor.
+        Class for predictor-dependent parameters in the model when using the modes
+        based approach.
 
-        Attributes
-        ----------
         name : str
             The name of the parameter.
-        parameter : AttriciGLM.PredictorDependentParam
-            The associated parameter object from AttriciGLM.
-
+        link : Callable
+            The link function to be applied.
+        modes : int
+            The number of modes to use for the oscillations.
         """
 
         name: str
-        parameter: AttriciGLM.PredictorDependentParam
+        link: Callable
+        modes: int
 
         def build_linear_model(self, oscillations, predictor):
             """
@@ -212,15 +216,14 @@ class AttriciGLMPymc3:
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(self.parameter.modes)
+                    for i in range(self.modes)
                 ]
             )
 
             covariates = pm.math.concatenate(
                 [
                     oscillations,
-                    tt.tile(predictor[:, None], (1, 2 * self.parameter.modes))
-                    * oscillations,
+                    tt.tile(predictor[:, None], (1, 2 * self.modes)) * oscillations,
                 ],
                 axis=1,
             )
@@ -233,7 +236,7 @@ class AttriciGLMPymc3:
                 f"weights_{self.name}_fc_trend",
                 mu=AttriciGLMPymc3.PRIOR_TREND_MU,
                 sigma=AttriciGLMPymc3.PRIOR_TREND_SIGMA,
-                shape=2 * self.parameter.modes,
+                shape=2 * self.modes,
             )
             weights_fc = pm.math.concatenate([weights_fc_intercept, weights_fc_trend])
             return (
@@ -258,7 +261,7 @@ class AttriciGLMPymc3:
             """
             oscillations = pm.Data(
                 f"{self.name}_oscillations",
-                calc_oscillations(predictor.time, self.parameter.modes),
+                calc_oscillations(predictor.time, self.modes),
             )
             predictor = pm.Data(
                 f"{self.name}_predictor",
@@ -266,7 +269,7 @@ class AttriciGLMPymc3:
             )
             return pm.Deterministic(
                 self.name,
-                self.parameter.link(self.build_linear_model(oscillations, predictor)),
+                self.link(self.build_linear_model(oscillations, predictor)),
             )
 
         def set_predictor_data(self, data):
@@ -281,7 +284,7 @@ class AttriciGLMPymc3:
             pm.set_data(
                 {
                     f"{self.name}_oscillations": calc_oscillations(
-                        data.time, self.parameter.modes
+                        data.time, self.modes
                     ),
                     f"{self.name}_predictor": data,
                 }
@@ -290,18 +293,22 @@ class AttriciGLMPymc3:
     @dataclass
     class PredictorIndependentParam:
         """
-        A dataclass representing parameters independent of the predictor.
+        Class for predictor-independent parameters in the model when using the modes
+        based approach.
 
         Attributes
         ----------
         name : str
             The name of the parameter.
-        parameter : AttriciGLM.PredictorIndependentParam
-            The associated parameter object from AttriciGLM.
+        link : Callable
+            The link function to be applied.
+        modes : int
+            The number of modes to use for the oscillations.
         """
 
         name: str
-        parameter: AttriciGLM.PredictorIndependentParam
+        link: Callable
+        modes: int
 
         def build_linear_model(self, oscillations):
             """
@@ -330,7 +337,7 @@ class AttriciGLMPymc3:
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(self.parameter.modes)
+                    for i in range(self.modes)
                 ]
             )
             return (
@@ -353,10 +360,10 @@ class AttriciGLMPymc3:
             """
             oscillations = pm.Data(
                 f"{self.name}_oscillations",
-                calc_oscillations(predictor.time, self.parameter.modes),
+                calc_oscillations(predictor.time, self.modes),
             )
             return pm.Deterministic(
-                self.name, self.parameter.link(self.build_linear_model(oscillations))
+                self.name, self.link(self.build_linear_model(oscillations))
             )
 
         def set_predictor_data(self, data):
@@ -369,38 +376,48 @@ class AttriciGLMPymc3:
                 A DataFrame containing the predictor data with time.
             """
             pm.set_data(
-                {
-                    f"{self.name}_oscillations": calc_oscillations(
-                        data.time, self.parameter.modes
-                    )
-                }
+                {f"{self.name}_oscillations": calc_oscillations(data.time, self.modes)}
             )
 
 
 class ModelPymc3(Model):
     """A class for building a PyMC3 model for a given distribution and parameter set."""
 
-    def __init__(self, distribution, parameters, observed, predictor):
+    def __init__(
+        self,
+        distribution,
+        parameters,
+        observed,
+        predictor,
+        modes=None,
+        window_size=None,
+    ):
         """
-        Initialize the PyMC3 model.
+        Initialize a PyMC3 model.
 
         Parameters
         ----------
         distribution : class
-            The distribution class (e.g., distributions.Bernoulli).
+            The distribution class to be used (e.g., distributions.Normal).
         parameters : dict
-            A dictionary of parameter names and their respective parameter objects.
+            A dictionary of parameters to be used in the model.
         observed : xarray.DataArray
-            The observed data to be used for the model.
+            The observed data.
         predictor : xarray.DataArray
-            The predictor data to be used in the model.
+            The predictor data.
+        modes : int, optional
+            The number of modes to use for the oscillations.
+        window_size : int, optional
+            The size of the window to use for rolling window fitting.
         """
         logger.info(f"Using PyMC3 version {pm.__version__}")
         self._distribution_class = distribution
         self._model = pm.Model()
         with self._model:
             self._parameter_models = {
-                name: setup_parameter_model(name, parameter)
+                name: setup_parameter_model(
+                    name, parameter, modes=modes, window_size=window_size
+                )
                 for name, parameter in parameters.items()
             }
 
@@ -478,6 +495,8 @@ class ModelPymc3(Model):
         ----------
         progressbar : bool, optional
             Whether to display a progress bar during fitting, by default False.
+        **kwargs :
+            Additional arguments - not used.
 
         Returns
         -------
@@ -503,6 +522,8 @@ class ModelPymc3(Model):
             The trace of the posterior samples.
         progressbar : bool, optional
             Whether to display a progress bar during the estimation, by default False.
+        **kwargs :
+            Additional arguments - not used.
 
         Returns
         -------
@@ -531,6 +552,8 @@ class ModelPymc3(Model):
             The predictor data.
         progressbar : bool, optional
             Whether to display a progress bar during the estimation, by default False.
+        **kwargs :
+            Additional arguments - not used.
 
         Returns
         -------
