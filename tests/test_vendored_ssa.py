@@ -140,8 +140,7 @@ def test_diagonal_averaging(X, arr_desired):
         (
             {"lower_frequency_contribution": 1.2},
             ValueError,
-            "'lower_frequency_contribution' must be greater than "
-            "0 and lower than 1.",
+            "'lower_frequency_contribution' must be greater than 0 and lower than 1.",
         ),
         (
             {"window_size": 1},

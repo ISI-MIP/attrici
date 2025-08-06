@@ -1,9 +1,12 @@
+import atexit
 import collections
 import collections.abc
 import inspect
 import logging
 import os
+import shutil
 import sys
+import tempfile
 import warnings
 from dataclasses import dataclass
 
@@ -32,17 +35,56 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore")
     import numpy.distutils as numpy_distutils  # noqa: E402
 
-    if not hasattr(numpy_distutils.__config__, "blas_opt_info"):
-        os.environ["THEANO_FLAGS"] = "blas.ldflags=" + (
+
+def initialize(compile_timeout, use_tmp_compiledir):
+    """Initialize the PyMC3 backend."""
+
+    def add_theano_flag(flag):
+        os.environ["THEANO_FLAGS"] = flag + (
             f",{os.environ['THEANO_FLAGS']}" if os.environ.get("THEANO_FLAGS") else ""
         )
 
-    # need to be imported last after numpy and collections have been patched
-    import pymc3 as pm  # noqa: E402
-    import theano.tensor as tt  # noqa: E402
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore")
 
-logging.getLogger("pymc3").propagate = False  # needed to silence verbose pymc3
-logger.info(f"Using PyMC3 version {pm.__version__}")
+        if not hasattr(numpy_distutils.__config__, "blas_opt_info"):
+            add_theano_flag("blas.ldflags=")
+
+        # set Theano `compile.timeout`
+        add_theano_flag(f"compile.timeout={compile_timeout}")
+
+        # if there are several processes running in parallel, we need to use a temporary
+        # directory for each process individually to avoid conflicts
+        if use_tmp_compiledir:
+            tmpdir = tempfile.mkdtemp()
+            add_theano_flag(f"compiledir='{tmpdir}'")
+            # register a handler that removes the temporary directory on exit:
+            atexit.register(shutil.rmtree, tmpdir)
+
+        # make sure that the packages are available in the global scope
+        global pm  # noqa: PLW0603
+        global tt  # noqa: PLW0603
+
+        # need to be imported last after numpy and collections have been patched and
+        # after theano flags have been set accordingly
+        import pymc3 as pm  # noqa: E402
+        import theano  # noqa: E402
+        import theano.tensor as tt  # noqa: E402
+
+        logger.info("Using PyMC3 version {}", pm.__version__)
+        logger.info(
+            "Theano compilation timeout (in sec): `theano.config.compile.timeout`={}",
+            theano.config.compile.timeout,
+        )
+        if use_tmp_compiledir:
+            logger.info(
+                "Using temporary directory for Theano compilation: "
+                "`theano.config.compiledir`={}",
+                theano.config.compiledir,
+            )
+
+        # needed to silence verbose pymc3
+        logging.getLogger("pymc3").propagate = False
 
 
 def setup_parameter_model(name, parameter):
@@ -277,7 +319,12 @@ class ModelPymc3(Model):
     ):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore")
-            return pm.find_MAP(model=self._model, progressbar=progressbar)
+            traces = pm.find_MAP(model=self._model, progressbar=progressbar)
+            return {
+                k: v
+                for k, v in traces.items()
+                if k == "logp" or k.startswith("weights_")
+            }
 
     def estimate_logp(
         self,

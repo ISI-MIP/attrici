@@ -42,11 +42,36 @@ def iso_date(argument_value):
         raise argparse.ArgumentTypeError(e)
 
 
+def lat_lons(argument_value):
+    """
+    Try parsing `argument_value` from a semicolon-separated string of lat,lon tuples
+    into a list of tuples. Used as an argument type for `--cells`.
+
+    Parameters
+    ----------
+    argument_value : str
+        The string value of the argument
+
+    Returns
+    -------
+    list of tuple
+        A list of lat,lon tuples
+    """
+    try:
+        return [
+            (float(lat), float(lon))
+            for lat, lon in [pair.split(",") for pair in argument_value.split(";")]
+        ]
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(e)
+
+
 def add_parser(subparsers):
     parser = subparsers.add_parser(
         "detrend",
         help="Detrend a dataset",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
     add_config_argument(parser)
 
@@ -64,10 +89,24 @@ def add_parser(subparsers):
         help="(SSA-smoothed) Global Mean Temperature file",
         required=True,
     )
+    group.add_argument(
+        "--gmt-variable",
+        type=str,
+        help="(SSA-smoothed) Global Mean Temperature variable name",
+        default=Config.__dataclass_fields__["gmt_variable"].default,
+    )
     group.add_argument("--input-file", type=Path, help="Input file", required=True)
     group.add_argument("--mask-file", type=Path, help="Mask file")
     group.add_argument(
         "--variable", type=str, help="Variable to detrend", required=True
+    )
+    group.add_argument("--trace-file", type=Path, help="Trace file")
+    group.add_argument("--fit-only", action="store_true", help="Only fit the model")
+    group.add_argument(
+        "--cells",
+        type=lat_lons,
+        help="Semicolon-separated lat,lon tuples to process,"
+        " otherwise all cells are processed",
     )
 
     # output
@@ -81,6 +120,7 @@ def add_parser(subparsers):
     group.add_argument(
         "--overwrite", action="store_true", help="Overwrite existing files"
     )
+    group.add_argument("--write-trace", action="store_true", help="Save trace to file")
 
     # run parameters
     group = parser.add_argument_group(title="Run parameters")
@@ -90,6 +130,18 @@ def add_parser(subparsers):
         default=Config.__dataclass_fields__["modes"].default,
         help="Number of modes for fourier series of model (either one integer, used for"
         " all four series, or four comma-separated integers)",
+    )
+    group.add_argument(
+        "--bootstrap-sample-count",
+        type=int,
+        default=Config.__dataclass_fields__["bootstrap_sample_count"].default,
+        help="Number of bootstrap samples",
+    )
+    group.add_argument(
+        "--full-extrapolation",
+        action="store_true",
+        help="Extrapolate few missing days of GMT instead of stretching it to the full"
+        " time series",
     )
     group.add_argument("--progressbar", action="store_true", help="Show progress bar")
     group.add_argument(
@@ -133,6 +185,13 @@ def add_parser(subparsers):
         default=Config.__dataclass_fields__["task_count"].default,
         help="Number of tasks for parallel processing",
     )
+    group.add_argument(
+        "--compile-timeout",
+        type=int,
+        default=Config.__dataclass_fields__["compile_timeout"].default,
+        help="Timeout for PyMC5 model compilation in s",
+    )
+
     group.add_argument(
         "--timeout",
         type=int,

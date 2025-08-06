@@ -13,6 +13,7 @@ def add_parser(subparsers):
         "ssa",
         help="Perform singular spectrum analysis",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        allow_abbrev=False,
     )
     parser.add_argument("input", type=Path, help="Input file")
     parser.add_argument("output", type=Path, help="Output file")
