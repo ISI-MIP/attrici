@@ -1,3 +1,20 @@
+"""
+ATTRICI CLI command: merge-output
+
+```
+usage: attrici merge-output [--chunksizes CHUNKSIZES] directory output_filename
+
+positional arguments:
+  directory             Directory containing detrended output timeseries or trace files
+  output_filename       Merged output file
+
+options:
+  --chunksizes CHUNKSIZES
+                        Chunk sizes for dimensions (comma-separated list of
+                        dim=chunksize pairs) (default: None)
+```
+"""
+
 import argparse
 from pathlib import Path
 
@@ -8,6 +25,14 @@ from tqdm import tqdm
 
 
 def run(args):
+    """
+    Merge time series data from multiple NetCDF files into a single NetCDF file.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The arguments containing the "directory" of input files and "output_filename".
+    """
     files = list(args.directory.glob("*/*.nc"))
     if not files:
         raise ValueError(f"No files found: {args.directory}/*/*.nc")
@@ -127,6 +152,15 @@ def chunksizes(argument_value):
 
 
 def add_parser(subparsers):
+    """
+    Adds the 'merge-output' command to the parser for command-line interface (CLI)
+    usage.
+
+    Parameters
+    ----------
+    subparsers : argparse._SubParsersAction
+        The subparsers action that allows adding subcommands to the main parser.
+    """
     parser = subparsers.add_parser(
         "merge-output",
         help="Merge detrended output or trace files",

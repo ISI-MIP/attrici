@@ -1,3 +1,12 @@
+"""
+Climate variables.
+
+This module contains classes for different climate variables used in the fitting and
+detrending process. The variables are derived from the `Variable` base class.
+
+See also Table 1 in [Mengel et al. (2021)](https://doi.org/10.5194/gmd-14-5269-2021).
+"""
+
 import numpy as np
 from loguru import logger
 from scipy import stats
@@ -7,6 +16,20 @@ from attrici.estimation.model import AttriciGLM
 
 
 def check_bounds(data, lower=None, upper=None):
+    """
+    Check if the elements in the data array are within the specified bounds.
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+        Data to be checked.
+    lower : float or int, optional
+        Lower bound. If provided, raises a `ValueError` if any element in data is
+        smaller.
+    upper : float or int, optional
+        Upper bound. If provided, raises a `ValueError` if any element in data is
+        larger.
+    """
     if lower is not None and data.min() < lower:
         raise ValueError(data.min(), "is smaller than lower bound", lower, ".")
 
@@ -15,6 +38,24 @@ def check_bounds(data, lower=None, upper=None):
 
 
 def mask_thresholded(data, lower_threshold=None, upper_threshold=None):
+    """
+    Mask elements in the data that are outside the specified thresholds.
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+        Data to be masked.
+    lower_threshold : float or int, optional
+        Elements in data that are less than or equal to the lower threshold will
+         be masked as NaN.
+    upper_threshold : float or int, optional
+        Elements in data that are greater than or equal to the upper threshold will
+        be masked as NaN.
+
+    Notes
+    -----
+    The function logs the number of elements being masked for each threshold.
+    """
     if lower_threshold is not None:
         logger.info(
             "Mask {} values below lower bound.", (data <= lower_threshold).sum().item()
@@ -28,11 +69,42 @@ def mask_thresholded(data, lower_threshold=None, upper_threshold=None):
 
 
 def refill_and_rescale(scaled_data, scaling):
-    # TODO implement refilling of values that have been masked before
+    """
+    Rescale the data according to the given scaling information.
+
+    Parameters
+    ----------
+    scaled_data : xarray.DataArray
+        Data to be rescaled.
+    scaling : dict
+        Dictionary containing the scaling information - must contain the key "scale".
+
+    Returns
+    -------
+    xarray.DataArray
+        The rescaled data.
+    """
+    # refilling of values that have been masked before is done by the calling function
+    # later (see `attrici.detrend`)
     return scaled_data * scaling["scale"]
 
 
 def scale_to_unity(data):
+    """
+    Scale data linearly to unity range (map min to 0, max to 1).
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+        Data to be scaled.
+
+    Returns
+    -------
+    xarray.DataArray
+        The scaled data.
+    dict
+        Dictionary containing the scaling information - keys are "datamin" and "scale".
+    """
     datamin = data.min()
     scale = data.max() - datamin
     scaled_data = (data - datamin) / scale
@@ -40,11 +112,36 @@ def scale_to_unity(data):
 
 
 def rescale_from_unity(scaled_data, scaling):
-    """Use a given datamin and scale to rescale to original."""
+    """
+    Rescale data from unity range to original range.
+
+    Parameters
+    ----------
+    scaled_data : xarray.DataArray
+        Data to be rescaled.
+    scaling : dict
+        Dictionary containing the scaling information - must contain the keys "datamin"
+        and "scale".
+
+    Returns
+    -------
+    xarray.DataArray
+        The rescaled data.
+    """
     return scaled_data * scaling["scale"] + scaling["datamin"]
 
 
 def check_units(data, units):
+    """
+    Check if the units of the data are as expected.
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+        Data to be checked.
+    units : str or set
+        The expected units (or a set of valid units).
+    """
     if "units" in data.attrs:
         if isinstance(units, str):
             if data.units != units:
@@ -60,31 +157,152 @@ def check_units(data, units):
 
 
 def identity(x):
+    """
+    Identity link function.
+
+    Parameters
+    ----------
+    x : array_like
+        The input data.
+
+    Returns
+    -------
+    array_like
+        The input data.
+    """
     return x
 
 
 def invlogit(x):
+    """
+    Inverse logit link function.
+
+    Parameters
+    ----------
+    x : array_like
+        The input data.
+
+    Returns
+    -------
+    array_like
+        The inverse logit of the input data.
+    """
     return 1 / (1 + np.exp(-x))
 
 
 class Variable:
+    """
+    Climate variable base class.
+
+    Sub-classes need to implement `create_model` and `rescale` methods and might
+    overwrite the default `quantile_mapping` function. A custom validation function
+    should be called in `__init__`
+
+    Attributes
+    ----------
+    y_scaled : xarray.DataArray
+        Rescaled input data.
+    datamin : float, optional
+        (Optional) minimum value of original data, used for rescaling.
+    scale : float, optional
+        (Optional) range between minimum and maximum value, used for rescaling.
+    """
+
+    def __init__(self, data):
+        """
+        Initialise a climate variable.
+
+        Parameters
+        ----------
+        data: xarray.DataArray
+            Observation data
+        """
+        raise NotImplementedError
+
+    def validate(self, data):
+        """
+        Validate the input data, e.g. bounds and units.
+
+        Parameters
+        ----------
+        data: xarray.DataArray
+            Observation data
+        """
+        raise NotImplementedError
+
+    def create_model(self, statistical_model, predictor, modes):
+        """
+        Create a model.
+
+        Parameters
+        ----------
+        statistical_model : class
+            The statistical model class to be used for creating the model - should be
+            a subclass of `attrici.estimation.model.AttriciGLM`.
+        predictor : xarray.DataArray
+            The predictor data used for the model.
+        modes : int
+            The number of modes to be considered in the model.
+
+        Returns
+        -------
+        attrici.estimation.model.Model
+            An instance of the created model.
+        """
+        raise NotImplementedError
+
+    def rescale(self, scaled_data):
+        """
+        Rescale data.
+
+        Parameters
+        ----------
+        scaled_data : xarray.DataArray
+            The data to be rescaled.
+
+        Returns
+        -------
+        xarray.DataArray
+            The rescaled data.
+        """
+        raise NotImplementedError
+
     def quantile_mapping(self, distribution_ref, distribution_cfact):
+        """
+        Map data to respective quantile in the reference distribution.
+
+        Parameters
+        ----------
+        distribution_ref : Distribution
+            The reference distribution.
+        distribution_cfact : Distribution
+            The counterfactual distribution.
+
+        Returns
+        -------
+        xarray.DataArray
+            Data mapped to the respective quantile in the reference distribution.
+        """
         return distribution_cfact.invcdf(distribution_ref.cdf(self.y_scaled))
 
 
 class Tas(Variable):
-    """Influence of GMT is modelled through a shift of
-    mu parameter in the Normal distribution.
+    """
+    Daily mean near-surface air temperature (tas), modelled by a Normal distribution
+    per time step.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = scale_to_unity(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "K")
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -99,25 +317,53 @@ class Tas(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Pr(Variable):
-    THRESHOLD = 0.0000011574  # in kg m-2 s-1; "dry day" == 0.1mm/day / (86400s/day)
+    """
+    Precipitation (pr), modelled by a Bernoulli-Gamma distribution per time step.
 
+    - For wet or dry day: Bernoulli with dry-day probability `p`
+    - For intensity of precipitation on wet days: Gamma with mean value `mu`
+      and shape parameter `nu`.
+    """
+
+    THRESHOLD = 0.0000011574
+    """Dry day threshold in kg m-2 s-1; "dry day" == 0.1mm/day / (86400s/day)"""
+
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = self.scale(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "kg m-2 s-1")
 
     def scale(self, data):
+        """
+        Precipitation specific scaling function.
+
+        Parameters
+        ----------
+        data : xarray.DataArray
+            Original data
+
+        Returns
+        -------
+        xarray.DataArray
+            The scaled data.
+        dict
+            The scaling information - contains the key "scale".
+        """
         scaled_data = data - self.THRESHOLD
         logger.info(
-            "Mask {} values below lower bound.", (scaled_data <= 0).sum().item()
+            "Mask {} values below or at dry day threshold.",
+            (scaled_data <= 0).sum().item(),
         )
         scaled_data[scaled_data <= 0] = np.nan
         if not scaled_data.notnull().any().item():
@@ -140,6 +386,7 @@ class Pr(Variable):
         )
         return scaled_data, {"scale": scale.item()}
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=predictor.time)
 
@@ -154,6 +401,7 @@ class Pr(Variable):
             predictor=predictor,
         )
 
+    # docstr-coverage:inherited
     def quantile_mapping(self, distribution_ref, distribution_cfact):
         # make it a numpy array, so we can combine smoothly with d data frame.
         y = self.y_scaled.values.copy()
@@ -214,26 +462,30 @@ class Pr(Variable):
 
         return cfact
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        # TODO implement refilling of values that have been masked before
         data = scaled_data * self.scaling["scale"] + self.THRESHOLD
         data[scaled_data <= 0] = 0
         return data
 
 
 class Rlds(Variable):
-    """Influence of GMT on longwave downwelling shortwave radiation
-    is modelled through a shift of mu parameter in the Normal distribution.
+    """
+    Surface downwelling longwave radiation (rlds), modelled by a Normal distribution
+    per time step.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = scale_to_unity(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "W m-2")
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -248,23 +500,27 @@ class Rlds(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Ps(Variable):
-    """Influence of GMT on sea level pressure (ps) is modelled through a shift of
-    mu parameter in the Normal distribution.
+    """
+    Surface air pressure (ps), modelled by a Normal distribution per time step.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = scale_to_unity(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "Pa")
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -279,25 +535,36 @@ class Ps(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Hurs(Variable):
-    """Influence of GMT on relative humidity (hurs) is modelled with Beta
-    regression as proposed in
-    https://www.tandfonline.com/doi/abs/10.1080/0266476042000214501
+    """
+    Near-surface relative humidity (hurs), modelled by a Beta distribution per time
+    step as proposed in https://doi.org/10.1080/0266476042000214501.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = self.scale(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0, upper=100.0)
         check_units(data, "%")
 
     def scale(self, data):
+        """
+        Hurs-specific scaling funtion.
+
+        Parameters
+        ----------
+        data: xarray.DataArray
+            Input data to be scaled.
+        """
         mask_thresholded(data, lower_threshold=0.01, upper_threshold=99.99)
         scale = 100.0
         scaled_data = data / scale
@@ -308,6 +575,7 @@ class Hurs(Variable):
         )
         return scaled_data, {"scale": scale}
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -322,25 +590,30 @@ class Hurs(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return refill_and_rescale(scaled_data, self.scaling)
 
 
 class Tasskew(Variable):
-    """Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Beta distribution.
+    """
+    Daily near-surface temperatureskewness (tasskew), modelled by a Normal
+    distribution per time step.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled = data.copy()
         self.scaling = {}
         mask_thresholded(self.y_scaled, lower_threshold=0.0001, upper_threshold=0.9999)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0, upper=1.0)
         check_units(data, {"1", "K"})
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -355,32 +628,39 @@ class Tasskew(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def quantile_mapping(self, distribution_ref, distribution_cfact):
         """
-        nan values are not quantile-mapped. 100% humidity happens mainly at the poles.
+        nan values are not quantile-mapped. 100% humidity happens mainly at the
+        poles.
         """
         res = distribution_cfact.invcdf(distribution_ref.cdf(self.y_scaled))
         res[res >= 1] = np.nan
         res[res <= 0] = np.nan
         return res
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return refill_and_rescale(scaled_data, {"scale": 1.0})
 
 
 class Rsds(Variable):
-    """Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Normal distribution.
+    """
+    Surface downwelling shortwave radiation (rsds), modelled by a Normal distribution
+    per time.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = scale_to_unity(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "W m-2")
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -395,63 +675,38 @@ class Rsds(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def quantile_mapping(self, distribution_ref, distribution_cfact):
         """
-        nan values are not quantile-mapped. 0 rsds happens mainly in the polar night.
+        nan values are not quantile-mapped. 0 rsds happens mainly in the polar
+        night.
         """
         res = distribution_cfact.invcdf(distribution_ref.cdf(self.y_scaled))
         res[res <= 0] = np.nan
         return res
 
-    def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.scaling)
-
-
-class RsdsWeibull(Variable):
-    """Influence of GMT is modelled through a shift of
-    the scale parameter beta in the Weibull distribution. The shape
-    parameter alpha is assumed free of a trend.
-    """
-
-    def __init__(self, data):
-        self.validate(data)
-        self.y_scaled, self.scaling = scale_to_unity(data)
-
-    def validate(self, data):
-        check_bounds(data, lower=0.0)
-        check_units(data, "W m-2")
-
-    def create_model(self, statistical_model_class, predictor, modes):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
-        return statistical_model_class(
-            distribution=distributions.Weibull,
-            parameters={
-                "alpha": AttriciGLM.PredictorDependentParam(link=np.exp, modes=modes),
-                "beta": AttriciGLM.PredictorIndependentParam(link=np.exp, modes=modes),
-            },
-            observed=observation,
-            predictor=predictor.sel(time=observation.time),
-        )
-
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Tasrange(Variable):
-    """Influence of GMT is modelled through a shift of
-    mu and sigma parameters in a Beta distribution. TODO fix comment not Beta
+    """
+    Daily near-surface temperature range (tasrange), modelled by a Gamma distribution
+    per time step.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = self.scale(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "K")
 
+    # docstr-coverage:inherited
     def scale(self, data):
         mask_thresholded(data, lower_threshold=0.01)
         datamin = data.min()
@@ -464,6 +719,7 @@ class Tasrange(Variable):
         )
         return scaled_data, {"scale": scale}
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -478,24 +734,28 @@ class Tasrange(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return refill_and_rescale(scaled_data, self.scaling)
 
 
 class Wind(Variable):
-    """Influence of GMT is modelled through a shift of
-    the scale parameter beta in the Weibull distribution. The shape
-    parameter alpha is assumed free of a trend.
+    """
+    Near-surface wind speed (sfcwind), modelled by a Weibull distribution per time
+    step.
     """
 
+    # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
         self.y_scaled, self.scaling = self.scale(data)
 
+    # docstr-coverage:inherited
     def validate(self, data):
         check_bounds(data, lower=0.0)
         check_units(data, "m s-1")
 
+    # docstr-coverage:inherited
     def scale(self, data):
         mask_thresholded(data, lower_threshold=0.01)
         datamin = data.min()
@@ -508,6 +768,7 @@ class Wind(Variable):
         )
         return scaled_data, {"scale": scale}
 
+    # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, modes):
         observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
             time=predictor.time
@@ -522,11 +783,30 @@ class Wind(Variable):
             predictor=predictor.sel(time=observation.time),
         )
 
+    # docstr-coverage:inherited
     def rescale(self, scaled_data):
         return refill_and_rescale(scaled_data, self.scaling)
 
 
 def create_variable(variable, data):
+    """
+    Returns a Variable instance based on a string abbreviation.
+
+    The variable abbreviation is mapped to the respective Variable class.
+    See also `attrici.detrend`.
+
+    Parameters
+    ----------
+    variable : str
+        Short variable name like `tas`.
+    data : xarray.DataArray
+        Observation data for the variable
+
+    Returns
+    -------
+    Variable
+        An instance of the corresponding Variable class.
+    """
     MODEL_FOR_VAR = {
         "hurs": Hurs,
         "pr": Pr,

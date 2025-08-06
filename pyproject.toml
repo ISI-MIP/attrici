@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Counterfactual climate data from past datasets for the ISIMIP project."
 readme = "README.md"
-requires-python = ">=3.9,<3.13"
+requires-python = ">=3.11,<3.14"
 keywords = ["climate", "impacts"]
 license = { text = "GPLv3" }
 classifiers = ["Programming Language :: Python :: 3"]
@@ -22,7 +22,7 @@ dependencies = [
     "netCDF4",
     "numpy",
     "pandas",
-    "pymc",
+    "pymc<=6",
     "scipy",
     "tables",
     "tomlkit",
@@ -41,7 +41,10 @@ packages = ["attrici"]
 [tool.setuptools_scm]
 
 [tool.ruff]
-include = ["pyproject.toml", "*.py"]
+include = ["pyproject.toml", "*.py", "notebooks/*.ipynb"]
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["E501"] # Line too long 
 
 [tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
 select = [
@@ -67,10 +70,19 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
 ]
 
+[tool.coverage.run]
+source = ["attrici"]
+omit = ["attrici/__main__.py", "attrici/cli.py", "attrici/commands/*.py"]
+
+[tool.pymarkdown]
+plugins.md013.line_length = 125
+plugins.md013.code_block_line_length = 125
+
 [project.optional-dependencies]
-dev = ["ruff", "pytest"]
+dev = ["docstr-coverage", "pdoc", "pymarkdownlnt", "pytest", "pytest-cov", "ruff"]
 pymc3 = ["numpy<1.25", "pymc3==3.7", "Theano==1.0.5"]
-notebook = ["notebook", "hvplot", "geoviews"]
+notebook = ["notebook", "hvplot", "geoviews", "graphviz"]
+
 
 [project.scripts]
 attrici = "attrici.cli:main"

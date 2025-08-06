@@ -1,4 +1,20 @@
+"""
+ATTRICI CLI command: preprocess-tas
+
+```
+usage: attrici preprocess-tas tas tasmin tasmax tasrange tasskew
+
+positional arguments:
+  tas         Input tas file
+  tasmin      Input tasmin file
+  tasmax      Input tasmax file
+  tasrange    Output tasrange file
+  tasskew     Output tasskew file
+```
+"""
+
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 
@@ -6,7 +22,18 @@ from loguru import logger
 
 
 def run(args):
-    import subprocess
+    """
+    Preprocesses temperature data by deriving 'tasrange' and 'tasskew' from 'tas',
+    'tasmin', and 'tasmax' using [CDO (Climate Data
+    Operators)](https://code.mpimet.mpg.de/projects/cdo). Input files are processed with
+    subprocess calls to `cdo` which needs to be installed and on the path.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        The arguments containing input and output file paths for 'tas', 'tasmin',
+        'tasmax', 'tasrange', and 'tasskew'.
+    """
 
     try:
         cdo_version = (
@@ -49,6 +76,15 @@ def run(args):
 
 
 def add_parser(subparsers):
+    """
+    Adds the 'preprocess-tas' command to th parser for command-line interface (CLI)
+    usage.
+
+    Parameters
+    ----------
+    subparsers : argparse._SubParsersAction
+        The subparsers action that allows adding subcommands to the main parser.
+    """
     parser = subparsers.add_parser(
         "preprocess-tas",
         help="Derive tasrange and tasskew from tas, tasmin, and tasmax",
