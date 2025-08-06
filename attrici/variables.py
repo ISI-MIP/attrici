@@ -156,6 +156,23 @@ def check_units(data, units):
         logger.warning("No units attribute found in data.")
 
 
+def only_valid(data):
+    """
+    Select only valid (non-NaN) values from the data.
+
+    Parameters
+    ----------
+    data : xarray.DataArray
+        Data to be filtered.
+
+    Returns
+    -------
+    xarray.DataArray
+        Data with NaN values removed.
+    """
+    return data.sel(time=data.notnull())
+
+
 def identity(x):
     """
     Identity link function.
@@ -304,9 +321,7 @@ class Tas(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
@@ -489,9 +504,7 @@ class Rlds(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
@@ -525,9 +538,7 @@ class Ps(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
@@ -581,9 +592,7 @@ class Hurs(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Beta,
             parameters={
@@ -620,9 +629,7 @@ class Tasskew(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
@@ -668,9 +675,7 @@ class Rsds(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Normal,
             parameters={
@@ -728,9 +733,7 @@ class Tasrange(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Gamma,
             parameters={
@@ -778,9 +781,7 @@ class Wind(Variable):
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
-        observation = self.y_scaled.sel(time=self.y_scaled.notnull()).sel(
-            time=predictor.time
-        )
+        observation = only_valid(self.y_scaled.sel(time=predictor.time))
         return statistical_model_class(
             distribution=distributions.Weibull,
             parameters={

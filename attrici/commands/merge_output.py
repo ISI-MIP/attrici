@@ -94,8 +94,6 @@ def run(args):
                     for i, dim in enumerate(var.dims):
                         if dim in args.chunksizes:
                             chunksizes[i] = args.chunksizes[dim]
-            print(args.chunksizes)
-            print(chunksizes)
             nc.createVariable(
                 var_name,
                 var.dtype,
