@@ -2,6 +2,7 @@
 .. include:: ../README.md
 .. include:: ../USAGE.md
 .. include:: ../OVERVIEW.md
+.. include:: ../BOOTSTRAPPING.md
 .. include:: ../DEVELOPMENT.md
 """
 
