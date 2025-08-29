@@ -1,0 +1,92 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "attrici"
+authors = [
+    { name = "Matthias Mengel", email = "matthias.mengel@pik-potsdam.de" },
+    { name = "Simon Treu", email = "simontreu@pik-potsdam.de" },
+]
+description = "Counterfactual climate data from past datasets for the ISIMIP project."
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+keywords = ["climate", "impacts"]
+license = { text = "GPLv3" }
+classifiers = ["Programming Language :: Python :: 3"]
+dependencies = [
+    "dask",
+    "func_timeout",
+    "joblib",
+    "loguru",
+    "netCDF4",
+    "numpy",
+    "pandas",
+    "pymc<=6",
+    "scipy",
+    "tables",
+    "tomlkit",
+    "tqdm",
+    "xarray",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/ISI-MIP/attrici"
+Issues = "https://github.com/ISI-MIP/attrici/issues"
+
+[tool.setuptools]
+packages = ["attrici"]
+
+[tool.setuptools_scm]
+
+[tool.ruff]
+include = ["pyproject.toml", "*.py", "notebooks/*.ipynb"]
+
+[tool.ruff.lint.per-file-ignores]
+"*.ipynb" = ["E501"] # Line too long 
+
+[tool.ruff.lint] # https://docs.astral.sh/ruff/rules/
+select = [
+    # pycodestyle errors
+    "E",
+    # pycodestyle warnings,
+    "W",
+    # Pyflakes
+    "F",
+    # Pylint
+    "PL",
+    # isort
+    "I",
+]
+ignore = [
+    "PLR0912", # Too many branches
+    "PLR0913", # Too many arguments 
+    "PLR0915", # Too many statements
+    "PLC0415", # Import outside top level
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.coverage.run]
+source = ["attrici"]
+omit = ["attrici/__main__.py", "attrici/cli.py", "attrici/commands/*.py"]
+
+[tool.pymarkdown]
+plugins.md013.line_length = 125
+plugins.md013.code_block_line_length = 125
+
+[project.optional-dependencies]
+dev = ["docstr-coverage", "pdoc", "pymarkdownlnt", "pytest", "pytest-cov", "ruff"]
+pymc3 = ["numpy<1.25", "pymc3==3.7", "Theano==1.0.5"]
+notebook = ["notebook", "hvplot", "geoviews", "graphviz"]
+
+
+[project.scripts]
+attrici = "attrici.cli:main"
+
+# For more metadata fields, see
+# https://packaging.python.org/en/latest/guides/writing-pyproject-toml/
