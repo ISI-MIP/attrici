@@ -42,6 +42,19 @@ on Bayesian timeseries analysis with additive models.
 
 The Singular Spectrum Analysis included in ATTRICI comes from [pyts](https://pyts.readthedocs.io/en/stable/generated/pyts.decomposition.SingularSpectrumAnalysis.html).
 
+## How to contribute
+
+We welcome contributions to improve this project! Here are some ways you can help:
+**Report Bugs**: If you find a bug, please open an issue with detailed information about the problem and how to reproduce it.
+**Submit Pull Requests**: If you want to fix a bug or implement a feature, follow these steps:
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/YourFeatureName`).
+3. Make your changes.
+4. Commit your changes (`git commit -m 'Add some feature'`).
+5. Push to the branch (`git push origin feature/YourFeatureName`).
+6. Open a pull request.
+**Suggest Features**: Have an idea for a new feature? Open an issue to discuss it.
+
 ## Funding
 
 ![EU_logo](https://github.com/user-attachments/assets/e2fad699-697e-43fd-84be-032447d6dd21) This project has received funding from the European Union's HORIZON Research and Innovation Actions Programme under Grant Agreement No. 101135481 (COMPASS).
