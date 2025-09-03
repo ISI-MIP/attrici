@@ -44,8 +44,9 @@ The Singular Spectrum Analysis included in ATTRICI comes from [pyts](https://pyt
 
 ## Funding
 
-This project has received funding from the European Union's HORIZON Research and Innovation Actions Programme
-under Grant Agreement No. 101135481 (COMPASS).
+![EU_logo](https://github.com/user-attachments/assets/e2fad699-697e-43fd-84be-032447d6dd21) This project has received funding from the European Union's HORIZON Research and Innovation Actions Programme under Grant Agreement No. 101135481 (COMPASS).
+
+Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or of the European Health and Digital Executive Agency (HADEA). Neither the European Union nor the granting authority HADEA can be held responsible for them.
 
 ## License
 
