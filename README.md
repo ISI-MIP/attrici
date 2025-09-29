@@ -28,7 +28,7 @@ reproducibility), an updated version using [PyMC5](https://www.pymc.io) and a ve
 [Documentation](https://isi-mip.github.io/attrici) is available online.
 It is build for the latest commit in the current main branch.
 An overview of the model architecture is in [OVERVIEW.md](https://github.com/isi-mip/attrici/tree/main/OVERVIEW.md).
-See [USAGE.md](https://github.com/isi-mip/attrici/tree/main/USAGE.md) for getting started using ATTRICI.
+See [USAGE.md](https://github.com/isi-mip/attrici/tree/main/USAGE.md) for installing and getting started using ATTRICI.
 See also the [notebooks](https://github.com/isi-mip/attrici/tree/main/notebooks) folder for further examples.
 
 ## Credits
