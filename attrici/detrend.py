@@ -248,7 +248,8 @@ def write_trace(config, trace, lat, lon):
         d = xr.DataArray(v)
         for dim in list(d.dims):
             d = d.rename({dim: f"{k}_{dim}"})
-        trace_ds[k] = d.expand_dims(dim=("lat", "lon"))
+        # lat lon dimensions are assumed to be the last dimension in the merge script
+        trace_ds[k] = d.expand_dims(dim=("lat", "lon")).transpose(...,"lat", "lon")
     trace_ds.attrs = get_data_provenance_metadata(attrici_config=config.to_toml())
     save_compressed_netcdf(trace_ds, trace_filename)
 
