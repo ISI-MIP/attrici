@@ -144,6 +144,8 @@ def run(args):
                         nc[dim].setncattr(attr, d[dim].attrs[attr])
 
         var_names = d.data_vars.keys()
+        time_size = d.sizes.get("time", None)
+
         for var_name in set(var_names) - {"lat", "lon"}:
             var = d[var_name]
             # we assume lat and lon are in the last two places of dimension
@@ -173,19 +175,64 @@ def run(args):
                 if not attr.startswith("_"):
                     nc[var_name].setncattr(attr, var.attrs[attr])
 
-        for (lat, lon), d in tqdm(data_by_cell.items(), desc="Merging data"):
-            lat_index = unique_lats.index(lat)
-            lon_index = unique_lons.index(lon)
+        # If time chunk size is not the full time dimension, cell-by-cell writes
+        # would trigger many read-modify-writes per chunk. Load all in memory and
+        # write in one go instead.
+        time_chunk = args.chunksizes.get("time", None) if args.chunksizes else None
+        use_memory_path = (
+            time_size is not None
+            and time_chunk is not None
+            and time_chunk != time_size
+        )
+
+        if use_memory_path:
             for var_name in var_names:
                 var = d[var_name]
                 if "lat" in var.dims or "lon" in var.dims:
-                    # we assume lat and lon are in the last two places of dimension
-                    # current input (var) has only one of each lat/lon, select it
-                    # and put it into the right position in the output (nc)
-                    nc[var_name][..., lat_index, lon_index] = var.values[..., 0, 0]
-                # Write non-spatial variables once (they are the same for all cells)
+                    # Use output grid size for lat/lon, not single-cell file dims
+                    shape = tuple(
+                        len(unique_lats) if dim == "lat" else (
+                            len(unique_lons) if dim == "lon" else d.sizes[dim]
+                        )
+                        for dim in var.dims
+                    )
+                    fill_val = var.attrs.get("_FillValue")
+                    if fill_val is None:
+                        fill_val = (
+                            np.nan
+                            if np.issubdtype(var.dtype, np.floating)
+                            else 0
+                        )
+                    arr = np.full(shape, fill_val, dtype=var.dtype)
+                    for (lat, lon), ds in tqdm(
+                        data_by_cell.items(),
+                        desc=f"Merging {var_name}",
+                        leave=False,
+                    ):
+                        lat_index = unique_lats.index(lat)
+                        lon_index = unique_lons.index(lon)
+                        arr[..., lat_index, lon_index] = ds[var_name].values[
+                            ..., 0, 0
+                        ]
+                    nc[var_name][:] = arr
                 else:
                     nc[var_name][:] = var.values
+        else:
+            for (lat, lon), d in tqdm(data_by_cell.items(), desc="Merging data"):
+                lat_index = unique_lats.index(lat)
+                lon_index = unique_lons.index(lon)
+                for var_name in var_names:
+                    var = d[var_name]
+                    if "lat" in var.dims or "lon" in var.dims:
+                        # we assume lat and lon are in the last two places of dimension
+                        # current input (var) has only one of each lat/lon, select it
+                        # and put it into the right position in the output (nc)
+                        nc[var_name][..., lat_index, lon_index] = var.values[
+                            ..., 0, 0
+                        ]
+                    # Write non-spatial variables once (they are the same for all cells)
+                    else:
+                        nc[var_name][:] = var.values
 
     for ds in data_by_cell.values():
         ds.close()
