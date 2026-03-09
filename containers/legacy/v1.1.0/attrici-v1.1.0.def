@@ -1,0 +1,48 @@
+Bootstrap: docker
+From: continuumio/miniconda3:4.9.2
+
+%post
+    export DEBIAN_FRONTEND=noninteractive
+    # Base image uses Debian Buster (EOL); use archive so apt works
+    echo "deb http://archive.debian.org/debian buster main" > /etc/apt/sources.list
+    echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list
+    apt-get update -y
+    apt-get install -y --no-install-recommends g++ git ca-certificates
+    apt-get clean
+    rm -rf /var/lib/apt/lists/*
+
+    git clone --depth 1 --branch v1.1.0 https://github.com/ISI-MIP/attrici.git /opt/attrici
+
+    # Conda only for python + science stack; pymc3/theano via pip to avoid solver hanging.
+    /opt/conda/bin/conda create -n attrici -y -c conda-forge -c defaults \
+        python=3.7 netcdf4 pandas xarray pytables h5py scipy numpy tqdm cftime
+    /opt/conda/envs/attrici/bin/pip install pymc3==3.7 theano==1.0.4 func_timeout
+    /opt/conda/envs/attrici/bin/pip install -e /opt/attrici
+
+    # Fixed mount point for workflows (e.g. Snakemake): bind-mount any host path here.
+    mkdir -p /workspace
+
+%environment
+    export WORKDIR=/workspace
+    export PATH="/opt/conda/envs/attrici/bin:$PATH"
+    # Use theanorc from the cloned v1.1.0 repo (config/theanorc). Override with THEANORC if needed.
+    export THEANORC=/opt/attrici/config/theanorc
+
+%runscript
+    #!/bin/bash
+    source /opt/conda/etc/profile.d/conda.sh
+    conda activate attrici
+    export THEANORC=/opt/attrici/config/theanorc
+    wd="${WORKDIR:-/workspace}"
+    cd "$wd"
+    # If workflow mounted a dir with run_estimation.py (e.g. attrici-workflow/runscripts/exp), use it.
+    if [ -f "$wd/run_estimation.py" ]; then
+        exec python "$wd/run_estimation.py" "$@"
+    else
+        exec python /opt/attrici/run_estimation.py "$@"
+    fi
+
+%labels
+    Author ISI-MIP/attrici
+    Version v1.1.0
+    Description Legacy Singularity image for attrici v1.1.0 (run_estimation.py, PyMC3, Theano)
