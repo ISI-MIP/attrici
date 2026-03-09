@@ -1,46 +1,52 @@
 Bootstrap: docker
-From: continuumio/miniconda3:4.9.2
-
-%post
-    export DEBIAN_FRONTEND=noninteractive
-    # Base image uses Debian Buster (EOL); use archive so apt works
-    echo "deb http://archive.debian.org/debian buster main" > /etc/apt/sources.list
-    echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list
-    apt-get update -y
-    apt-get install -y --no-install-recommends g++ git ca-certificates
-    apt-get clean
-    rm -rf /var/lib/apt/lists/*
-
-    git clone --depth 1 --branch v1.1.0 https://github.com/ISI-MIP/attrici.git /opt/attrici
-
-    # Conda only for python + science stack; pymc3/theano via pip to avoid solver hanging.
-    /opt/conda/bin/conda create -n attrici -y -c conda-forge -c defaults \
-        python=3.7 netcdf4 pandas xarray pytables h5py scipy numpy tqdm cftime
-    /opt/conda/envs/attrici/bin/pip install pymc3==3.7 theano==1.0.4 func_timeout
-    /opt/conda/envs/attrici/bin/pip install -e /opt/attrici
-
-    # Fixed mount point for workflows (e.g. Snakemake): bind-mount any host path here.
-    mkdir -p /workspace
+From: mambaorg/micromamba:1.5.1-bookworm
 
 %environment
-    export WORKDIR=/workspace
-    export PATH="/opt/conda/envs/attrici/bin:$PATH"
-    # Use theanorc from the cloned v1.1.0 repo (config/theanorc). Override with THEANORC if needed.
-    export THEANORC=/opt/attrici/config/theanorc
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/bin:$PATH"
+export CXX=g++
+export THEANORC=/opt/attrici/config/theanorc
+export WORKDIR=/workspace
+
+%post
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/bin:$PATH"
+export CXX=g++
+
+apt update
+apt-get install -y git wget build-essential
+
+home=/opt/attrici_build
+mkdir -p "$home" && cd "$home"
+
+# Clone v1.1.0 first (need repo for config/theanorc and pip install)
+git clone --depth 1 --branch v1.1.0 https://github.com/ISI-MIP/attrici.git /opt/attrici
+
+# Create env: try v1.1.0 environment.yml first (like old def), else minimal + pip
+wget -q https://raw.githubusercontent.com/ISI-MIP/attrici/v1.1.0/config/environment.yml -O environment.yml
+sed -i '/^#/! s/^/  - /' environment.yml
+sed -i '4s;^;dependencies:\n;' environment.yml
+micromamba create -y -q -n attrici_env -c conda-forge -c defaults -f environment.yml 2>/dev/null || \
+    (micromamba create -y -q -n attrici_env -c conda-forge -c defaults \
+        python=3.7 netcdf4 pandas xarray pytables h5py scipy numpy tqdm cftime && \
+     /opt/conda/envs/attrici_env/bin/pip install pymc3==3.7 theano==1.0.4)
+
+/opt/conda/envs/attrici_env/bin/pip install func_timeout
+/opt/conda/envs/attrici_env/bin/pip install -e /opt/attrici
+
+mkdir -p /workspace
+rm -rf "$home"
 
 %runscript
-    #!/bin/bash
-    source /opt/conda/etc/profile.d/conda.sh
-    conda activate attrici
-    export THEANORC=/opt/attrici/config/theanorc
-    wd="${WORKDIR:-/workspace}"
-    cd "$wd"
-    # If workflow mounted a dir with run_estimation.py (e.g. attrici-workflow/runscripts/exp), use it.
-    if [ -f "$wd/run_estimation.py" ]; then
-        exec python "$wd/run_estimation.py" "$@"
-    else
-        exec python /opt/attrici/run_estimation.py "$@"
-    fi
+#!/bin/bash
+export PATH="/opt/conda/envs/attrici_env/bin:$PATH"
+export CXX=g++
+export THEANORC=/opt/attrici/config/theanorc
+wd="${WORKDIR:-/workspace}"
+cd "$wd"
+if [ -f "$wd/run_estimation.py" ]; then
+    exec python "$wd/run_estimation.py" "$@"
+else
+    exec python /opt/attrici/run_estimation.py "$@"
+fi
 
 %labels
     Author ISI-MIP/attrici
