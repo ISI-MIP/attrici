@@ -29,15 +29,21 @@ def make_cell_output_dir(output_dir, sub_dir, lat, lon, variable):
         return lat_sub_dir
 
 
-def get_subset(df, subset, seed, startdate):
+def get_subset(df, subset, seed, calibration_start, calibration_stop=None):
     orig_len = len(df)
     if subset > 1:
         np.random.seed(seed)
         subselect = np.random.choice(orig_len, np.int(orig_len / subset), replace=False)
         df = df.loc[np.sort(subselect), :].copy()
 
-    if not (startdate is None):
-        df = df.loc[startdate:].copy()
+    if calibration_start is None and calibration_stop is None:
+        pass  # no date filtering
+    elif calibration_start is not None and calibration_stop is not None:
+        df = df.loc[calibration_start:calibration_stop].copy()
+    elif calibration_start is not None:
+        df = df.loc[calibration_start:].copy()
+    else:
+        df = df.loc[:calibration_stop].copy()
 
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
 

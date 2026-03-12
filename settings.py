@@ -37,7 +37,8 @@ inference = "NUTS"
 
 seed = 0  # for deterministic randomisation
 subset = 1  # only use every subset datapoint for bayes estimation for speedup
-startdate = None # may at a date in the format '1950-01-01' to train only on date from after that date
+calibration_start = None  # e.g. '1950-01-01' to train only on dates from after that date
+calibration_stop = None  # e.g. '2020-12-31' to train only up to that date
 
 # for example "GSWP3", "GSWP3-W5E5"
 dataset = "GSWP3-W5E5"

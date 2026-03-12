@@ -41,7 +41,8 @@ class estimator(object):
         self.save_trace = cfg.save_trace
         self.report_variables = cfg.report_variables
         self.inference = cfg.inference
-        self.startdate = cfg.startdate
+        self.calibration_start = cfg.calibration_start
+        self.calibration_stop = cfg.calibration_stop
 
         try:
             #TODO remove modes from initialization
@@ -59,7 +60,9 @@ class estimator(object):
         x_fourier_01.columns = ["pos" + col for col in x_fourier_01.columns]
 
         dff = pd.concat([df, x_fourier, x_fourier_01], axis=1)
-        df_subset = dh.get_subset(dff, self.subset, self.seed, self.startdate)
+        df_subset = dh.get_subset(
+            dff, self.subset, self.seed, self.calibration_start, self.calibration_stop
+        )
 
         self.model = self.statmodel.setup(df_subset)
 
