@@ -7,6 +7,73 @@ import attrici.const as c
 import attrici.fourier as fourier
 
 
+def validate_time_range_alignment(gmt_time, input_time):
+    """
+    Ensure GMT and input dataset cover the same time range.
+    GMT may be at coarser intervals (e.g. every 10th day); tolerance is derived
+    from the equidistant GMT interval.
+
+    Parameters
+    ----------
+    gmt_time : array-like
+        GMT timestamps (e.g. pd.DatetimeIndex or numpy datetime64)
+    input_time : array-like
+        Input dataset timestamps
+
+    Raises
+    ------
+    ValueError
+        If GMT does not fully cover the input time range within tolerance.
+    """
+    gmt_time = pd.to_datetime(gmt_time)
+    input_time = pd.to_datetime(input_time)
+
+    gmt_min = gmt_time.min()
+    gmt_max = gmt_time.max()
+    input_min = input_time.min()
+    input_max = input_time.max()
+
+    if len(gmt_time) < 2:
+        raise ValueError(
+            "GMT file must have at least 2 time steps to derive interval"
+        )
+
+    # Tolerance from equidistant GMT interval
+    tolerance = gmt_time[1] - gmt_time[0]
+
+    # GMT start must be within tolerance of input start: input_min - tolerance < gmt_min < input_min + tolerance
+    if gmt_min < input_min - tolerance:
+        raise ValueError(
+            "GMT does not align with input time range: GMT start ({}) is before "
+            "input start ({}) by more than GMT interval ({})".format(
+                gmt_min, input_min, tolerance
+            )
+        )
+    if gmt_min > input_min + tolerance:
+        raise ValueError(
+            "GMT does not align with input time range: GMT start ({}) is after "
+            "input start ({}) by more than GMT interval ({})".format(
+                gmt_min, input_min, tolerance
+            )
+        )
+
+    # GMT end must be within tolerance of input end: input_max - tolerance < gmt_max < input_max + tolerance
+    if gmt_max < input_max - tolerance:
+        raise ValueError(
+            "GMT does not align with input time range: GMT end ({}) is before "
+            "input end ({}) by more than GMT interval ({})".format(
+                gmt_max, input_max, tolerance
+            )
+        )
+    if gmt_max > input_max + tolerance:
+        raise ValueError(
+            "GMT does not align with input time range: GMT end ({}) is after "
+            "input end ({}) by more than GMT interval ({})".format(
+                gmt_max, input_max, tolerance
+            )
+        )
+
+
 def create_output_dirs(output_dir):
 
     """ params: output_dir: a pathlib object """
