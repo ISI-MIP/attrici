@@ -1,0 +1,46 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.1-bookworm
+
+%environment
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/share/proj:/opt/conda/envs/attrici_env/bin"
+export PROJ_LIB=/opt/conda/envs/attrici_env/share/proj
+# export GDAL_DATA=/opt/conda/envs/attrici_env/share/
+export CXX=g++
+
+%post
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/share/proj:/opt/conda/envs/attrici_env/bin"
+export PROJ_LIB=/opt/conda/envs/attrici_env/share/proj
+# export GDAL_DATA=/opt/conda/envs/attrici_env/share/
+export CXX=g++
+
+apt update
+apt-get install -y git wget build-essential #g++-7 #gcc-7
+#apt install ./gcc-7-multilib_7.3.0-16ubuntu3_amd64.deb
+home=/home/attrici
+
+mkdir "$home" && cd  "$home"
+wget https://raw.githubusercontent.com/ISI-MIP/attrici/master/config/environment.yml
+sed -i '/^#/! s/^/  - /' environment.yml
+sed -i '4s;^;dependencies:\n;' environment.yml
+micromamba create -y -q -n attrici_env -c conda-forge -c defaults -f environment.yml
+python -m pip install func_timeout
+
+git clone -b precipitation https://github.com/ISI-MIP/attrici.git
+cd attrici
+python -m pip install -e ./
+
+mkdir /data
+
+%labels
+    Author Dánnell Quesada-Chacón
+    Version v1.0.0
+    Date 2024-02-27
+    Contents Container to run ATTRICI
+
+%runscript
+cd /data/
+exec /bin/bash "$@"
+
+%startscript
+cd /data/
+exec /bin/bash "$@"
