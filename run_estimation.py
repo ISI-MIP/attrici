@@ -114,7 +114,11 @@ for n in run_numbers[:]:
             print("No valid data found. Run calculation.")
 
     data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
-    df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
+    df, datamin, scale = dh.create_dataframe(
+        nct[:], nct.units, data, gmt, s.variable,
+        calibration_start=s.calibration_start,
+        calibration_stop=s.calibration_stop,
+    )
 
     try:
         trace, dff = func_timeout(

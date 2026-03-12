@@ -52,7 +52,10 @@ def get_subset(df, subset, seed, calibration_start, calibration_stop=None):
     return df
 
 
-def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
+def create_dataframe(
+    nct_array, units, data_to_detrend, gmt, variable,
+    calibration_start=None, calibration_stop=None
+):
 
     # proper dates plus additional time axis that is
     # from 0 to 1 for better sampling performance
@@ -64,8 +67,32 @@ def create_dataframe(nct_array, units, data_to_detrend, gmt, variable):
     t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
 
-    f_scale = c.mask_and_scale["gmt"][0]
-    gmt_scaled, _, _ = f_scale(gmt_on_data_cal, "gmt")
+    # GMT scaling: use min/max from calibration period only (if set)
+    if calibration_start is not None or calibration_stop is not None:
+        if calibration_start is not None:
+            cal_start = pd.Timestamp(calibration_start)
+            mask = ds >= cal_start
+        else:
+            mask = np.ones(len(ds), dtype=bool)
+        if calibration_stop is not None:
+            cal_stop = pd.Timestamp(calibration_stop)
+            mask = mask & (ds <= cal_stop)
+        gmt_cal = gmt_on_data_cal[mask]
+        if len(gmt_cal) == 0:
+            raise ValueError(
+                "No GMT data in calibration period [start={}, stop={}]".format(
+                    calibration_start, calibration_stop
+                )
+            )
+        gmt_min, gmt_max = gmt_cal.min(), gmt_cal.max()
+        scale = gmt_max - gmt_min
+        if scale == 0:
+            gmt_scaled = np.zeros_like(gmt_on_data_cal)
+        else:
+            gmt_scaled = (gmt_on_data_cal - gmt_min) / scale
+    else:
+        f_scale = c.mask_and_scale["gmt"][0]
+        gmt_scaled, _, _ = f_scale(gmt_on_data_cal, "gmt")
 
     c.check_bounds(data_to_detrend, variable)
     try:
