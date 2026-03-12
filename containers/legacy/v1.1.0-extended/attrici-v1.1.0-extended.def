@@ -1,0 +1,54 @@
+Bootstrap: docker
+From: mambaorg/micromamba:1.5.1-bookworm
+
+%environment
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/bin:$PATH"
+export CXX=g++
+export THEANORC=/opt/attrici/config/theanorc
+export WORKDIR=/workspace
+
+%post
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/bin:$PATH"
+export CXX=g++
+
+apt update
+apt-get install -y git wget build-essential
+
+home=/opt/attrici_build
+mkdir -p "$home" && cd "$home"
+
+# Clone legacy/v1.1.0-extended (calibration_start/stop, GMT normalization, time alignment)
+git clone --depth 1 --branch legacy/v1.1.0-extended https://github.com/ISI-MIP/attrici.git /opt/attrici
+
+# Create env: try v1.1.0 environment.yml first (like old def), else minimal + pip
+wget -q https://raw.githubusercontent.com/ISI-MIP/attrici/v1.1.0/config/environment.yml -O environment.yml
+sed -i '/^#/! s/^/  - /' environment.yml
+sed -i '4s;^;dependencies:\n;' environment.yml
+micromamba create -y -q -n attrici_env -c conda-forge -c defaults -f environment.yml 2>/dev/null || \
+    (micromamba create -y -q -n attrici_env -c conda-forge -c defaults \
+        python=3.7 netcdf4 pandas xarray pytables h5py scipy numpy tqdm cftime && \
+     /opt/conda/envs/attrici_env/bin/pip install pymc3==3.7 theano==1.0.4)
+
+/opt/conda/envs/attrici_env/bin/pip install func_timeout
+/opt/conda/envs/attrici_env/bin/pip install -e /opt/attrici
+
+mkdir -p /workspace
+rm -rf "$home"
+
+%runscript
+#!/bin/bash
+export PATH="/opt/conda/envs/attrici_env/bin:$PATH"
+export CXX=g++
+export THEANORC=/opt/attrici/config/theanorc
+wd="${WORKDIR:-/workspace}"
+cd "$wd"
+if [ -f "$wd/run_estimation.py" ]; then
+    exec python "$wd/run_estimation.py" "$@"
+else
+    exec python /opt/attrici/run_estimation.py "$@"
+fi
+
+%labels
+    Author ISI-MIP/attrici
+    Version v1.1.0-extended
+    Description Legacy Singularity image for attrici v1.1.0-extended (calibration_start/stop, GMT from calibration period, time alignment)
