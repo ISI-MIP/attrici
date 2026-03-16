@@ -59,6 +59,8 @@ We welcome contributions to improve this project! Here are some ways you can hel
 
 ![EU_logo](https://github.com/user-attachments/assets/e2fad699-697e-43fd-84be-032447d6dd21) This project has received funding from the European Union's HORIZON Research and Innovation Actions Programme under Grant Agreement No. 101135481 (COMPASS).
 
+Additionally, the project received has received funding from the Leibniz Programme for Women Professors under the project VISIBLE (P130/2021)
+
 Funded by the European Union. Views and opinions expressed are however those of the author(s) only and do not necessarily reflect those of the European Union or of the European Health and Digital Executive Agency (HADEA). Neither the European Union nor the granting authority HADEA can be held responsible for them.
 
 ## License
