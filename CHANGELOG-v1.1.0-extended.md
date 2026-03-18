@@ -27,3 +27,4 @@
 - `attrici/datahandler.py`: `get_subset` supports calibration_start/calibration_stop; `create_dataframe` uses calibration-period GMT for scaling; new `validate_time_range_alignment`
 - `attrici/estimator.py`: Passes `calibration_start` and `calibration_stop` to `get_subset`
 - `run_estimation.py`: Passes calibration_start/calibration_stop to `create_dataframe`; loads GMT time; calls time alignment validation
+- `run_single_cell.py`: Same updates as run_estimation.py for consistency

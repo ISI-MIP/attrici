@@ -25,6 +25,11 @@ dh.create_output_dirs(s.output_dir)
 gmt_file = s.input_dir / s.dataset / s.gmt_file
 ncg = nc.Dataset(gmt_file, "r")
 gmt = np.squeeze(ncg.variables["tas"][:])
+gmt_time = pd.to_datetime(
+    ncg.variables["time"][:],
+    unit="D",
+    origin=pd.Timestamp(ncg.variables["time"].units.lstrip("days since")),
+)
 ncg.close()
 
 input_file = s.input_dir / s.dataset / s.source_file.lower()
@@ -33,6 +38,11 @@ input_file = s.input_dir / s.dataset / s.source_file.lower()
 obs_data = nc.Dataset(input_file, "r")
 # nc_lsmask = nc.Dataset(landsea_mask_file, "r")
 nct = obs_data.variables["time"]
+input_time = pd.to_datetime(
+    nct[:], unit="D", origin=pd.Timestamp(nct.units.lstrip("days since"))
+)
+dh.validate_time_range_alignment(gmt_time, input_time)
+
 lats = obs_data.variables["lat"][:]
 lons = obs_data.variables["lon"][:]
 
@@ -52,7 +62,11 @@ TIME0 = datetime.now()
 
 # print( sp["index_lat"], sp["index_lon"])
 data = obs_data.variables[s.variable][:, sp["index_lat"], sp["index_lon"]]
-df, datamin, scale = dh.create_dataframe(nct[:], nct.units, data, gmt, s.variable)
+df, datamin, scale = dh.create_dataframe(
+    nct[:], nct.units, data, gmt, s.variable,
+    calibration_start=s.calibration_start,
+    calibration_stop=s.calibration_stop,
+)
 
 try:
     trace, dff = func_timeout(

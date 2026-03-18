@@ -105,12 +105,17 @@ def get_subset(df, subset, seed, calibration_start, calibration_stop=None):
 
     if calibration_start is None and calibration_stop is None:
         pass  # no date filtering
-    elif calibration_start is not None and calibration_stop is not None:
-        df = df.loc[calibration_start:calibration_stop].copy()
-    elif calibration_start is not None:
-        df = df.loc[calibration_start:].copy()
     else:
-        df = df.loc[:calibration_stop].copy()
+        # Filter by ds column, not index: df has integer index, loc[date:date] would not work
+        cal_start = pd.Timestamp(calibration_start) if calibration_start else None
+        cal_stop = pd.Timestamp(calibration_stop) if calibration_stop else None
+        if cal_start is not None and cal_stop is not None:
+            mask = (df["ds"] >= cal_start) & (df["ds"] <= cal_stop)
+        elif cal_start is not None:
+            mask = df["ds"] >= cal_start
+        else:
+            mask = df["ds"] <= cal_stop
+        df = df.loc[mask].copy()
 
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
