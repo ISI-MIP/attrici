@@ -99,7 +99,7 @@ def calc_oscillations(t, modes):
     numpy.ndarray
         Array of oscillation values.
     """
-    t_scaled = (t - t.min()) / (np.timedelta64(365, "D") + np.timedelta64(6, "h"))
+    t_scaled = (t.dt.dayofyear - 1) / 365.25
     x = (2 * np.pi * (np.arange(modes) + 1)) * t_scaled.values[:, None]
     return np.concatenate((np.cos(x), np.sin(x)), axis=1)
 
