@@ -81,7 +81,7 @@ plugins.md013.code_block_line_length = 125
 
 [project.optional-dependencies]
 dev = ["docstr-coverage", "pdoc", "pymarkdownlnt", "pytest", "pytest-cov", "ruff"]
-pymc3 = ["numpy<1.25", "pymc3==3.7", "Theano==1.0.5"]
+pymc3 = ["numpy<1.25", "pymc3==3.7", "setuptools<81", "theano==1.0.5"]
 notebook = ["notebook", "hvplot", "geoviews", "graphviz"]
 
 
