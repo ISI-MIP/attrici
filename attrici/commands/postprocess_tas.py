@@ -45,7 +45,7 @@ def run(args):
     else:
         logger.info("Using {}", cdo_version)
 
-    cdo_command = ["cdo", "-O", "-f", "nc4", "-z", "zip"]
+    cdo_command = ["cdo", "-O", "-f", "nc4", "-z", "zip", "--sortname"]
 
     try:
         subprocess.check_call(

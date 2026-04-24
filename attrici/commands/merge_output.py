@@ -2,7 +2,8 @@
 ATTRICI CLI command: merge-output
 
 ```
-usage: attrici merge-output [--chunksizes CHUNKSIZES] directory output_filename
+usage: attrici merge-output [--chunksizes CHUNKSIZES] [--mask-file MASK_FILE]
+                           directory output_filename
 
 positional arguments:
   directory             Directory containing detrended output timeseries or trace files
@@ -12,26 +13,78 @@ options:
   --chunksizes CHUNKSIZES
                         Chunk sizes for dimensions (comma-separated list of
                         dim=chunksize pairs) (default: None)
+  --mask-file MASK_FILE
+                        Mask file defining output grid; cells with value 1 must
+                        have data (default: None)
 ```
 """
 
 import argparse
 from pathlib import Path
 
+import numpy as np
 import xarray as xr
 from loguru import logger
 from netCDF4 import Dataset
 from tqdm import tqdm
 
 
+def _load_mask_grid(mask_path):
+    """
+    Load mask file and return full-grid lat/lon and the set of (lat, lon) where mask==1.
+
+    Parameters
+    ----------
+    mask_path : Path
+        Path to the mask NetCDF file.
+
+    Returns
+    -------
+    unique_lats : list
+        Sorted latitude values (full grid).
+    unique_lons : list
+        Sorted longitude values (full grid).
+    expected_cells : set of tuple
+        Set of (lat, lon) pairs where mask equals 1.
+    """
+    mask_ds = xr.open_dataset(mask_path)
+    if "latitude" in mask_ds.dims and "longitude" in mask_ds.dims:
+        mask_ds = mask_ds.rename({"latitude": "lat", "longitude": "lon"})
+    if "lat" not in mask_ds.dims or "lon" not in mask_ds.dims:
+        raise ValueError(
+            "Mask file must have dimensions 'lat' and 'lon' (or 'latitude' and 'longitude')"
+        )
+    mask_var = mask_ds["mask"]
+    if "lat" not in mask_var.dims or "lon" not in mask_var.dims:
+        raise ValueError("Mask variable must have dimensions 'lat' and 'lon'")
+
+    unique_lats = sorted(float(x) for x in mask_ds["lat"].values)
+    unique_lons = sorted(float(x) for x in mask_ds["lon"].values)
+
+    stacked = mask_var.stack(latlon=("lat", "lon"))
+    masked = stacked.where(stacked == 1).dropna("latlon")
+    expected_cells = set(
+        (float(c[0]), float(c[1])) for c in masked["latlon"].values
+    )
+
+    mask_ds.close()
+    return unique_lats, unique_lons, expected_cells
+
+
 def run(args):
     """
     Merge time series data from multiple NetCDF files into a single NetCDF file.
 
+    When a mask file is provided, the output has the same lat/lon dimensions as the
+    mask. Every grid cell where the mask is 1 must have a corresponding input file;
+    otherwise a ValueError is raised listing the missing cells. Cells where the mask
+    is not 1 are left as fill value.
+
     Parameters
     ----------
     args : argparse.Namespace
-        The arguments containing the "directory" of input files and "output_filename".
+        The arguments containing the "directory" of input files, "output_filename",
+        and optional "mask_file".
     """
     files = list(args.directory.glob("*/*.nc"))
     if not files:
@@ -42,24 +95,38 @@ def run(args):
         for fp in tqdm(files, desc="Loading metadata", leave=False)
     ]
 
-    lats = [d.lat.item() for d in datasets]
-    lons = [d.lon.item() for d in datasets]
-    unique_lats = sorted(set(lats))
-    unique_lons = sorted(set(lons))
+    data_by_cell = {(d.lat.item(), d.lon.item()): d for d in datasets}
+
+    if args.mask_file is not None:
+        unique_lats, unique_lons, expected_cells = _load_mask_grid(args.mask_file)
+        cells_with_data = set(data_by_cell.keys())
+        missing_cells = expected_cells - cells_with_data
+        if missing_cells:
+            missing_sorted = sorted(missing_cells, key=lambda p: (p[0], p[1]))
+            raise ValueError(
+                "Mask requires data for the following grid cells, but no input files "
+                "were found: "
+                + ", ".join(f"({lat:g}, {lon:g})" for lat, lon in missing_sorted)
+            )
+    else:
+        lats = [d.lat.item() for d in datasets]
+        lons = [d.lon.item() for d in datasets]
+        unique_lats = sorted(set(lats))
+        unique_lons = sorted(set(lons))
+
+    d = datasets[0]
 
     with Dataset(args.output_filename, "w") as nc:
-        d = datasets[0]
-
         nc.createDimension("lat", len(unique_lats))
         nc.createVariable("lat", "f4", ("lat",))
-        nc["lat"][:] = unique_lats
+        nc["lat"][:] = np.asarray(unique_lats, dtype=np.float32)
         for attr in d["lat"].attrs:
             if not attr.startswith("_"):
                 nc["lat"].setncattr(attr, d["lat"].attrs[attr])
 
         nc.createDimension("lon", len(unique_lons))
         nc.createVariable("lon", "f4", ("lon",))
-        nc["lon"][:] = unique_lons
+        nc["lon"][:] = np.asarray(unique_lons, dtype=np.float32)
         for attr in d["lon"].attrs:
             if not attr.startswith("_"):
                 nc["lon"].setncattr(attr, d["lon"].attrs[attr])
@@ -77,6 +144,8 @@ def run(args):
                         nc[dim].setncattr(attr, d[dim].attrs[attr])
 
         var_names = d.data_vars.keys()
+        time_size = d.sizes.get("time", None)
+
         for var_name in set(var_names) - {"lat", "lon"}:
             var = d[var_name]
             # we assume lat and lon are in the last two places of dimension
@@ -106,19 +175,67 @@ def run(args):
                 if not attr.startswith("_"):
                     nc[var_name].setncattr(attr, var.attrs[attr])
 
-        for i in tqdm(range(len(datasets)), desc="Merging data"):
-            d = datasets.pop(0)
+        # If time chunk size is not the full time dimension, cell-by-cell writes
+        # would trigger many read-modify-writes per chunk. Load all in memory and
+        # write in one go instead.
+        time_chunk = args.chunksizes.get("time", None) if args.chunksizes else None
+        use_memory_path = (
+            time_size is not None
+            and time_chunk is not None
+            and time_chunk != time_size
+        )
+
+        if use_memory_path:
             for var_name in var_names:
                 var = d[var_name]
                 if "lat" in var.dims or "lon" in var.dims:
-                    lat_index = unique_lats.index(d.lat.item())
-                    lon_index = unique_lons.index(d.lon.item())
-                    # we assume lat and lon are in the last two places of dimension
-                    # current input (var) has only one of each lat/lon, select it
-                    # and put it into the right position in the output (nc)
-                    nc[var_name][..., lat_index, lon_index] = var.values[..., 0, 0]
+                    # Use output grid size for lat/lon, not single-cell file dims
+                    shape = tuple(
+                        len(unique_lats) if dim == "lat" else (
+                            len(unique_lons) if dim == "lon" else d.sizes[dim]
+                        )
+                        for dim in var.dims
+                    )
+                    fill_val = var.attrs.get("_FillValue")
+                    if fill_val is None:
+                        fill_val = (
+                            np.nan
+                            if np.issubdtype(var.dtype, np.floating)
+                            else 0
+                        )
+                    arr = np.full(shape, fill_val, dtype=var.dtype)
+                    for (lat, lon), ds in tqdm(
+                        data_by_cell.items(),
+                        desc=f"Merging {var_name}",
+                        leave=False,
+                    ):
+                        lat_index = unique_lats.index(lat)
+                        lon_index = unique_lons.index(lon)
+                        arr[..., lat_index, lon_index] = ds[var_name].values[
+                            ..., 0, 0
+                        ]
+                    nc[var_name][:] = arr
                 else:
                     nc[var_name][:] = var.values
+        else:
+            for (lat, lon), d in tqdm(data_by_cell.items(), desc="Merging data"):
+                lat_index = unique_lats.index(lat)
+                lon_index = unique_lons.index(lon)
+                for var_name in var_names:
+                    var = d[var_name]
+                    if "lat" in var.dims or "lon" in var.dims:
+                        # we assume lat and lon are in the last two places of dimension
+                        # current input (var) has only one of each lat/lon, select it
+                        # and put it into the right position in the output (nc)
+                        nc[var_name][..., lat_index, lon_index] = var.values[
+                            ..., 0, 0
+                        ]
+                    # Write non-spatial variables once (they are the same for all cells)
+                    else:
+                        nc[var_name][:] = var.values
+
+    for ds in data_by_cell.values():
+        ds.close()
 
     logger.info(f"Saved merged output to {args.output_filename}")
 
@@ -170,6 +287,13 @@ def add_parser(subparsers):
         type=chunksizes,
         default=None,
         help="Chunk sizes for dimensions (comma-separated list of dim=chunksize pairs)",
+    )
+    parser.add_argument(
+        "--mask-file",
+        type=Path,
+        default=None,
+        help="Mask file defining output grid (same as detrend); output has same dimensions "
+        "as mask; cells with value 1 must have data",
     )
     parser.add_argument(
         "directory",
