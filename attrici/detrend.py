@@ -209,10 +209,31 @@ def save_compressed_netcdf(ds, filename, chunks=None, encoding=None):
             enc["chunksizes"] = list(c[0] for c in chunks)
         return enc
 
+    def _ensure_cf_latlon_attrs(ds):
+        cf_attrs = {
+            "lat": {
+                "standard_name": "latitude",
+                "long_name": "Latitude",
+                "units": "degrees_north",
+                "axis": "Y",
+            },
+            "lon": {
+                "standard_name": "longitude",
+                "long_name": "Longitude",
+                "units": "degrees_east",
+                "axis": "X",
+            },
+        }
+        for coord, attrs in cf_attrs.items():
+            if coord in ds.coords:
+                ds[coord].attrs = {**attrs, **ds[coord].attrs}
+        return ds
+
     if encoding is None:
         encoding = {}
     if chunks is not None:
         ds = ds.chunk(chunks)
+    ds = _ensure_cf_latlon_attrs(ds)
     ds.reset_coords(drop=True).to_netcdf(
         filename,
         encoding={varname: _get_full_encoding(varname) for varname in ds.data_vars},
