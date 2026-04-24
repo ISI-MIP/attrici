@@ -12,7 +12,7 @@ from scipy import stats
 from scipy.optimize import minimize
 
 from attrici import distributions
-from attrici.estimation.model import Model
+from attrici.estimation.model import Model, ModesDescription
 from attrici.util import calc_oscillations
 
 
@@ -30,8 +30,8 @@ def setup_parameter_model(
         The parameter to be used in the model.
     params_first_index : int
         The index of the first parameter.
-    modes : int, optional
-        The number of modes to use for the oscillations.
+    modes : ModesDescription, optional
+        The description of the modes to be used for the oscillations.
     window_size : int, optional
         The size of the window to use for rolling window fitting.
 
@@ -89,8 +89,8 @@ class AttriciGLMScipy:
             Index of the first parameter.
         link : Callable
             The link function to be applied.
-        modes : int
-            The number of modes to use for the oscillations.
+        modes : ModesDescription
+            The description of the modes to be used for the oscillations.
         covariates : ArrayLike or None
             Covariates for the parameter.
         """
@@ -98,7 +98,7 @@ class AttriciGLMScipy:
         name: str
         params_first_index: int
         link: Callable
-        modes: int
+        modes: ModesDescription
         covariates: ArrayLike | None = None
 
         def get_initial_params(self):
@@ -110,7 +110,7 @@ class AttriciGLMScipy:
             ndarray
                 Initial parameters as a numpy array.
             """
-            return np.zeros(2 + 4 * self.modes)
+            return np.zeros(2 + 4 * self.modes.number)
 
         def estimate(self, params):
             """
@@ -131,12 +131,14 @@ class AttriciGLMScipy:
             weights_fc_intercept = params[
                 self.params_first_index + 2 : self.params_first_index
                 + 2
-                + 2 * self.modes
+                + 2 * self.modes.number
             ]
             weights_fc_trend = params[
-                self.params_first_index + 2 + 2 * self.modes : self.params_first_index
+                self.params_first_index
                 + 2
-                + 4 * self.modes
+                + 2 * self.modes.number : self.params_first_index
+                + 2
+                + 4 * self.modes.number
             ]
 
             logp_prior = stats.norm.logpdf(
@@ -156,7 +158,7 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_INTERCEPT_MU,
                         scale=1 / (2 * i + 1),
                     )
-                    for i in range(self.modes)
+                    for i in range(self.modes.number)
                 ]
             )
             logp_prior += np.sum(
@@ -166,7 +168,7 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_TREND_MU,
                         scale=AttriciGLMScipy.PRIOR_TREND_SIGMA,
                     )
-                    for i in range(self.modes)
+                    for i in range(self.modes.number)
                 ]
             )
 
@@ -190,7 +192,8 @@ class AttriciGLMScipy:
             self.covariates = np.concatenate(
                 [
                     oscillations,
-                    np.tile(data.values[:, None], (1, 2 * self.modes)) * oscillations,
+                    np.tile(data.values[:, None], (1, 2 * self.modes.number))
+                    * oscillations,
                 ],
                 axis=1,
             )
@@ -210,8 +213,8 @@ class AttriciGLMScipy:
             Index of the first parameter.
         link : Callable
             The link function to be applied.
-        modes : int
-            The number of modes to use for the oscillations.
+        modes : ModesDescription
+            The description of the modes to be used for the oscillations.
         oscillations : ArrayLike or None
             Oscillations for the parameter.
         """
@@ -219,7 +222,7 @@ class AttriciGLMScipy:
         name: str
         params_first_index: int
         link: Callable
-        modes: int
+        modes: ModesDescription
         oscillations: ArrayLike | None = None
 
         def get_initial_params(self):
@@ -231,7 +234,7 @@ class AttriciGLMScipy:
             ndarray
                 Initial parameters as a numpy array.
             """
-            return np.zeros(1 + 2 * self.modes)
+            return np.zeros(1 + 2 * self.modes.number)
 
         def estimate(self, params):
             """
@@ -251,7 +254,7 @@ class AttriciGLMScipy:
             weights_fc_intercept = params[
                 self.params_first_index + 1 : self.params_first_index
                 + 1
-                + 2 * self.modes
+                + 2 * self.modes.number
             ]
             logp_prior = stats.norm.logpdf(
                 weights_longterm_intercept,
@@ -265,7 +268,7 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_INTERCEPT_MU,
                         scale=1 / (2 * i + 1),
                     )
-                    for i in range(self.modes)
+                    for i in range(self.modes.number)
                 ]
             )
 
@@ -398,8 +401,8 @@ class ModelScipy(Model):
             The observed data.
         predictor : xarray.DataArray
             The predictor data.
-        modes : int, optional
-            The number of modes to use for the oscillations.
+        modes : ModesDescription, optional
+            The description of the modes to be used for the oscillations.
         window_size : int, optional
             The size of the window to use for rolling window fitting.
         """

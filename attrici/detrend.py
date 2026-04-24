@@ -39,6 +39,7 @@ import xarray as xr
 from loguru import logger
 from tqdm import tqdm
 
+from attrici.estimation.model import ModesDescription
 from attrici.util import get_data_provenance_metadata, timeit
 from attrici.variables import create_variable
 
@@ -326,7 +327,9 @@ def fit_and_detrend_cell(
     statistical_model = variable.create_model(
         model_class,
         predictor.sel(time=subset_times),
-        modes=config.modes,
+        modes=ModesDescription(
+            number=config.modes, legacy_reference=subset_times.time.min()
+        ),  # TODO allow for non-legacy configuration
         window_size=config.window_size,
     )
 
@@ -560,7 +563,9 @@ def fit_and_detrend_cell(
             statistical_model = variable.create_model(
                 model_class,
                 predictor,
-                modes=config.modes,
+                modes=ModesDescription(
+                    number=config.modes, legacy_reference=predictor.time.min()
+                ),  # TODO allow for non-legacy configuration
                 window_size=config.window_size,
             )
             new_trace = statistical_model.fit()

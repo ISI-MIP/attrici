@@ -10,6 +10,7 @@ For the implementations using different optimization libraries, see:
 from dataclasses import dataclass
 from typing import Callable
 
+import numpy as np
 from func_timeout import FunctionTimedOut, func_timeout
 from joblib import Memory
 from loguru import logger
@@ -46,6 +47,25 @@ class AttriciGLM:
 
         link: Callable
         dependent: bool
+
+
+@dataclass
+class ModesDescription:
+    """
+    A data structure for describing the four modes of the model.
+
+    Attributes
+    ----------
+    number : int
+        The number of modes to use for the oscillations.
+    legacy_reference : np.datetime64 or None
+        Reference datetime for legacy mode (which started oscillation at the beginning
+        of the time series). If `None`, modes are calculated based on day-of-year as in
+        the paper.
+    """
+
+    number: int
+    legacy_reference: np.datetime64 | None
 
 
 class Model:

@@ -91,16 +91,21 @@ def calc_oscillations(t, modes):
     ----------
     t : xarray.DataArray
         Array of time values.
-    modes : int
-        Number of modes.
+    modes : attrici.estimation.model.ModesDescription
+        Description of modes.
 
     Returns
     -------
     numpy.ndarray
         Array of oscillation values.
     """
-    t_scaled = (t.dt.dayofyear - 1) / 365.25
-    x = (2 * np.pi * (np.arange(modes) + 1)) * t_scaled.values[:, None]
+    if modes.legacy_reference is not None:
+        t_scaled = (t - modes.legacy_reference) / (
+            np.timedelta64(365, "D") + np.timedelta64(6, "h")
+        )
+    else:
+        t_scaled = (t.dt.dayofyear - 1) / 365.25
+    x = (2 * np.pi * (np.arange(modes.number) + 1)) * t_scaled.values[:, None]
     return np.concatenate((np.cos(x), np.sin(x)), axis=1)
 
 

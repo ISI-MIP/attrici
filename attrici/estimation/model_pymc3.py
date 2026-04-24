@@ -34,7 +34,7 @@ import numpy as np
 from loguru import logger
 
 from attrici import distributions
-from attrici.estimation.model import Model
+from attrici.estimation.model import Model, ModesDescription
 from attrici.util import calc_oscillations
 
 # monkey patch for newer numpy versions
@@ -126,8 +126,8 @@ def setup_parameter_model(name, parameter, modes=None, window_size=None):
         The name of the parameter model.
     parameter : AttriciGLM.Parameter
         The parameter to be used in the model.
-    modes : int, optional
-        The number of modes to use for the oscillations.
+    modes : ModesDescription, optional
+        The modes description to be used for the oscillations.
     window_size : int, optional
         The size of the window to use for rolling window fitting.
 
@@ -180,13 +180,13 @@ class AttriciGLMPymc3:
             The name of the parameter.
         link : Callable
             The link function to be applied.
-        modes : int
-            The number of modes to use for the oscillations.
+        modes : ModesDescription
+            The modes description to be used for the oscillations.
         """
 
         name: str
         link: Callable
-        modes: int
+        modes: ModesDescription
 
         def build_linear_model(self, oscillations, predictor):
             """
@@ -217,14 +217,15 @@ class AttriciGLMPymc3:
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(self.modes)
+                    for i in range(self.modes.number)
                 ]
             )
 
             covariates = pm.math.concatenate(
                 [
                     oscillations,
-                    tt.tile(predictor[:, None], (1, 2 * self.modes)) * oscillations,
+                    tt.tile(predictor[:, None], (1, 2 * self.modes.number))
+                    * oscillations,
                 ],
                 axis=1,
             )
@@ -237,7 +238,7 @@ class AttriciGLMPymc3:
                 f"weights_{self.name}_fc_trend",
                 mu=AttriciGLMPymc3.PRIOR_TREND_MU,
                 sigma=AttriciGLMPymc3.PRIOR_TREND_SIGMA,
-                shape=2 * self.modes,
+                shape=2 * self.modes.number,
             )
             weights_fc = pm.math.concatenate([weights_fc_intercept, weights_fc_trend])
             return (
@@ -304,13 +305,13 @@ class AttriciGLMPymc3:
             The name of the parameter.
         link : Callable
             The link function to be applied.
-        modes : int
-            The number of modes to use for the oscillations.
+        modes : ModesDescription
+            The modes description to be used for the oscillations.
         """
 
         name: str
         link: Callable
-        modes: int
+        modes: ModesDescription
 
         def build_linear_model(self, oscillations):
             """
@@ -339,7 +340,7 @@ class AttriciGLMPymc3:
                         sigma=1 / (2 * i + 1),
                         shape=2,
                     )
-                    for i in range(self.modes)
+                    for i in range(self.modes.number)
                 ]
             )
             return (
@@ -407,8 +408,8 @@ class ModelPymc3(Model):
             The observed data.
         predictor : xarray.DataArray
             The predictor data.
-        modes : int, optional
-            The number of modes to use for the oscillations.
+        modes : ModesDescription, optional
+            The modes description to be used for the oscillations.
         window_size : int, optional
             The size of the window to use for rolling window fitting.
         """
