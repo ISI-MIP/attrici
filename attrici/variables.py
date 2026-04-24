@@ -52,23 +52,32 @@ def mask_thresholded(data, lower_threshold=None, upper_threshold=None):
         Elements in data that are greater than or equal to the upper threshold will
         be masked as NaN.
 
+    Returns
+    -------
+    xarray.DataArray
+        The masked data.
+
     Notes
     -----
     The function logs the number of elements being masked for each threshold.
     """
+    data = data.copy()
     if lower_threshold is not None:
         logger.info(
-            "Mask {} values below lower bound.", (data <= lower_threshold).sum().item()
+            "Masked {} values below lower bound.",
+            (data <= lower_threshold).sum().item(),
         )
         data[data <= lower_threshold] = np.nan
     if upper_threshold is not None:
         logger.info(
-            "Mask {} values above upper bound.", (data >= upper_threshold).sum().item()
+            "Masked {} values above upper bound.",
+            (data >= upper_threshold).sum().item(),
         )
         data[data >= upper_threshold] = np.nan
+    return data
 
 
-def refill_and_rescale(scaled_data, scaling):
+def rescale(scaled_data, scaling):
     """
     Rescale the data according to the given scaling information.
 
@@ -568,7 +577,7 @@ class Hurs(Variable):
 
     # docstr-coverage:inherited
     def validate(self, data):
-        check_bounds(data, lower=0.0, upper=100.0)
+        check_bounds(data, lower=0.0)
         check_units(data, "%")
 
     def scale(self, data):
@@ -579,10 +588,19 @@ class Hurs(Variable):
         ----------
         data: xarray.DataArray
             Input data to be scaled.
+
+        Returns
+        -------
+        xarray.DataArray
+            The scaled data.
+        dict
+            The scaling information - contains the key "scale".
         """
-        mask_thresholded(data, lower_threshold=0.01, upper_threshold=99.99)
-        scale = 100.0
-        scaled_data = data / scale
+        scale = 100
+        scaled_data = data.copy()
+        scaled_data = (
+            mask_thresholded(data, lower_threshold=0.01, upper_threshold=99.99) / scale
+        )
         logger.info(
             "Min, max after scaling: {}, {}",
             scaled_data.min().item(),
@@ -606,7 +624,7 @@ class Hurs(Variable):
 
     # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.scaling)
+        return rescale(scaled_data, self.scaling)
 
 
 class Tasskew(Variable):
@@ -618,9 +636,10 @@ class Tasskew(Variable):
     # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
-        self.y_scaled = data.copy()
+        self.y_scaled = mask_thresholded(
+            data, lower_threshold=0.0001, upper_threshold=0.9999
+        )
         self.scaling = {}
-        mask_thresholded(self.y_scaled, lower_threshold=0.0001, upper_threshold=0.9999)
 
     # docstr-coverage:inherited
     def validate(self, data):
@@ -654,7 +673,7 @@ class Tasskew(Variable):
 
     # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, {"scale": 1.0})
+        return rescale(scaled_data, {"scale": 1.0})
 
 
 class Rsds(Variable):
@@ -666,12 +685,37 @@ class Rsds(Variable):
     # docstr-coverage:inherited
     def __init__(self, data):
         self.validate(data)
-        self.y_scaled, self.scaling = scale_to_unity(data)
+        self.y_scaled, self.scaling = self.scale(data)
 
     # docstr-coverage:inherited
     def validate(self, data):
-        check_bounds(data, lower=0.0)
+        check_bounds(data, lower=0.0, upper=501.0)
         check_units(data, "W m-2")
+
+    def scale(self, data):
+        """
+        Rsds-specific scaling funtion.
+
+        Parameters
+        ----------
+        data: xarray.DataArray
+            Input data to be scaled.
+
+        Returns
+        -------
+        xarray.DataArray
+            The scaled data.
+        dict
+            The scaling information - contains the key "scale".
+        """
+        scale = 501.0
+        scaled_data = mask_thresholded(data, lower_threshold=0.0) / scale
+        logger.info(
+            "Min, max after scaling: {}, {}",
+            scaled_data.min().item(),
+            scaled_data.max().item(),
+        )
+        return scaled_data, {"scale": scale}
 
     # docstr-coverage:inherited
     def create_model(self, statistical_model_class, predictor, **kwargs):
@@ -699,7 +743,7 @@ class Rsds(Variable):
 
     # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        return rescale_from_unity(scaled_data, self.scaling)
+        return rescale(scaled_data, self.scaling)
 
 
 class Tasrange(Variable):
@@ -718,9 +762,23 @@ class Tasrange(Variable):
         check_bounds(data, lower=0.0)
         check_units(data, "K")
 
-    # docstr-coverage:inherited
     def scale(self, data):
-        mask_thresholded(data, lower_threshold=0.01)
+        """
+        Tasrange-specific scaling funtion.
+
+        Parameters
+        ----------
+        data: xarray.DataArray
+            Input data to be scaled.
+
+        Returns
+        -------
+        xarray.DataArray
+            The scaled data.
+        dict
+            The scaling information - contains the key "scale".
+        """
+        data = mask_thresholded(data, lower_threshold=0.01)
         datamin = data.min()
         scale = data.max() - datamin
         scaled_data = data / scale
@@ -747,7 +805,7 @@ class Tasrange(Variable):
 
     # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.scaling)
+        return rescale(scaled_data, self.scaling)
 
 
 class Wind(Variable):
@@ -766,9 +824,23 @@ class Wind(Variable):
         check_bounds(data, lower=0.0)
         check_units(data, "m s-1")
 
-    # docstr-coverage:inherited
     def scale(self, data):
-        mask_thresholded(data, lower_threshold=0.01)
+        """
+        Wind-specific scaling funtion.
+
+        Parameters
+        ----------
+        data: xarray.DataArray
+            Input data to be scaled.
+
+        Returns
+        -------
+        xarray.DataArray
+            The scaled data.
+        dict
+            The scaling information - contains the key "scale".
+        """
+        data = mask_thresholded(data, lower_threshold=0.01)
         datamin = data.min()
         scale = data.max() - datamin
         scaled_data = data / scale
@@ -795,7 +867,7 @@ class Wind(Variable):
 
     # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        return refill_and_rescale(scaled_data, self.scaling)
+        return rescale(scaled_data, self.scaling)
 
 
 def create_variable(variable, data):
@@ -823,6 +895,7 @@ def create_variable(variable, data):
         "ps": Ps,
         "rlds": Rlds,
         "rsds": Rsds,
+        "sfcwind": Wind,
         "sfcWind": Wind,
         "tas": Tas,
         "tasrange": Tasrange,
