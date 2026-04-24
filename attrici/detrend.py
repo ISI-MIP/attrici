@@ -696,36 +696,20 @@ def detrend(config: Config):
     if set(obs_data.dims) != {"lat", "lon", "time"}:
         raise ValueError("Input data must have dimensions lat, lon, time")
 
-    latlon = None
+    obs_data = obs_data.stack(latlon=("lat", "lon"))
+
+    if config.cells:
+        try:
+            obs_data = obs_data.sel(latlon=[(lat, lon) for lat, lon in config.cells])
+        except KeyError as e:
+            logger.error("Not all cells could be found in input data")
+            raise e
+
     if config.mask_file:
         mask_file = xr.open_dataset(config.mask_file)
         mask = mask_file["mask"].stack(latlon=("lat", "lon"))
-        latlon = mask.where(mask == 1).dropna("latlon")["latlon"].values
-
-    if config.cells:
-        latlon = (
-            config.cells
-            if latlon is None
-            else [cell for cell in config.cells if cell in latlon]
-        )
-
-    if latlon is not None:
-        try:
-            lat, lon = zip(*latlon, strict=False)
-        except ValueError:
-            lat, lon = (), ()
-        lat = np.atleast_1d(lat)
-        lon = np.atleast_1d(lon)
-        # Matching lat/lon indexers on the shared "latlon" dimension trigger
-        # xarray's vectorized indexing and yield a ("time", "latlon") array.
-        obs_data = obs_data.sel(
-            lat=xr.DataArray(lat, dims=("latlon",)),
-            lon=xr.DataArray(lon, dims=("latlon",)),
-        )
-        obs_data = obs_data.set_index(latlon=("lat", "lon"))
-    else:
-        obs_data = obs_data.stack(latlon=("lat", "lon"))
-    obs_data = obs_data.load()
+        mask = mask.where(mask == 1).dropna("latlon")["latlon"].values
+        obs_data = obs_data.sel(latlon=mask)
 
     if config.full_extrapolation:
         # `gmt.time` is a subset of `obs_data.time` (e.g. every 10th day)
