@@ -52,7 +52,8 @@ def _load_mask_grid(mask_path):
         mask_ds = mask_ds.rename({"latitude": "lat", "longitude": "lon"})
     if "lat" not in mask_ds.dims or "lon" not in mask_ds.dims:
         raise ValueError(
-            "Mask file must have dimensions 'lat' and 'lon' (or 'latitude' and 'longitude')"
+            "Mask file must have dimensions 'lat' and 'lon' (or 'latitude' and "
+            "'longitude')"
         )
     mask_var = mask_ds["mask"]
     if "lat" not in mask_var.dims or "lon" not in mask_var.dims:
@@ -63,9 +64,7 @@ def _load_mask_grid(mask_path):
 
     stacked = mask_var.stack(latlon=("lat", "lon"))
     masked = stacked.where(stacked == 1).dropna("latlon")
-    expected_cells = set(
-        (float(c[0]), float(c[1])) for c in masked["latlon"].values
-    )
+    expected_cells = set((float(c[0]), float(c[1])) for c in masked["latlon"].values)
 
     mask_ds.close()
     return unique_lats, unique_lons, expected_cells
@@ -180,9 +179,7 @@ def run(args):
         # write in one go instead.
         time_chunk = args.chunksizes.get("time", None) if args.chunksizes else None
         use_memory_path = (
-            time_size is not None
-            and time_chunk is not None
-            and time_chunk != time_size
+            time_size is not None and time_chunk is not None and time_chunk != time_size
         )
 
         if use_memory_path:
@@ -191,17 +188,17 @@ def run(args):
                 if "lat" in var.dims or "lon" in var.dims:
                     # Use output grid size for lat/lon, not single-cell file dims
                     shape = tuple(
-                        len(unique_lats) if dim == "lat" else (
-                            len(unique_lons) if dim == "lon" else d.sizes[dim]
+                        (
+                            len(unique_lats)
+                            if dim == "lat"
+                            else (len(unique_lons) if dim == "lon" else d.sizes[dim])
                         )
                         for dim in var.dims
                     )
                     fill_val = var.attrs.get("_FillValue")
                     if fill_val is None:
                         fill_val = (
-                            np.nan
-                            if np.issubdtype(var.dtype, np.floating)
-                            else 0
+                            np.nan if np.issubdtype(var.dtype, np.floating) else 0
                         )
                     arr = np.full(shape, fill_val, dtype=var.dtype)
                     for (lat, lon), ds in tqdm(
@@ -211,9 +208,7 @@ def run(args):
                     ):
                         lat_index = unique_lats.index(lat)
                         lon_index = unique_lons.index(lon)
-                        arr[..., lat_index, lon_index] = ds[var_name].values[
-                            ..., 0, 0
-                        ]
+                        arr[..., lat_index, lon_index] = ds[var_name].values[..., 0, 0]
                     nc[var_name][:] = arr
                 else:
                     nc[var_name][:] = var.values
@@ -227,9 +222,7 @@ def run(args):
                         # we assume lat and lon are in the last two places of dimension
                         # current input (var) has only one of each lat/lon, select it
                         # and put it into the right position in the output (nc)
-                        nc[var_name][..., lat_index, lon_index] = var.values[
-                            ..., 0, 0
-                        ]
+                        nc[var_name][..., lat_index, lon_index] = var.values[..., 0, 0]
                     # Write non-spatial variables once (they are the same for all cells)
                     else:
                         nc[var_name][:] = var.values
@@ -292,8 +285,8 @@ def add_parser(subparsers):
         "--mask-file",
         type=Path,
         default=None,
-        help="Mask file defining output grid (same as detrend); output has same dimensions "
-        "as mask; cells with value 1 must have data",
+        help="Mask file defining output grid (same as detrend); output has same "
+        "dimensions as mask; cells with value 1 must have data",
     )
     parser.add_argument(
         "directory",
