@@ -309,7 +309,7 @@ class Variable:
         xarray.DataArray
             Data mapped to the respective quantile in the reference distribution.
         """
-        return distribution_cfact.invcdf(distribution_ref.cdf(self.y_scaled))
+        return distribution_ref.map_quantile_to(self.y_scaled, distribution_cfact)
 
 
 class Tas(Variable):
@@ -434,6 +434,7 @@ class Pr(Variable):
         dry_day = np.isnan(y)
         y[dry_day] = 0
         quantile = distribution_ref.cdf(y)
+        mapped = distribution_ref.map_quantile_to(y, distribution_cfact)
 
         # case of p smaller p'
         # the probability of a dry day is higher in the counterfactual day
@@ -448,7 +449,7 @@ class Pr(Variable):
             do_normal_qm_0.sum().item(),
         )
         cfact = np.zeros(len(y))
-        cfact[do_normal_qm_0] = distribution_cfact.invcdf(quantile)[do_normal_qm_0]
+        cfact[do_normal_qm_0] = mapped[do_normal_qm_0]
         # else: make it a dry day with zero precip (from np.zeros)
         # case of p' smaller p
         # the probability of a dry day is lower in the counterfactual day
@@ -461,7 +462,7 @@ class Pr(Variable):
             "Normal qm for higher cfact wet probability: {}",
             do_normal_qm_1.sum().item(),
         )
-        cfact[do_normal_qm_1] = distribution_cfact.invcdf(quantile)[do_normal_qm_1]
+        cfact[do_normal_qm_1] = mapped[do_normal_qm_1]
         # some dry days need to be made wet. take a random quantile from
         # the quantile range that was dry days before
         random_dry_day_q = np.random.rand(len(y)) * distribution_ref.p
@@ -469,9 +470,7 @@ class Pr(Variable):
         # map these dry days to wet, which are not dry in obs and
         # wet in counterfactual
         randomly_map_to_wet = np.logical_and(~do_normal_qm_1, map_to_wet)
-        cfact[randomly_map_to_wet] = distribution_cfact.invcdf(quantile)[
-            randomly_map_to_wet
-        ]
+        cfact[randomly_map_to_wet] = mapped[randomly_map_to_wet]
         # else: leave zero (from np.zeros)
         logger.info("Days originally dry: {}", dry_day.sum().item())
         logger.info("Days made wet: {}", randomly_map_to_wet.sum().item())
