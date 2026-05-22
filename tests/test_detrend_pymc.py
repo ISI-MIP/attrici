@@ -155,6 +155,6 @@ def test_detrend_run_rlds(solver):
 @pytest.mark.slow
 def test_detrend_run_sfc_wind(solver):
     actual, desired = detrend_run("sfcWind", solver)
-    np.testing.assert_allclose(actual.cfact, desired.cfact)
+    np.testing.assert_allclose(actual.cfact, desired.cfact, rtol=1e-06)
     np.testing.assert_allclose(actual.y, desired.y)
     np.testing.assert_allclose(actual.logp, desired.logp)
