@@ -156,9 +156,9 @@ class AttriciGLMScipy:
                     stats.norm.logpdf(
                         weights_fc_intercept[i],
                         loc=AttriciGLMScipy.PRIOR_INTERCEPT_MU,
-                        scale=1 / (2 * i + 1),
+                        scale=1 / (2 * (i // 2) + 1),
                     )
-                    for i in range(self.modes.number)
+                    for i in range(2 * self.modes.number)
                 ]
             )
             logp_prior += np.sum(
@@ -168,15 +168,17 @@ class AttriciGLMScipy:
                         loc=AttriciGLMScipy.PRIOR_TREND_MU,
                         scale=AttriciGLMScipy.PRIOR_TREND_SIGMA,
                     )
-                    for i in range(self.modes.number)
+                    for i in range(2 * self.modes.number)
                 ]
             )
 
             weights_fc = np.concatenate([weights_fc_intercept, weights_fc_trend])
             return (
-                np.dot(self.covariates, weights_fc)
-                + weights_longterm_intercept
-                + weights_longterm_trend * self.predictor
+                self.link(
+                    np.dot(self.covariates, weights_fc)
+                    + weights_longterm_intercept
+                    + weights_longterm_trend * self.predictor.values
+                )
             ), logp_prior
 
         def set_predictor_data(self, data):
@@ -266,9 +268,9 @@ class AttriciGLMScipy:
                     stats.norm.logpdf(
                         weights_fc_intercept[i],
                         loc=AttriciGLMScipy.PRIOR_INTERCEPT_MU,
-                        scale=1 / (2 * i + 1),
+                        scale=1 / (2 * (i // 2) + 1),
                     )
-                    for i in range(self.modes.number)
+                    for i in range(2 * self.modes.number)
                 ]
             )
 
