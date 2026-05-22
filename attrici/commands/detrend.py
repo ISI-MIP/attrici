@@ -249,6 +249,11 @@ def add_parser(subparsers):
         help="Extrapolate few missing days of GMT instead of stretching it to the full"
         " time series",
     )
+    group.add_argument(
+        "--legacy-rsds-scaling",
+        action="store_true",
+        help="Use the previous fixed 0-501 scaling for rsds",
+    )
     group.add_argument("--progressbar", action="store_true", help="Show progress bar")
     group.add_argument(
         "--report-variables",

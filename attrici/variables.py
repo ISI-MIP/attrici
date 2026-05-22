@@ -682,30 +682,23 @@ class Rsds(Variable):
     """
 
     # docstr-coverage:inherited
-    def __init__(self, data):
+    def __init__(self, data, legacy_scaling=False):
+        self.legacy_scaling = legacy_scaling
         self.validate(data)
-        self.y_scaled, self.scaling = self.scale(data)
+        if legacy_scaling:
+            self.y_scaled, self.scaling = self.scale_legacy(data)
+        else:
+            self.y_scaled, self.scaling = scale_to_unity(data)
 
     # docstr-coverage:inherited
     def validate(self, data):
-        check_bounds(data, lower=0.0, upper=501.0)
+        upper = 501.0 if self.legacy_scaling else None
+        check_bounds(data, lower=0.0, upper=upper)
         check_units(data, "W m-2")
 
-    def scale(self, data):
+    def scale_legacy(self, data):
         """
-        Rsds-specific scaling funtion.
-
-        Parameters
-        ----------
-        data: xarray.DataArray
-            Input data to be scaled.
-
-        Returns
-        -------
-        xarray.DataArray
-            The scaled data.
-        dict
-            The scaling information - contains the key "scale".
+        Previous rsds scaling: mask zeros and divide by fixed maximum 501 W m-2.
         """
         scale = 501.0
         scaled_data = mask_thresholded(data, lower_threshold=0.0) / scale
@@ -742,7 +735,9 @@ class Rsds(Variable):
 
     # docstr-coverage:inherited
     def rescale(self, scaled_data):
-        return rescale(scaled_data, self.scaling)
+        if self.legacy_scaling:
+            return rescale(scaled_data, self.scaling)
+        return rescale_from_unity(scaled_data, self.scaling)
 
 
 class Tasrange(Variable):
@@ -869,7 +864,7 @@ class Wind(Variable):
         return rescale(scaled_data, self.scaling)
 
 
-def create_variable(variable, data):
+def create_variable(variable, data, legacy_rsds_scaling=False):
     """
     Returns a Variable instance based on a string abbreviation.
 
@@ -882,6 +877,8 @@ def create_variable(variable, data):
         Short variable name like `tas`.
     data : xarray.DataArray
         Observation data for the variable
+    legacy_rsds_scaling : bool
+        If True, use the previous fixed 0-501 scaling for rsds.
 
     Returns
     -------
@@ -903,4 +900,6 @@ def create_variable(variable, data):
     }
     if variable not in MODEL_FOR_VAR:
         raise ValueError(f"Variable {variable} not supported.")
+    if variable == "rsds":
+        return MODEL_FOR_VAR[variable](data, legacy_scaling=legacy_rsds_scaling)
     return MODEL_FOR_VAR[variable](data)

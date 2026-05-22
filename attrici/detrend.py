@@ -101,6 +101,8 @@ class Config:
     full_extrapolation: bool = False
     """Extrapolate few missing days of GMT instead of stretching it to the full time
     series"""
+    legacy_rsds_scaling: bool = False
+    """Use the previous fixed 0-501 scaling for rsds"""
 
     def as_dict(self):
         """Return configuration object as dictionary"""
@@ -333,7 +335,11 @@ def fit_and_detrend_cell(
 
     data[np.isinf(data)] = np.nan
 
-    variable = create_variable(config.variable, data)
+    variable = create_variable(
+        config.variable,
+        data,
+        legacy_rsds_scaling=config.legacy_rsds_scaling,
+    )
 
     if not variable.y_scaled.notnull().any().item():
         logger.warning("No valid data for lat,lon {:g},{:g} - skipping", lat, lon)
