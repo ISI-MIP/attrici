@@ -75,6 +75,9 @@ Run parameters:
   --cache-dir CACHE_DIR
                         Use cached results from this directory or write new ones
                         (default: None)
+  --logp-threshold LOGP_THRESHOLD
+                        Replace cfact with original y values when cell logp is
+                        below this threshold; use -inf to disable (default: -300)
 ```
 """
 
@@ -313,6 +316,15 @@ def add_parser(subparsers):
         "--cache-dir",
         type=Path,
         help="Use cached results from this directory or write new ones",
+    )
+    group.add_argument(
+        "--logp-threshold",
+        type=float,
+        default=Config.__dataclass_fields__["logp_threshold"].default,
+        help=(
+            "Replace cfact with original y values when cell logp is below this "
+            "threshold; use -inf to disable"
+        ),
     )
 
     parser.set_defaults(func=run)

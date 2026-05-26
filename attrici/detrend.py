@@ -103,6 +103,8 @@ class Config:
     series"""
     legacy_rsds_scaling: bool = False
     """Use the previous fixed 0-501 scaling for rsds"""
+    logp_threshold: float = -300
+    """Replace cfact with original y values when cell logp is below this threshold"""
 
     def as_dict(self):
         """Return configuration object as dictionary"""
@@ -441,10 +443,21 @@ def fit_and_detrend_cell(
     replaced[indices] = -np.inf
     log_invalid_count(indices, "-Inf")
 
+    logp = statistical_model.estimate_logp(trace)
+
+    if logp < config.logp_threshold:
+        logger.info(
+            "Cell lat,lon {:g},{:g} has logp {} below threshold {}; "
+            "replacing cfact with original values",
+            lat,
+            lon,
+            logp,
+            config.logp_threshold,
+        )
+        cfact[:] = data
+
     # check if resulting data is also valid
     variable.validate(cfact)
-
-    logp = statistical_model.estimate_logp(trace)
 
     logger.info("Writing output")
 
