@@ -1,7 +1,15 @@
 <!--- pyml disable-next-line line-length, first-line-h1 -->
+## Important Version Notice
+
+> [!CAUTION]
+> Versions from `v2.0` onward currently contain a bug that mainly affects `pr` and `rsds`.
+> Please use `v1.1.0` for production workflows until a fix is released.
+
 [![GitHub Repository](https://img.shields.io/badge/GitHub-blue?style=for-the-badge&logo=github&logoColor=white&labelColor=%23555555&color=%23838996)](https://github.com/ISI-MIP/attrici) [![Docs](https://img.shields.io/badge/Docs-%23ff8c00?style=for-the-badge)](https://isi-mip.github.io/attrici) [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ISI-MIP/attrici/ci.yml?style=for-the-badge)](https://github.com/ISI-MIP/attrici/actions) [![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FISI-MIP%2Fattrici%2Fmain%2Fpyproject.toml&style=for-the-badge)](https://github.com/ISI-MIP/attrici/blob/main/pyproject.toml) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json&style=for-the-badge)](https://github.com/astral-sh/ruff)
 
 # ATTRICI - counterfactual climate for impact attribution
+
+**Version alert:** `v1.1.0` is currently the latest stable release.
 
 Code implementing the methods described in the paper
 [`ATTRICI 1.1 - counterfactual climate for impact attribution`](https://doi.org/10.5194/gmd-14-5269-2021)
