@@ -1,0 +1,33 @@
+{
+    "creators": [
+        {
+            "name": "Mengel, Matthias",
+            "orcid": "0000-0001-6724-9685",
+            "affiliation": "Potsdam Institute for Climate Impact Research"
+        },
+        {
+            "name": "Treu, Simon",
+            "orcid": "0000-0002-7001-5983",
+            "affiliation": "Potsdam Institute for Climate Impact Research"
+        },
+        {
+            "name": "Schmidt, Benjamin",
+            "orcid": "0000-0002-9669-3360",
+            "affiliation": "TU Berlin"
+        },
+        {
+            "name": "Gieseke, Robert",
+            "orcid": "0000-0002-1236-5109",
+            "affiliation": "Potsdam Institute for Climate Impact Research"
+        },
+        {
+            "name": "Willner, Sven",
+            "orcid": "0000-0001-6798-6247",
+            "affiliation": "Potsdam Institute for Climate Impact Research"
+        }
+    ],
+    "license": "gpl-3.0",
+    "grants": [
+        {"id": "10.13039/501100000780::101135481"}
+    ]
+}
