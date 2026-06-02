@@ -29,6 +29,7 @@ For the implementations of the used solvers, see `attrici.estimation`.
 For command line usage, see `attrici.commands.detrend`.
 """
 
+import gc
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -694,7 +695,8 @@ def detrend(config: Config):
     if config.window_size is not None and config.window_size % 2 == 0:
         raise ValueError("Window size must be an odd number")
 
-    gmt = xr.open_dataset(config.gmt_file)[config.gmt_variable]
+    with xr.open_dataset(config.gmt_file) as gmt_dataset:
+        gmt = gmt_dataset[config.gmt_variable].load()
 
     # check dimensions and for valid values
     if gmt.dims != ("time",):
@@ -702,7 +704,8 @@ def detrend(config: Config):
     if np.any(np.isnan(gmt)) or np.any(np.isinf(gmt)):
         raise ValueError("GMT data must not contain NaN or infinite values")
 
-    obs_data = xr.open_dataset(config.input_file)[config.variable]
+    obs_dataset = xr.open_dataset(config.input_file)
+    obs_data = obs_dataset[config.variable]
 
     # check if dimensions are correct
     if "lat" not in obs_data.dims or "lon" not in obs_data.dims:
@@ -725,9 +728,9 @@ def detrend(config: Config):
             raise e
 
     if config.mask_file:
-        mask_file = xr.open_dataset(config.mask_file)
-        mask = mask_file["mask"].stack(latlon=("lat", "lon"))
-        mask = mask.where(mask == 1).dropna("latlon")["latlon"].values
+        with xr.open_dataset(config.mask_file) as mask_file:
+            mask = mask_file["mask"].stack(latlon=("lat", "lon"))
+            mask = mask.where(mask == 1).dropna("latlon")["latlon"].values
         obs_data = obs_data.sel(latlon=mask)
 
     if config.full_extrapolation:
@@ -784,12 +787,10 @@ def detrend(config: Config):
     else:
         raise ValueError(f"Unknown solver {config.solver}")
 
+    trace_dataset = None
     if config.trace_file:
-        trace = (
-            xr.open_dataset(config.trace_file)
-            .stack(latlon=("lat", "lon"))
-            .sel(latlon=obs_data.latlon)
-        )
+        trace_dataset = xr.open_dataset(config.trace_file)
+        trace = trace_dataset.stack(latlon=("lat", "lon")).sel(latlon=obs_data.latlon)
         if config.write_trace:
             logger.warning("Ignoring --write-trace as trace file is provided")
             config.write_trace = False
@@ -824,11 +825,20 @@ def detrend(config: Config):
         else:
             cell_trace = None
 
-        fit_and_detrend_cell(
-            config,
-            data,
-            predictor=gmt_scaled,
-            subset_times=subset_times,
-            model_class=model_class,
-            trace=cell_trace,
-        )
+        try:
+            fit_and_detrend_cell(
+                config,
+                data,
+                predictor=gmt_scaled,
+                subset_times=subset_times,
+                model_class=model_class,
+                trace=cell_trace,
+            )
+        finally:
+            del data
+            del cell_trace
+            gc.collect()
+
+    if trace_dataset is not None:
+        trace_dataset.close()
+    obs_dataset.close()
