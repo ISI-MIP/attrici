@@ -59,6 +59,10 @@ class Config:
     """Output directory for the results"""
     gmt_variable: str = "tas"
     """Variable name in GMT file"""
+    gmt_calibration_start: date | None = None
+    """Optional start date for deriving GMT scaling"""
+    gmt_calibration_stop: date | None = None
+    """Optional stop date for deriving GMT scaling"""
     mask_file: Path | None = None
     """Optional path to file with masking information"""
     trace_file: Path | None = None
@@ -243,6 +247,37 @@ def save_compressed_netcdf(ds, filename, chunks=None, encoding=None):
         filename,
         encoding={varname: _get_full_encoding(varname) for varname in ds.data_vars},
     )
+
+
+def scale_gmt_to_calibration_period(
+    gmt_on_obs_times, calibration_start=None, calibration_stop=None
+):
+    """
+    Scale GMT using min/max from the calibration period only.
+
+    The returned data still covers the full application period so it can be used for
+    counterfactual mapping outside the fitted period.
+    """
+    if calibration_start is None and calibration_stop is None:
+        gmt_calibration = gmt_on_obs_times
+    else:
+        gmt_calibration = gmt_on_obs_times
+        if calibration_start is not None:
+            gmt_calibration = gmt_calibration.isel(
+                time=gmt_calibration.time >= np.datetime64(calibration_start)
+            )
+        if calibration_stop is not None:
+            gmt_calibration = gmt_calibration.isel(
+                time=gmt_calibration.time <= np.datetime64(calibration_stop)
+            )
+    if len(gmt_calibration) == 0:
+        raise ValueError("No GMT data in calibration period")
+
+    gmt_min = gmt_calibration.min()
+    gmt_scale = gmt_calibration.max() - gmt_min
+    if gmt_scale.item() == 0:
+        return xr.zeros_like(gmt_on_obs_times)
+    return (gmt_on_obs_times - gmt_min) / gmt_scale
 
 
 def write_trace(config, trace, lat, lon):
@@ -733,28 +768,6 @@ def detrend(config: Config):
             mask = mask.where(mask == 1).dropna("latlon")["latlon"].values
         obs_data = obs_data.sel(latlon=mask)
 
-    if config.full_extrapolation:
-        # `gmt.time` is a subset of `obs_data.time` (e.g. every 10th day)
-        # hence, interpolate these values to the full time series
-        # the last few days are extrapolated
-        gmt_on_obs_times = gmt.interp(
-            time=obs_data.time, kwargs={"fill_value": "extrapolate"}
-        )
-        gmt_scaled = (gmt_on_obs_times - gmt_on_obs_times.min()) / (
-            gmt_on_obs_times.max() - gmt_on_obs_times.min()
-        )
-    else:
-        t_scaled = (obs_data.time - obs_data.time.min()) / (
-            obs_data.time.max() - obs_data.time.min()
-        )
-        gmt_on_obs_times = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
-        gmt_scaled_values = (gmt_on_obs_times - gmt_on_obs_times.min()) / (
-            gmt_on_obs_times.max() - gmt_on_obs_times.min()
-        )
-        gmt_scaled = xr.DataArray(
-            gmt_scaled_values, coords={"time": obs_data.time}, dims=("time",)
-        )
-
     startdate = config.start_date
     if startdate is None:
         startdate = obs_data.time[0]
@@ -769,6 +782,28 @@ def detrend(config: Config):
     subset_times = obs_data.time[
         (obs_data.time >= startdate) & (obs_data.time <= stopdate)
     ]
+
+    if config.full_extrapolation:
+        # `gmt.time` is a subset of `obs_data.time` (e.g. every 10th day)
+        # hence, interpolate these values to the full time series
+        # the last few days are extrapolated
+        gmt_on_obs_times = gmt.interp(
+            time=obs_data.time, kwargs={"fill_value": "extrapolate"}
+        )
+    else:
+        t_scaled = (obs_data.time - obs_data.time.min()) / (
+            obs_data.time.max() - obs_data.time.min()
+        )
+        gmt_on_obs_times = xr.DataArray(
+            np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt),
+            coords={"time": obs_data.time},
+            dims=("time",),
+        )
+    gmt_scaled = scale_gmt_to_calibration_period(
+        gmt_on_obs_times,
+        calibration_start=config.gmt_calibration_start,
+        calibration_stop=config.gmt_calibration_stop,
+    )
 
     if config.solver == "pymc5":
         from attrici.estimation.model_pymc5 import ModelPymc5, initialize

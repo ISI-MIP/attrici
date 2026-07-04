@@ -199,6 +199,16 @@ def add_parser(subparsers):
         help="(SSA-smoothed) Global Mean Temperature variable name",
         default=Config.__dataclass_fields__["gmt_variable"].default,
     )
+    group.add_argument(
+        "--gmt-calibration-start",
+        type=iso_date,
+        help="Start date for deriving GMT scaling",
+    )
+    group.add_argument(
+        "--gmt-calibration-stop",
+        type=iso_date,
+        help="Stop date for deriving GMT scaling",
+    )
     group.add_argument("--input-file", type=Path, help="Input file", required=True)
     group.add_argument("--mask-file", type=Path, help="Mask file")
     group.add_argument(
