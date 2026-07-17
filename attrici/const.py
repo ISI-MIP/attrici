@@ -45,16 +45,27 @@ def check_bounds(data, variable):
         raise ValueError(data.max(), "is bigger than upper bound", upper, ".")
 
 
-def scale_to_unity(data, variable):
+def _reference_data(data, calibration_mask=None):
+    if calibration_mask is None:
+        return data
+    return data.loc[calibration_mask] if hasattr(data, "loc") else data[calibration_mask]
+
+
+def scale_to_unity(data, variable, calibration_mask=None):
 
     """ Take a pandas Series and scale it linearly to
     lie within [0, 1]. Return pandas Series as well as the
     data minimum and the scale. """
 
-    scale = data.max() - data.min()
-    scaled_data = (data - data.min()) / scale
+    ref = _reference_data(data, calibration_mask)
+    datamin = ref.min()
+    scale = ref.max() - datamin
+    if scale == 0:
+        scaled_data = data * 0.0
+    else:
+        scaled_data = (data - datamin) / scale
 
-    return scaled_data, data.min(), scale
+    return scaled_data, datamin, scale
 
 
 def rescale_to_original(scaled_data, datamin, scale):
@@ -64,7 +75,7 @@ def rescale_to_original(scaled_data, datamin, scale):
     return scaled_data * scale + datamin
 
 
-def scale_and_mask(data, variable):
+def scale_and_mask(data, variable, calibration_mask=None):
 
     print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
@@ -76,14 +87,19 @@ def scale_and_mask(data, variable):
     except IndexError:
         pass
 
-    scale = data.max() - data.min()
-    scaled_data = data / scale
+    ref = _reference_data(data, calibration_mask)
+    datamin = ref.min()
+    scale = ref.max() - datamin
+    if scale == 0:
+        scaled_data = data * 0.0
+    else:
+        scaled_data = data / scale
     print("Min, max after scaling:", scaled_data.min(), scaled_data.max())
 
-    return scaled_data, data.min(), scale
+    return scaled_data, datamin, scale
 
 
-def mask_and_scale_by_bounds(data, variable):
+def mask_and_scale_by_bounds(data, variable, calibration_mask=None):
 
     print("Mask", (data <= threshold[variable][0]).sum(), "values below lower bound.")
     data[data <= threshold[variable][0]] = np.nan
@@ -97,13 +113,17 @@ def mask_and_scale_by_bounds(data, variable):
     return scaled_data, data.min(), scale
 
 
-def scale_precip(data, variable):
+def scale_precip(data, variable, calibration_mask=None):
 
     data = data - threshold[variable][0]
 
     print("Mask", (data <= 0).sum(), "values below lower bound.")
     data[data <= 0] = np.nan
-    fa, floc, fscale = stats.gamma.fit(data[~np.isnan(data)], floc=0)
+    ref = _reference_data(data, calibration_mask)
+    fit_data = ref[~np.isnan(ref)]
+    if len(fit_data) == 0:
+        raise ValueError("No wet-day precipitation data in calibration period.")
+    fa, floc, fscale = stats.gamma.fit(fit_data, floc=0)
     # for scipy.gamma: fscale = 1/beta
     # std = sqrt(fa/beta**2)
     scale = fscale * fa ** 0.5

@@ -124,6 +124,23 @@ def get_subset(df, subset, seed, calibration_start, calibration_stop=None):
     return df
 
 
+def _calibration_mask(ds, calibration_start=None, calibration_stop=None):
+    if calibration_start is None and calibration_stop is None:
+        return None
+    mask = np.ones(len(ds), dtype=bool)
+    if calibration_start is not None:
+        mask = mask & (ds >= pd.Timestamp(calibration_start))
+    if calibration_stop is not None:
+        mask = mask & (ds <= pd.Timestamp(calibration_stop))
+    if not mask.any():
+        raise ValueError(
+            "No data in calibration period [start={}, stop={}]".format(
+                calibration_start, calibration_stop
+            )
+        )
+    return mask
+
+
 def create_dataframe(
     nct_array, units, data_to_detrend, gmt, variable,
     calibration_start=None, calibration_stop=None
@@ -136,26 +153,22 @@ def create_dataframe(
         nct_array, unit="D", origin=pd.Timestamp(units.lstrip("days since"))
     )
 
-    t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
+    cal_mask = _calibration_mask(ds, calibration_start, calibration_stop)
+    if cal_mask is not None:
+        cal_ds = ds[cal_mask]
+        cal_span = cal_ds.max() - cal_ds.min()
+        if cal_span == pd.Timedelta(0):
+            t_scaled = np.zeros(len(ds), dtype=float)
+        else:
+            t_scaled = (ds - cal_ds.min()) / cal_span
+            t_scaled = t_scaled.astype(float)
+    else:
+        t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
     gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
 
     # GMT scaling: use min/max from calibration period only (if set)
-    if calibration_start is not None or calibration_stop is not None:
-        if calibration_start is not None:
-            cal_start = pd.Timestamp(calibration_start)
-            mask = ds >= cal_start
-        else:
-            mask = np.ones(len(ds), dtype=bool)
-        if calibration_stop is not None:
-            cal_stop = pd.Timestamp(calibration_stop)
-            mask = mask & (ds <= cal_stop)
-        gmt_cal = gmt_on_data_cal[mask]
-        if len(gmt_cal) == 0:
-            raise ValueError(
-                "No GMT data in calibration period [start={}, stop={}]".format(
-                    calibration_start, calibration_stop
-                )
-            )
+    if cal_mask is not None:
+        gmt_cal = gmt_on_data_cal[cal_mask]
         gmt_min, gmt_max = gmt_cal.min(), gmt_cal.max()
         scale = gmt_max - gmt_min
         if scale == 0:
@@ -177,7 +190,13 @@ def create_dataframe(
         )
         raise error
 
-    y_scaled, datamin, scale = f_scale(pd.Series(data_to_detrend), variable)
+    y_series = pd.Series(data_to_detrend)
+    if cal_mask is not None:
+        y_scaled, datamin, scale = f_scale(
+            y_series, variable, calibration_mask=cal_mask
+        )
+    else:
+        y_scaled, datamin, scale = f_scale(y_series, variable)
 
     tdf = pd.DataFrame(
         {
