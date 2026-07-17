@@ -10,10 +10,18 @@ The recipe clones the repo at legacy/v1.1.0-extended inside the container at bui
 
 ## Build
 
-From the repository root (requires network):
+From the repository root (requires network). Push `legacy/v1.1.0-extended` to GitHub first.
 
 ```bash
-singularity build attrici-v1.1.0-extended.sif containers/legacy/v1.1.0-extended/attrici-v1.1.0-extended.def
+# default output: /p/projects/isimip/isimip/sitreu/containers/attrici-v1.1.0-extended-<commit>.sif
+bash containers/legacy/v1.1.0-extended/build.sh a83e74f
+```
+
+Or manually:
+
+```bash
+singularity build /p/projects/isimip/isimip/sitreu/containers/attrici-v1.1.0-extended-a83e74f.sif \
+  containers/legacy/v1.1.0-extended/attrici-v1.1.0-extended.def
 ```
 
 ## Run
