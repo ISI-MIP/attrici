@@ -11,14 +11,21 @@ export WORKDIR=/workspace
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/opt/conda/envs/attrici_env/bin:$PATH"
 export CXX=g++
 
+# Pin the attrici commit this image must contain. Bump this, commit the .def,
+# then rebuild with build.sh so the .sif name matches.
+ATTRICI_COMMIT="8d7e1c32597ef8a3203b1b02a93fdef3c36db871"
+
 apt update
 apt-get install -y git wget build-essential
 
 home=/opt/attrici_build
 mkdir -p "$home" && cd "$home"
 
-# Clone legacy/v1.1.0-extended (calibration_start/stop, GMT normalization, time alignment)
-git clone --depth 1 --branch legacy/v1.1.0-extended https://github.com/ISI-MIP/attrici.git /opt/attrici
+git init /opt/attrici
+cd /opt/attrici
+git remote add origin https://github.com/ISI-MIP/attrici.git
+git fetch --depth 1 origin "$ATTRICI_COMMIT"
+git checkout --detach FETCH_HEAD
 
 # Create env: try v1.1.0 environment.yml first (like old def), else minimal + pip
 wget -q https://raw.githubusercontent.com/ISI-MIP/attrici/v1.1.0/config/environment.yml -O environment.yml
@@ -31,6 +38,14 @@ micromamba create -y -q -n attrici_env -c conda-forge -c defaults -f environment
 
 /opt/conda/envs/attrici_env/bin/pip install func_timeout
 /opt/conda/envs/attrici_env/bin/pip install -e /opt/attrici
+
+VERSION="$(/opt/conda/envs/attrici_env/bin/python -c "import attrici; print(attrici.__version__)")"
+SHORT="$(printf '%s' "$ATTRICI_COMMIT" | cut -c1-7)"
+echo "installed attrici ${VERSION} (wanted ${ATTRICI_COMMIT})"
+echo "$VERSION" | grep -qi "g${SHORT}" || {
+    echo "ERROR: attrici.__version__ does not contain g${SHORT}" >&2
+    exit 1
+}
 
 mkdir -p /workspace
 rm -rf "$home"

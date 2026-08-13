@@ -1,33 +1,36 @@
 # Legacy Singularity container for attrici v1.1.0-extended
 
-Singularity image that runs `run_estimation.py` from attrici branch **legacy/v1.1.0-extended** (Python 3.7, PyMC3, Theano). Extends v1.1.0 with:
+Singularity/Apptainer image that runs `run_estimation.py` from attrici branch **legacy/v1.1.0-extended** (Python 3.7, PyMC3, Theano).
 
-- `calibration_start` and `calibration_stop` configuration
-- GMT normalization from calibration period only
-- Time range alignment validation (GMT and input must cover same range)
+`ATTRICI_COMMIT` in the `.def` is the pin. `build.sh` names the `.sif` after that SHA and checks `attrici.__version__` inside the image.
 
-The recipe clones the repo at legacy/v1.1.0-extended inside the container at build time. Push the branch to GitHub before building.
+Push `legacy/v1.1.0-extended` to GitHub before building.
 
 ## Build
 
-From the repository root (requires network). Push `legacy/v1.1.0-extended` to GitHub first.
+Requires **root** (`sudo`) and network access.
+
+1. Set `ATTRICI_COMMIT` in `attrici-v1.1.0-extended.def` and commit it.
+2. Build:
 
 ```bash
-# default output: /p/projects/isimip/isimip/sitreu/containers/attrici-v1.1.0-extended-<commit>.sif
-bash containers/legacy/v1.1.0-extended/build.sh a83e74f
+cd /path/to/attrici
+sudo bash containers/legacy/v1.1.0-extended/build.sh
 ```
 
-Or manually:
+This writes `attrici-v1.1.0-extended-<sha>.sif` (currently `…-8d7e1c3.sif`).
+
+Copy to cluster:
 
 ```bash
-singularity build /p/projects/isimip/isimip/sitreu/containers/attrici-v1.1.0-extended-a83e74f.sif \
-  containers/legacy/v1.1.0-extended/attrici-v1.1.0-extended.def
+scp containers/legacy/v1.1.0-extended/attrici-v1.1.0-extended-8d7e1c3.sif \
+  login:/p/projects/isimip/isimip/sitreu/containers/
 ```
+
+Point attrici-workflow `singularity_image` and `resolved_commit` at the same SHA.
 
 ## Run
 
-Same as v1.1.0. Bind-mount your workflow directory to `/workspace`:
-
 ```bash
-singularity run -B /path/to/your/workflow:/workspace attrici-v1.1.0-extended.sif
+singularity run -B /path/to/your/workflow:/workspace attrici-v1.1.0-extended-8d7e1c3.sif
 ```
