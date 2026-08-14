@@ -141,20 +141,47 @@ def _calibration_mask(ds, calibration_start=None, calibration_stop=None):
     return mask
 
 
-def _gmt_on_data_times(ds, gmt, gmt_time=None):
+def _gmt_on_data_times(ds, gmt, gmt_time=None, calibration_stop=None):
     """Place GMT values on the data timestamps.
 
     GMT and input already share a calendar range. If lengths match, use GMT as
     is. Otherwise interpolate by date (GMT may be coarser than daily input).
+
+    When ``calibration_stop`` is set, days on or before that date are
+    interpolated using only GMT knots up to that date. Otherwise a longer
+    application GMT series would pull post-calibration knots (e.g. early 2022)
+    into late-2021 days and shift overlap ``gmt_scaled``.
     """
     gmt = np.asarray(gmt, dtype=float).squeeze()
-    if gmt_time is not None:
-        gmt_index = pd.to_datetime(gmt_time)
-        return np.interp(ds.asi8, gmt_index.asi8, gmt)
-    if len(gmt) == len(ds):
-        return gmt
-    gmt_index = np.linspace(ds.asi8[0], ds.asi8[-1], len(gmt))
-    return np.interp(ds.asi8, gmt_index, gmt)
+    ds_index = pd.DatetimeIndex(ds)
+    ds_asi8 = np.asarray(ds_index.asi8)
+
+    if gmt_time is None:
+        if len(gmt) == len(ds_asi8):
+            return gmt
+        gmt_asi8 = np.linspace(ds_asi8[0], ds_asi8[-1], len(gmt))
+        return np.interp(ds_asi8, gmt_asi8, gmt)
+
+    gmt_index = pd.DatetimeIndex(pd.to_datetime(gmt_time))
+    gmt_asi8 = np.asarray(gmt_index.asi8)
+    if calibration_stop is None:
+        return np.interp(ds_asi8, gmt_asi8, gmt)
+
+    cal_stop = pd.Timestamp(calibration_stop)
+    cal_knot = gmt_index <= cal_stop
+    if not np.any(cal_knot):
+        raise ValueError(
+            "No GMT samples on or before calibration_stop={}".format(calibration_stop)
+        )
+    in_cal = ds_index <= cal_stop
+    result = np.empty(len(ds_asi8), dtype=float)
+    result[in_cal] = np.interp(
+        ds_asi8[in_cal], gmt_asi8[cal_knot], gmt[cal_knot]
+    )
+    after = ~in_cal
+    if np.any(after):
+        result[after] = np.interp(ds_asi8[after], gmt_asi8, gmt)
+    return result
 
 
 def create_dataframe(
@@ -184,7 +211,11 @@ def create_dataframe(
     # GMT already covers the same calendar range as `ds` (validated in
     # run_estimation). Map it onto data times by date, not via t_scaled:
     # t is calibration-anchored, so t=1 is calibration_stop, not the last GMT day.
-    gmt_on_data_cal = _gmt_on_data_times(ds, gmt, gmt_time)
+    # Calibration days ignore post-calibration GMT knots so app_2021 and
+    # app_2024 interpolate the overlap the same way.
+    gmt_on_data_cal = _gmt_on_data_times(
+        ds, gmt, gmt_time, calibration_stop=calibration_stop
+    )
 
     # GMT scaling: use min/max from calibration period only (if set)
     if cal_mask is not None:

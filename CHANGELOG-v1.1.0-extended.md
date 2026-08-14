@@ -17,6 +17,11 @@
 - Variable scaling (`scale_to_unity`, `scale_and_mask`, `scale_precip`) derives min/max or gamma fit from calibration subset only, then applies to full series
 - Fixed-bound variables (`hurs`, `rsds`, `tasskew`, `prsnratio`) unchanged
 
+### GMT interpolation ignores post-calibration knots on the overlap
+- Daily GMT on days ≤ `calibration_stop` is interpolated from GMT samples up to that date only
+- A longer application GMT series (combined 1901–2024) no longer pulls 2022 knots into late 2021
+- Overlap `gmt` / `gmt_scaled` stay identical between `app_2021` and `app_2024`
+
 ### Time range alignment validation
 - GMT and input dataset must cover the same time range
 - Validation ensures GMT start/end are within tolerance of input start/end
