@@ -141,9 +141,25 @@ def _calibration_mask(ds, calibration_start=None, calibration_stop=None):
     return mask
 
 
+def _gmt_on_data_times(ds, gmt, gmt_time=None):
+    """Place GMT values on the data timestamps.
+
+    GMT and input already share a calendar range. If lengths match, use GMT as
+    is. Otherwise interpolate by date (GMT may be coarser than daily input).
+    """
+    gmt = np.asarray(gmt, dtype=float).squeeze()
+    if gmt_time is not None:
+        gmt_index = pd.to_datetime(gmt_time)
+        return np.interp(ds.asi8, gmt_index.asi8, gmt)
+    if len(gmt) == len(ds):
+        return gmt
+    gmt_index = np.linspace(ds.asi8[0], ds.asi8[-1], len(gmt))
+    return np.interp(ds.asi8, gmt_index, gmt)
+
+
 def create_dataframe(
     nct_array, units, data_to_detrend, gmt, variable,
-    calibration_start=None, calibration_stop=None
+    calibration_start=None, calibration_stop=None, gmt_time=None
 ):
 
     # proper dates plus additional time axis that is
@@ -164,7 +180,11 @@ def create_dataframe(
             t_scaled = t_scaled.astype(float)
     else:
         t_scaled = (ds - ds.min()) / (ds.max() - ds.min())
-    gmt_on_data_cal = np.interp(t_scaled, np.linspace(0, 1, len(gmt)), gmt)
+
+    # GMT already covers the same calendar range as `ds` (validated in
+    # run_estimation). Map it onto data times by date, not via t_scaled:
+    # t is calibration-anchored, so t=1 is calibration_stop, not the last GMT day.
+    gmt_on_data_cal = _gmt_on_data_times(ds, gmt, gmt_time)
 
     # GMT scaling: use min/max from calibration period only (if set)
     if cal_mask is not None:

@@ -128,6 +128,7 @@ for n in run_numbers[:]:
         nct[:], nct.units, data, gmt, s.variable,
         calibration_start=s.calibration_start,
         calibration_stop=s.calibration_stop,
+        gmt_time=gmt_time,
     )
 
     try:

@@ -66,6 +66,7 @@ df, datamin, scale = dh.create_dataframe(
     nct[:], nct.units, data, gmt, s.variable,
     calibration_start=s.calibration_start,
     calibration_stop=s.calibration_stop,
+    gmt_time=gmt_time,
 )
 
 try:
