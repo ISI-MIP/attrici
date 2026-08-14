@@ -18,12 +18,12 @@ cd /path/to/attrici
 sudo bash containers/legacy/v1.1.0-extended/build.sh
 ```
 
-This writes `attrici-v1.1.0-extended-<sha>.sif` (currently `…-8d7e1c3.sif`).
+This writes `attrici-v1.1.0-extended-<sha>.sif` (currently `…-20ddadc.sif`).
 
 Copy to cluster:
 
 ```bash
-scp containers/legacy/v1.1.0-extended/attrici-v1.1.0-extended-8d7e1c3.sif \
+scp containers/legacy/v1.1.0-extended/attrici-v1.1.0-extended-20ddadc.sif \
   login:/p/projects/isimip/isimip/sitreu/containers/
 ```
 
@@ -32,5 +32,5 @@ Point attrici-workflow `singularity_image` and `resolved_commit` at the same SHA
 ## Run
 
 ```bash
-singularity run -B /path/to/your/workflow:/workspace attrici-v1.1.0-extended-8d7e1c3.sif
+singularity run -B /path/to/your/workflow:/workspace attrici-v1.1.0-extended-20ddadc.sif
 ```

@@ -13,7 +13,7 @@ export CXX=g++
 
 # Pin the attrici commit this image must contain. Bump this, commit the .def,
 # then rebuild with build.sh so the .sif name matches.
-ATTRICI_COMMIT="8d7e1c32597ef8a3203b1b02a93fdef3c36db871"
+ATTRICI_COMMIT="20ddadc0dcd84eddf01e730d1f9ec61830c526da"
 
 apt update
 apt-get install -y git wget build-essential
