@@ -23,9 +23,17 @@ def rescale(df, modes):
     contains the sin(x)-series
     """
 
-    # rescale the period, as t is also scaled
-    p = 365.25 / (df["ds"].max() - df["ds"].min()).days
-    x = series(df["t"], p, modes)
+    # `t` is 0–1 over the calibration window (and may exceed 1 after
+    # calibration_stop). Scale the annual period to that same window, not
+    # the full application span — otherwise a longer application_end
+    # stretches the seasonal cycle on the overlap.
+    t_span = float(df["t"].max() - df["t"].min())
+    d_span = (df["ds"].max() - df["ds"].min()).days
+    if t_span == 0 or d_span == 0:
+        p = 1.0
+    else:
+        p = 365.25 * t_span / d_span
+    x = series(np.asarray(df["t"], dtype=float), p, modes)
     return x
 
 
